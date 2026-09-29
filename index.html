@@ -1,0 +1,651 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Piutang GR & BP — PT Perintis Perkasa</title>
+<style>
+  :root{
+    --bg:#f7f7f5; --panel:#ffffff; --panel-2:#f0f0ee; --border:#e2e2de;
+    --ink:#1c1c1a; --muted:#6b6b66; --muted-2:#8a8a84;
+    --green:#2f9e5c; --amber:#c98a1f; --orange:#e0904a; --blue:#3a5bd9; --red:#c8394a;
+  }
+  *{box-sizing:border-box;}
+  body{margin:0;background:var(--bg);color:var(--ink);font-family:'Segoe UI',Inter,-apple-system,sans-serif;}
+  .wrap{max-width:1180px;margin:0 auto;padding:48px 32px 80px;}
+  .topline{display:flex;justify-content:space-between;align-items:flex-start;flex-wrap:wrap;gap:16px;margin-bottom:8px;}
+  .brand{color:var(--muted);font-size:15px;margin:0 0 8px;}
+  h1{font-family:Georgia,serif;font-weight:600;font-size:36px;margin:0 0 6px;letter-spacing:-0.01em;}
+  .sub{color:var(--muted);font-size:13.5px;margin:2px 0;}
+  .controls{display:flex;align-items:center;gap:10px;flex-wrap:wrap;}
+  .btn{
+    background:#2a4bd6;color:#fff;border:none;border-radius:8px;padding:9px 16px;
+    font-weight:600;font-size:13.5px;cursor:pointer;display:inline-flex;align-items:center;gap:6px;
+  }
+  .btn:hover{background:#3457e0;}
+  .status{font-size:12.5px;color:var(--muted);}
+  .status b{color:var(--ink);}
+  .status.err{color:var(--red);}
+  label.toggle{display:flex;align-items:center;gap:6px;font-size:12.5px;color:var(--muted);cursor:pointer;}
+  hr{border:none;border-top:1px solid var(--border);margin:24px 0;}
+
+  .banner{background:#fdecee;border:1px solid #f3b9c0;color:var(--red);border-radius:10px;padding:14px 18px;font-size:13px;margin-bottom:20px;display:none;}
+
+  .divisi-tabs{display:flex;gap:2px;margin-top:6px;border-bottom:1px solid var(--border);flex-wrap:wrap;}
+  .divisi-tab{
+    font-family:inherit;font-size:13.5px;font-weight:600;padding:10px 18px;cursor:pointer;
+    border:1px solid var(--border);border-bottom:none;border-radius:8px 8px 0 0;
+    background:var(--bg);color:var(--muted);position:relative;top:1px;
+  }
+  .divisi-tab .badge{display:block;font-size:11px;font-weight:600;color:var(--muted-2);margin-top:2px;}
+  .divisi-tab.active{background:var(--panel);color:var(--ink);border-bottom:1px solid var(--panel);}
+  .divisi-tab.active .badge{color:var(--blue);}
+  .divisi-tab-all{font-weight:700;}
+  .divisi-tab-all:not(.active){border-color:var(--blue);color:var(--blue);}
+  #divisiPanel{margin-top:20px;}
+
+  .total-card{
+    background:var(--panel);border:1px solid var(--border);border-radius:16px;
+    padding:26px 30px;margin-bottom:24px;box-shadow:0 1px 3px rgba(0,0,0,0.05);
+    display:flex;justify-content:space-between;align-items:center;flex-wrap:wrap;gap:16px;
+  }
+  .total-card .amount{font-family:Georgia,serif;font-weight:600;font-size:38px;}
+  .total-card .label{color:var(--muted);font-size:13.5px;margin-bottom:6px;}
+  .search-bar{margin-bottom:18px;}
+  #search{
+    width:100%;background:var(--panel);border:1px solid var(--border);
+    color:var(--ink);border-radius:10px;padding:10px 14px;font-size:14px;
+  }
+  #search:focus{outline:none;border-color:var(--blue);}
+  .list{display:flex;flex-direction:column;gap:10px;}
+  .debtor{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .debtor-head{display:flex;justify-content:space-between;align-items:center;padding:16px 20px;cursor:pointer;gap:16px;}
+  .debtor-head:hover{background:var(--panel-2);}
+  .debtor-name{font-weight:600;font-size:15px;}
+  .debtor-name .cab{display:inline-block;margin-left:8px;font-size:10.5px;font-weight:600;color:var(--muted-2);background:#ececeb;padding:2px 8px;border-radius:20px;}
+  .debtor-meta{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .debtor-right{display:flex;align-items:center;gap:14px;}
+  .debtor-total{font-family:Georgia,serif;font-size:19px;text-align:right;}
+  .chevron{color:var(--muted-2);transition:transform 0.2s;}
+  .debtor.open .chevron{transform:rotate(90deg);}
+  .debtor-body{display:none;padding:0 20px 20px;border-top:1px solid var(--border);}
+  .debtor.open .debtor-body{display:block;}
+  .months-row{display:flex;gap:10px;flex-wrap:wrap;margin:16px 0;}
+  .month-pill{background:var(--panel-2);border:1px solid var(--border);border-radius:10px;padding:8px 14px;font-size:12.5px;}
+  .month-pill b{display:block;font-family:Georgia,serif;font-size:15px;margin-top:2px;}
+  table{width:100%;border-collapse:collapse;margin-top:8px;}
+  th{text-align:left;font-size:11.5px;color:var(--muted-2);font-weight:600;padding:8px 6px;border-bottom:1px solid var(--border);white-space:nowrap;}
+  th.num,td.num{text-align:right;}
+  td{padding:9px 6px;border-bottom:1px solid var(--border);font-size:13px;}
+  tr:last-child td{border-bottom:none;}
+  .table-scroll{overflow-x:auto;}
+  th.sortable{cursor:pointer;user-select:none;}
+  th.sortable:hover{color:var(--ink);}
+  .bar-title{font-size:12px;color:var(--muted);margin:18px 0 8px;text-transform:uppercase;letter-spacing:0.04em;}
+  .loading{color:var(--muted);font-size:13px;padding:40px 0;text-align:center;}
+  .spin{display:inline-block;width:14px;height:14px;border:2px solid var(--muted-2);border-top-color:var(--blue);border-radius:50%;animation:spin 0.8s linear infinite;vertical-align:-2px;margin-right:6px;}
+  @keyframes spin{to{transform:rotate(360deg);}}
+  .aging-grid{display:grid;grid-template-columns:repeat(4,1fr);gap:14px;margin-bottom:24px;}
+  @media (max-width:760px){ .aging-grid{grid-template-columns:repeat(2,1fr) !important;} }
+  .tab-btn{
+    background:var(--panel);border:1px solid var(--border);color:var(--muted);
+    border-radius:9px;padding:9px 18px;font-size:13.5px;font-weight:600;cursor:pointer;
+  }
+  .tab-btn:hover{color:var(--ink);}
+  .tab-btn.active{background:var(--blue);color:#fff;border-color:var(--blue);}
+  .cabang-group{background:var(--panel);border:1px solid var(--border);border-radius:14px;overflow:hidden;margin-bottom:10px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .cabang-head{display:flex;justify-content:space-between;align-items:center;padding:18px 20px;cursor:pointer;gap:16px;}
+  .cabang-head:hover{background:var(--panel-2);}
+  .cabang-title{font-weight:700;font-size:16px;}
+  .cabang-meta{color:var(--muted);font-size:12.5px;margin-top:3px;}
+  .cabang-total{font-family:Georgia,serif;font-size:21px;text-align:right;}
+  .cabang-body{display:none;padding:0 20px 18px;border-top:1px solid var(--border);}
+  .cabang-group.open .cabang-body{display:block;}
+  .cabang-group.open .chevron{transform:rotate(90deg);}
+  .cabang-body .list{margin-top:12px;}
+</style>
+</head>
+<body>
+<div id="loginGate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
+  <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px;width:320px;max-width:100%;box-shadow:0 4px 16px rgba(0,0,0,.08);">
+    <p style="font-weight:700;font-size:18px;margin:0 0 4px;font-family:Georgia,serif;">Masuk ke Dashboard</p>
+    <p style="color:var(--muted);font-size:13px;margin:0 0 18px;">PT Perintis Perkasa, Medan</p>
+    <input type="password" id="gatePassword" placeholder="Masukkan password" autofocus
+      style="width:100%;box-sizing:border-box;padding:10px 14px;border:1px solid var(--border);border-radius:10px;font-size:14px;margin-bottom:10px;background:var(--bg);color:var(--ink);">
+    <button id="gateSubmit" class="btn" style="width:100%;justify-content:center;">Masuk</button>
+    <p id="gateError" style="color:var(--red);font-size:12.5px;margin-top:10px;display:none;">Password salah, coba lagi.</p>
+  </div>
+</div>
+<div class="wrap" style="display:none;">
+
+
+  <div class="topline">
+    <div>
+      <p class="brand">PT Perintis Perkasa, Medan</p>
+      <h1>Piutang GR & BP</h1>
+      <p class="sub" id="opname-title" style="margin-bottom:2px;"></p>
+      <p class="sub" id="source-sub">Sumber: Laporan Piutang</p>
+    </div>
+    <div class="controls">
+      <label class="toggle"><input type="checkbox" id="auto-toggle" checked> Auto-refresh 60 dtk</label>
+      <button class="btn" id="refresh-btn">&#8635; Refresh sekarang</button>
+    </div>
+  </div>
+  <div class="status" id="status">Memuat data...</div>
+
+  <div class="banner" id="error-banner"></div>
+
+  <hr>
+
+  <div class="divisi-tabs" id="divisiTabs" style="display:none;"></div>
+
+  <div id="divisiPanel" style="display:none;">
+    <div class="total-card" id="totalCard">
+      <div>
+        <p class="label">Total piutang berjalan</p>
+        <p class="amount" id="totalAmount">—</p>
+      </div>
+      <div style="text-align:right;">
+        <p class="label">Jumlah faktur &middot; debitur</p>
+        <p class="amount" id="totalCount" style="font-size:22px;">—</p>
+      </div>
+    </div>
+    <div class="aging-grid" id="agingGrid"></div>
+    <div class="tabs" id="innerTabs" style="display:flex;gap:8px;margin-bottom:18px;">
+      <button class="tab-btn active" data-tab="debitur">Per Debitur</button>
+      <button class="tab-btn" data-tab="kategori">Per Kategori</button>
+      <button class="tab-btn" data-tab="penagihan">Penagihan Piutang</button>
+    </div>
+    <div id="content"></div>
+  </div>
+
+  <div id="emptyState"><div class="loading"><span class="spin"></span>Mengambil data dari Google Sheets...</div></div>
+
+</div>
+
+<script>
+// URL "Publish to web" (File > Share > Publish to web) untuk sheet "Piutang GR & BP", Sheet1 (gid=0).
+// Kalau data yang tampil ternyata basi, buka sheet-nya lalu: File > Share > Publish to web > Republish.
+const CSV_URL = "https://docs.google.com/spreadsheets/d/e/2PACX-1vTM7G5Mv4eC4DN3u_xkvUBCu3LYgZxMIEq0lY9QOKykZudX02ANnM0-2GwxtQ28gJjEEzThOWWj__Az/pub?gid=0&single=true&output=csv";
+
+var MONTH_NAMES = ['','Jan','Feb','Mar','Apr','Mei','Jun','Jul','Agu','Sep','Okt','Nov','Des'];
+var MONTH_FULL_ID = ['','januari','februari','maret','april','mei','juni','juli','agustus','september','oktober','november','desember'];
+var NAME_MAP = {
+  'PT . ASURANSI MSIG INDONESIA': 'PT. ASURANSI MSIG INDONESIA',
+  'PERINTIS PERKASA,PT': 'PERINTIS PERKASA, PT'
+};
+
+var autoTimer = null;
+var lastData = null;
+var currentDivisi = null;
+var currentTab = 'debitur';
+var searchQuery = '';
+var openDebtorKeys = {}, openCabangKeys = {};
+var sortKey = 'tgljto', sortDir = 1; // default: Tgl Jto terlama dulu, lalu Hari terbesar
+
+function rupiah(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
+function numId(n){ return Math.round(n).toLocaleString('id-ID'); }
+function escapeHtml(s){
+  return String(s).replace(/[&<>"]/g, function(c){ return {'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]; });
+}
+
+// Robust CSV parser (handles quoted fields with commas)
+function parseCSV(text) {
+  const rows = [];
+  let row = [];
+  let field = '';
+  let inQuotes = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (inQuotes) {
+      if (c === '"') {
+        if (text[i+1] === '"') { field += '"'; i++; }
+        else { inQuotes = false; }
+      } else { field += c; }
+    } else {
+      if (c === '"') { inQuotes = true; }
+      else if (c === ',') { row.push(field); field = ''; }
+      else if (c === '\r') { /* skip */ }
+      else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+      else { field += c; }
+    }
+  }
+  if (field.length > 0 || row.length > 0) { row.push(field); rows.push(row); }
+  return rows;
+}
+
+function parseAmount(s) {
+  if (!s) return 0;
+  s = s.trim().replace(/\./g, '').replace(/,/g, '.');
+  const n = parseFloat(s);
+  return isNaN(n) ? 0 : n;
+}
+function parseDateDDMMYYYY(s) {
+  if (!s) return null;
+  const m = s.trim().match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+  if (!m) return null;
+  return { day: parseInt(m[1]), month: parseInt(m[2]), year: parseInt(m[3]) };
+}
+function extractPerDate(title) {
+  if (!title) return '';
+  const re = new RegExp('(\\d{1,2})\\s+(' + MONTH_FULL_ID.slice(1).join('|') + ')\\s+(\\d{4})', 'i');
+  const m = title.match(re);
+  if (!m) return title;
+  const day = m[1].padStart(2, '0');
+  const monthIdx = MONTH_FULL_ID.indexOf(m[2].toLowerCase());
+  const monthAbbr = monthIdx > 0 ? MONTH_NAMES[monthIdx] : m[2];
+  return 'Per: ' + day + '-' + monthAbbr + '-' + m[3];
+}
+
+// ===== ATURAN KATEGORI & DIVISI (edit di sini) =====
+// Kategori diputuskan dari No.Customer + Faktur No. menurut aturan MASING-MASING DIVISI.
+// Aturan divisi dicek dulu, baru aturan umum '*'. Aturan pertama yang cocok menang; satu aturan boleh memakai
+// cust saja, faktur saja, atau keduanya (harus cocok semua). Tidak ada yang cocok -> kolom kategori sheet (kolom O),
+// kosong/#N/A -> "LAINNYA".
+var KATEGORI_RULES = {
+  '*': [
+    { cust: /^B\d+(PP|PER)$/i, kategori: 'PERINTIS GROUP' }
+  ],
+  'Body Repair': [
+    // contoh: { cust: /^B0000095TS$/i, faktur: /\/INV\//i, kategori: 'NAMA KATEGORI' },
+  ],
+  'GR Adam Malik': [
+  ],
+  'GR Flamboyan': [
+  ]
+};
+function tentukanKategori(f){
+  var lists = [KATEGORI_RULES[normalizeDivisi(f.divisi)] || [], KATEGORI_RULES['*'] || []];
+  for (var l = 0; l < lists.length; l++){
+    for (var i = 0; i < lists[l].length; i++){
+      var r = lists[l][i];
+      if ((!r.cust || r.cust.test(f.cust || '')) && (!r.faktur || r.faktur.test(f.faktur || ''))) return r.kategori;
+    }
+  }
+  var k = (f.rawKat || '').trim().toUpperCase();
+  return (!k || k.charAt(0) === '#') ? 'LAINNYA' : k;
+}
+function normalizeDivisi(raw){
+  var s = (raw || '').toUpperCase();
+  if (/ADAM/.test(s)) return 'GR Adam Malik';
+  if (/FLAMBOYAN/.test(s)) return 'GR Flamboyan';
+  if (/BODY|REPAIR|\bBP\b/.test(s)) return 'Body Repair';
+  return (raw || '').trim() || 'Lainnya';
+}
+var DIVISI_ORDER = ['Body Repair', 'GR Adam Malik', 'GR Flamboyan'];
+
+function dateNum(s){ var d = parseDateDDMMYYYY(s); return d ? d.year * 10000 + d.month * 100 + d.day : 99999999; }
+function sortInvoices(list){
+  return list.slice().sort(function(a, b){
+    var ha = parseInt(a.hari, 10) || 0, hb = parseInt(b.hari, 10) || 0, c;
+    if (sortKey === 'hari'){ c = ha - hb; if (!c) c = dateNum(a.tgljto) - dateNum(b.tgljto); }
+    else { c = dateNum(a.tgljto) - dateNum(b.tgljto); if (!c) c = hb - ha; }
+    if (!c) c = a.faktur < b.faktur ? -1 : (a.faktur > b.faktur ? 1 : 0);
+    return c * sortDir;
+  });
+}
+
+function buildDebtors(invs){
+  var by = {};
+  invs.forEach(function(inv){
+    var d = by[inv.nama] || (by[inv.nama] = { name: inv.nama, total: 0, count: 0, invoices: [], monthsMap: {}, katSet: {} });
+    d.total += inv.jumlah; d.count += 1; d.invoices.push(inv); d.katSet[inv.kategori] = 1;
+    var dt = parseDateDDMMYYYY(inv.tgljto);
+    var key = dt ? dt.year + '-' + String(dt.month).padStart(2, '0') : 'unknown';
+    d.monthsMap[key] = (d.monthsMap[key] || 0) + inv.jumlah;
+  });
+  return Object.keys(by).map(function(k){
+    var d = by[k];
+    var months = Object.keys(d.monthsMap).sort().map(function(key){
+      var label = 'Lainnya';
+      if (key !== 'unknown'){ var p = key.split('-'); label = MONTH_NAMES[parseInt(p[1])] + ' ' + p[0]; }
+      return { period: key, label: label, total: d.monthsMap[key] };
+    });
+    return { name: d.name, total: d.total, count: d.count, kategori: Object.keys(d.katSet).join(' \u00b7 '), invoices: d.invoices, months: months };
+  }).sort(function(a, b){ return b.total - a.total; });
+}
+function groupDebtors(invs){
+  var total = 0; invs.forEach(function(i){ total += i.jumlah; });
+  return { total: total, count: invs.length, debtors: buildDebtors(invs), invs: invs };
+}
+
+function processRows(rows) {
+  let headerIdx = -1;
+  for (let i = 0; i < rows.length; i++) {
+    if (rows[i][0] && rows[i][0].trim() === 'No') { headerIdx = i; break; }
+  }
+  if (headerIdx === -1) throw new Error("Format kolom tidak dikenali (header 'No' tidak ditemukan)");
+
+  let reportTitle = '';
+  for (let i = 0; i < headerIdx; i++) {
+    for (let j = 0; j < rows[i].length; j++) {
+      const cell = (rows[i][j] || '').replace(/^\uFEFF/, '').trim();
+      if (!cell) continue;
+      if (cell.toLowerCase() === 'berita acara') continue;
+      reportTitle = cell; break;
+    }
+    if (reportTitle) break;
+  }
+
+  const dataRows = [];
+  for (let i = headerIdx + 1; i < rows.length; i++) {
+    const r = rows[i];
+    if (!r[0] || !/^\d+$/.test(r[0].trim())) continue;
+    dataRows.push(r);
+  }
+
+  var invs = dataRows.map(function(r){
+    var nama = (r[2] || '').trim(); nama = NAME_MAP[nama] || nama;
+    var f = { cust: (r[1] || '').trim(), faktur: (r[4] || '').trim(), divisi: (r[12] || '').trim(), rawKat: r[14] };
+    return { nama: nama, cust: f.cust, faktur: f.faktur, tgljto: (r[6] || '').trim(), nopol: r[3] || '',
+             sa: r[10] || '', hari: r[11] || '', jumlah: parseAmount(r[7]), top: (r[5] || '').trim(), giro: (r[8] || '').trim(), sacode: (r[9] || '').trim(),
+             divisi: normalizeDivisi(f.divisi), kategori: tentukanKategori(f) };
+  });
+  var grandTotal = 0; invs.forEach(function(i){ grandTotal += i.jumlah; });
+  var byDivisi = {};
+  DIVISI_ORDER.forEach(function(n){ byDivisi[n] = []; });
+  invs.forEach(function(i){ (byDivisi[i.divisi] = byDivisi[i.divisi] || []).push(i); });
+  var divisions = { 'Semua Cabang': groupDebtors(invs) };
+  Object.keys(byDivisi).forEach(function(n){ divisions[n] = groupDebtors(byDivisi[n]); });
+
+  return { grand_total: grandTotal, grand_count: dataRows.length, report_title: reportTitle, divisions: divisions };
+}
+
+function computeAgingBuckets(debtors) {
+  const buckets = {
+    b1: { label: '1-7 hari', min: 1, max: 7, color: 'var(--green)', total: 0, count: 0 },
+    b2: { label: '8-14 hari', min: 8, max: 14, color: 'var(--amber)', total: 0, count: 0 },
+    b3: { label: '15-26 hari', min: 15, max: 26, color: 'var(--orange)', total: 0, count: 0 },
+    b4: { label: '> 26 hari', min: 27, max: Infinity, color: 'var(--red)', total: 0, count: 0, warn: true },
+  };
+  debtors.forEach(d => {
+    d.invoices.forEach(inv => {
+      const h = parseInt(inv.hari, 10);
+      if (isNaN(h)) return;
+      for (const key in buckets) {
+        const b = buckets[key];
+        if (h >= b.min && h <= b.max) { b.total += inv.jumlah; b.count += 1; break; }
+      }
+    });
+  });
+  return buckets;
+}
+
+function renderAgingCards(debtors) {
+  const buckets = computeAgingBuckets(debtors);
+  var html = '';
+  Object.values(buckets).forEach(b => {
+    html += '<div style="background:' + (b.warn ? '#fdecee' : 'var(--panel)') + ';border:1px solid ' + (b.warn ? '#f3b9c0' : 'var(--border)') + ';border-radius:14px;padding:18px 20px;">' +
+      '<div style="font-size:12.5px;color:var(--muted);margin-bottom:8px;"><span style="display:inline-block;width:7px;height:7px;border-radius:50%;background:' + b.color + ';margin-right:6px;"></span>' + b.label + '</div>' +
+      '<div style="font-family:Georgia,serif;font-size:22px;font-weight:600;color:' + (b.warn ? 'var(--red)' : 'var(--ink)') + ';">' + rupiah(b.total) + '</div>' +
+      '<div style="font-size:12px;color:' + (b.warn ? 'var(--red)' : 'var(--muted-2)') + ';margin-top:4px;">' + numId(b.count) + ' faktur' + (b.warn ? ' &middot; prioritas tagih' : '') + '</div>' +
+    '</div>';
+  });
+  document.getElementById('agingGrid').innerHTML = html;
+}
+
+function createDebtorHtml(d, keyPrefix) {
+  var key = keyPrefix + '||' + d.name;
+  var qq = searchQuery.trim().toLowerCase();
+  var byFak = !!qq && d.name.toLowerCase().indexOf(qq) < 0 && fakMatch(d, qq);
+  var isOpen = (key in openDebtorKeys) ? !!openDebtorKeys[key] : byFak;
+  var shown = byFak ? d.invoices.filter(i => i.faktur.toLowerCase().indexOf(qq) >= 0) : d.invoices;
+  var monthsHtml = '<div class="bar-title">Total Piutang</div><div class="months-row"><div class="month-pill" style="font-size:14px;">Total keseluruhan<b style="font-size:20px;">' + rupiah(d.total) + '</b></div></div>';
+  monthsHtml += '<div class="bar-title">Rincian per Bulan (Tgl Jatuh Tempo)</div><div class="months-row">';
+  d.months.forEach(m => { monthsHtml += `<div class="month-pill">${escapeHtml(m.label)}<b>${rupiah(m.total)}</b></div>`; });
+  monthsHtml += '</div>';
+
+  var arrow = function(k){ return sortKey === k ? (sortDir > 0 ? ' \u25b2' : ' \u25bc') : ''; };
+  var invHtml = '<div class="bar-title">Daftar Faktur (' + shown.length + ')</div><div class="table-scroll"><table><thead><tr><th class="num">No</th><th>No Faktur</th><th class="sortable" data-sort="tgljto">Tgl Jto' + arrow('tgljto') + '</th><th>No Polisi</th><th>SA</th><th class="num sortable" data-sort="hari">Hari' + arrow('hari') + '</th><th class="num">Jumlah</th></tr></thead><tbody>';
+  sortInvoices(shown).forEach((inv, i) => {
+    invHtml += `<tr><td class="num">${i + 1}</td><td>${escapeHtml(inv.faktur)}</td><td>${escapeHtml(inv.tgljto)}</td><td>${escapeHtml(inv.nopol || '-')}</td><td>${escapeHtml(inv.sa)}</td><td class="num">${escapeHtml(String(inv.hari || '-'))}</td><td class="num">${rupiah(inv.jumlah)}</td></tr>`;
+  });
+  invHtml += '</tbody></table></div>';
+
+  return `<div class="debtor${isOpen ? ' open' : ''}" data-key="${escapeHtml(key)}">
+    <div class="debtor-head" data-toggle="${escapeHtml(key)}">
+      <div><div class="debtor-name">${escapeHtml(d.name)}<span class="cab">${escapeHtml(d.kategori || '-')}</span></div>
+      <div class="debtor-meta">${numId(d.count)} faktur</div></div>
+      <div class="debtor-right"><div class="debtor-total">${rupiah(d.total)}</div><div class="chevron">&#9656;</div></div>
+    </div>
+    <div class="debtor-body">${isOpen ? (monthsHtml + invHtml) : ''}</div>
+  </div>`;
+}
+
+function renderDebiturTab(debtors) {
+  var q = searchQuery.trim().toLowerCase();
+  var filtered = q ? debtors.filter(d => d.name.toLowerCase().includes(q) || fakMatch(d, q)) : debtors;
+  var html = `<div class="search-bar"><input id="search" type="text" placeholder="Cari nama debitur atau no faktur..." value="${escapeHtml(searchQuery)}"></div><div class="list">`;
+  if (!filtered.length) html += '<div class="loading">Tidak ada debitur yang cocok.</div>';
+  filtered.forEach(d => { html += createDebtorHtml(d, 'root'); });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+  wireContentHandlers();
+}
+
+function renderKategoriTab(dd) {
+  var byK = {};
+  dd.invs.forEach(function(i){ (byK[i.kategori] = byK[i.kategori] || []).push(i); });
+  var groups = Object.keys(byK).map(function(k){
+    var tot = 0; byK[k].forEach(function(i){ tot += i.jumlah; });
+    return { name: k, total: tot, count: byK[k].length, debtors: buildDebtors(byK[k]) };
+  }).sort((a, b) => b.total - a.total);
+  var q = searchQuery.trim().toLowerCase();
+  var html = `<div class="search-bar"><input id="search" type="text" placeholder="Cari kategori, debitur, atau no faktur..." value="${escapeHtml(searchQuery)}"></div><div class="list">`;
+  groups.forEach(g => {
+    var gKey = 'kategori||' + g.name;
+    var isOpen = (gKey in openCabangKeys) ? !!openCabangKeys[gKey] : !!q;
+    var matches = !q || g.name.toLowerCase().includes(q) || g.debtors.some(d => d.name.toLowerCase().includes(q) || fakMatch(d, q));
+    if (!matches) return;
+    html += `<div class="cabang-group${isOpen ? ' open' : ''}" data-key="${escapeHtml(gKey)}">
+      <div class="cabang-head" data-toggle-cabang="${escapeHtml(gKey)}">
+        <div><div class="cabang-title">${escapeHtml(g.name)}</div>
+        <div class="cabang-meta">${numId(g.debtors.length)} debitur &middot; ${numId(g.count)} faktur</div></div>
+        <div class="debtor-right"><div class="cabang-total">${rupiah(g.total)}</div><div class="chevron">&#9656;</div></div>
+      </div>
+      <div class="cabang-body">`;
+    if (isOpen) {
+      html += '<div class="list">';
+      g.debtors.forEach(d => {
+        var dOk = !q || d.name.toLowerCase().includes(q) || g.name.toLowerCase().includes(q) || fakMatch(d, q);
+        if (dOk) html += createDebtorHtml(d, gKey);
+      });
+      html += '</div>';
+    }
+    html += '</div></div>';
+  });
+  html += '</div>';
+  document.getElementById('content').innerHTML = html;
+  wireContentHandlers();
+}
+
+var penBucket = 'all';
+function fakMatch(d, q){ return d.invoices.some(function(i){ return i.faktur.toLowerCase().indexOf(q) >= 0; }); }
+function renderPenagihanTab(dd){
+  var q = searchQuery.trim().toLowerCase();
+  var R = { all: [-1e9, 1e9], b1: [1, 7], b2: [8, 14], b3: [15, 26], b4: [27, 1e9] }[penBucket];
+  var list = dd.invs.filter(function(i){
+    var h = parseInt(i.hari, 10); if (isNaN(h)) h = 0;
+    if (penBucket !== 'all' && (h < R[0] || h > R[1])) return false;
+    return !q || [i.nama, i.faktur, i.nopol, i.sa, i.sacode, i.cust, i.kategori].join(' ').toLowerCase().indexOf(q) >= 0;
+  });
+  var total = 0; list.forEach(function(i){ total += i.jumlah; });
+  var opts = [['all','Semua umur'],['b1','1-7 hari'],['b2','8-14 hari'],['b3','15-26 hari'],['b4','> 26 hari']].map(function(o){
+    return '<option value="' + o[0] + '"' + (o[0] === penBucket ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
+  var arrow = function(k){ return sortKey === k ? (sortDir > 0 ? ' \u25b2' : ' \u25bc') : ''; };
+  var rows = '';
+  sortInvoices(list).forEach(function(i, n){
+    var h = parseInt(i.hari, 10);
+    rows += '<tr><td class="num">' + (n + 1) + '</td><td>' + escapeHtml(i.nama) + '</td><td>' + escapeHtml(i.nopol || '-') + '</td><td>' + escapeHtml(i.faktur) +
+      '</td><td>' + escapeHtml(i.top || '-') + '</td><td>' + escapeHtml(i.tgljto) + '</td><td class="num">' + rupiah(i.jumlah) + '</td><td>' + escapeHtml(i.giro || '-') +
+      '</td><td>' + escapeHtml(i.sacode || '-') + '</td><td>' + escapeHtml(i.sa) + '</td><td class="num"' + (h > 26 ? ' style="color:var(--red);font-weight:600;"' : '') + '>' + escapeHtml(String(i.hari || '-')) + '</td></tr>';
+  });
+  if (!list.length) rows = '<tr><td colspan="11" class="loading">Tidak ada faktur yang cocok.</td></tr>';
+  document.getElementById('content').innerHTML =
+    '<div class="search-bar" style="display:flex;gap:10px;"><input id="search" type="text" placeholder="Cari debitur, no faktur, no polisi, atau SA..." value="' + escapeHtml(searchQuery) + '" style="flex:1;">' +
+    '<select id="penBucket" style="padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13.5px;">' + opts + '</select></div>' +
+    '<div class="bar-title">' + numId(list.length) + ' faktur &middot; ' + rupiah(total) + '</div>' +
+    '<div class="debtor" style="padding:6px 16px 12px;"><div class="table-scroll"><table><thead><tr><th class="num">No</th><th>Nama Debitur</th><th>No Polisi</th><th>Faktur No.</th><th>TOP</th>' +
+    '<th class="sortable" data-sort="tgljto">Tgl Jto' + arrow('tgljto') + '</th><th class="num">Jumlah</th><th>Giro</th><th>S A</th><th>Nama SA</th><th class="num sortable" data-sort="hari">Hari' + arrow('hari') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+  wireContentHandlers();
+}
+
+function wireContentHandlers() {
+  var s = document.getElementById('search');
+  if (s) {
+    s.addEventListener('input', e => { searchQuery = e.target.value; renderContent(); });
+    
+  }
+  document.querySelectorAll('[data-toggle]').forEach(head => {
+    head.addEventListener('click', () => {
+      var key = head.getAttribute('data-toggle');
+      openDebtorKeys[key] = !head.parentNode.classList.contains('open');
+      renderContent();
+    });
+  });
+  var pb = document.getElementById('penBucket');
+  if (pb) pb.addEventListener('change', e => { penBucket = e.target.value; renderContent(); });
+  document.querySelectorAll('[data-sort]').forEach(th => {
+    th.addEventListener('click', () => {
+      var k = th.getAttribute('data-sort');
+      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = (k === 'hari') ? -1 : 1; }
+      renderContent();
+    });
+  });
+  document.querySelectorAll('[data-toggle-cabang]').forEach(head => {
+    head.addEventListener('click', () => {
+      var key = head.getAttribute('data-toggle-cabang');
+      openCabangKeys[key] = !head.parentNode.classList.contains('open');
+      renderContent();
+    });
+  });
+}
+
+function currentDivisiData(){
+  if (!lastData || !currentDivisi) return null;
+  return lastData.divisions[currentDivisi] || null;
+}
+function renderContent(){
+  var dd = currentDivisiData();
+  if (!dd) return;
+  var a = document.activeElement;
+  var typing = !!(a && a.id === 'search');
+  var ss = typing ? a.selectionStart : 0, se = typing ? a.selectionEnd : 0;
+  if (currentTab === 'debitur') renderDebiturTab(dd.debtors);
+  else if (currentTab === 'penagihan') renderPenagihanTab(dd);
+  else renderKategoriTab(dd);
+  if (typing) { var s = document.getElementById('search'); if (s) { s.focus(); s.setSelectionRange(ss, se); } }
+}
+function renderDivisiPanel(){
+  var dd = currentDivisiData();
+  if (!dd) return;
+  document.getElementById('totalAmount').textContent = rupiah(dd.total);
+  document.getElementById('totalCount').textContent = numId(dd.count) + ' faktur / ' + numId(dd.debtors.length) + ' debitur';
+  renderAgingCards(dd.debtors);
+  renderContent();
+}
+function renderDivisiTabs(){
+  var tabsEl = document.getElementById('divisiTabs');
+  var ALL_KEY = 'Semua Cabang';
+  var names = Object.keys(lastData.divisions);
+  if (!currentDivisi || !lastData.divisions[currentDivisi]) currentDivisi = names[0];
+  var html = '';
+  names.forEach(name => {
+    var d = lastData.divisions[name];
+    var extraClass = (name === ALL_KEY) ? ' divisi-tab-all' : '';
+    html += `<button class="divisi-tab${extraClass}${name === currentDivisi ? ' active' : ''}" data-divisi="${escapeHtml(name)}">${escapeHtml(name)}<span class="badge">${rupiah(d.total)}</span></button>`;
+  });
+  tabsEl.innerHTML = html;
+  tabsEl.style.display = 'flex';
+  tabsEl.querySelectorAll('.divisi-tab').forEach(btn => {
+    btn.addEventListener('click', () => {
+      currentDivisi = btn.getAttribute('data-divisi');
+      searchQuery = ''; openDebtorKeys = {}; openCabangKeys = {};
+      tabsEl.querySelectorAll('.divisi-tab').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+      renderDivisiPanel();
+    });
+  });
+}
+
+function render(data) {
+  lastData = data;
+  document.getElementById('source-sub').textContent = 'Sumber: Laporan Piutang (' + numId(data.grand_count) + ' faktur, ' + numId(Object.keys(data.divisions).length) + ' divisi)';
+  var perDate = extractPerDate(data.report_title);
+  var opnameTitle = document.getElementById('opname-title');
+  opnameTitle.textContent = perDate || data.report_title || '';
+  opnameTitle.style.display = (perDate || data.report_title) ? '' : 'none';
+
+  document.getElementById('emptyState').style.display = 'none';
+  document.getElementById('divisiPanel').style.display = 'block';
+
+  renderDivisiTabs();
+  renderDivisiPanel();
+}
+
+document.querySelectorAll('#innerTabs .tab-btn').forEach(btn => {
+  btn.addEventListener('click', () => {
+    document.querySelectorAll('#innerTabs .tab-btn').forEach(b => b.classList.remove('active'));
+    btn.classList.add('active');
+    currentTab = btn.dataset.tab;
+    searchQuery = '';
+    renderContent();
+  });
+});
+
+async function loadData() {
+  const statusEl = document.getElementById('status');
+  const errBanner = document.getElementById('error-banner');
+  statusEl.innerHTML = '<span class="spin"></span>Mengambil data terbaru...';
+  errBanner.style.display = 'none';
+
+  try {
+    const res = await fetch(CSV_URL + '&_ts=' + Date.now(), { cache: 'no-store' });
+    if (!res.ok) throw new Error('HTTP ' + res.status);
+    const text = await res.text();
+    const rows = parseCSV(text);
+    const data = processRows(rows);
+    render(data);
+
+    const now = new Date();
+    statusEl.classList.remove('err');
+    statusEl.innerHTML = 'Terakhir disinkron: <b>' + now.toLocaleString('id-ID') + '</b>';
+  } catch (err) {
+    statusEl.classList.add('err');
+    statusEl.textContent = 'Gagal memuat data.';
+    errBanner.style.display = 'block';
+    errBanner.textContent = 'Error: ' + err.message + '. Pastikan koneksi internet aktif, dan sheet-nya masih "Published to web" (Google Sheets: File > Share > Publish to web).';
+  }
+}
+
+document.getElementById('refresh-btn').addEventListener('click', loadData);
+
+const autoToggle = document.getElementById('auto-toggle');
+function setupAutoRefresh() {
+  if (autoTimer) clearInterval(autoTimer);
+  if (autoToggle.checked) autoTimer = setInterval(loadData, 60000);
+}
+autoToggle.addEventListener('change', setupAutoRefresh);
+
+// Password gerbang masuk — GANTI teks di dalam tanda kutip ini kalau mau password lain
+const DASHBOARD_PASSWORD = "perintis2026";
+
+function tryLogin(){
+  var val = document.getElementById('gatePassword').value;
+  if (val === DASHBOARD_PASSWORD){
+    document.getElementById('loginGate').style.display = 'none';
+    document.querySelector('.wrap').style.display = '';
+    loadData();
+    setupAutoRefresh();
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+    document.getElementById('gatePassword').value = '';
+    document.getElementById('gatePassword').focus();
+  }
+}
+document.getElementById('gateSubmit').addEventListener('click', tryLogin);
+document.getElementById('gatePassword').addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
+
+</script>
+</body>
+</html>
