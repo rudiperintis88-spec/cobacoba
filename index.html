@@ -649,7 +649,7 @@ autoToggle.addEventListener('change', setupAutoRefresh);
 // Password gerbang masuk.
 // Kalau PASSWORD_CSV_URL diisi, password dibaca dari Google Sheets setiap kali login, jadi ganti di sheet = langsung berlaku.
 // Cara: di Google Sheets buka TAB password > File > Share > Publish to web > pilih tab itu saja, format CSV > salin link ke bawah ini.
-// Isi sheet: sel bertuliskan "password" lalu passwordnya di sel sebelah kanan (atau tepat di bawahnya); tanpa label, sel terisi pertama dipakai.
+// Isi sheet: beri judul kolom "Password" (boleh juga "Kata Sandi"/"Sandi"), lalu passwordnya di sel terisi pertama tepat di bawah judul itu.
 // Kalau PASSWORD_CSV_URL kosong, dipakai DASHBOARD_PASSWORD. Kalau URL diisi tapi sheet gagal dibaca, login ditolak (tidak pakai password lama).
 const PASSWORD_CSV_URL = "";
 const DASHBOARD_PASSWORD = "perintis2026";
@@ -659,20 +659,20 @@ async function getCurrentPassword(){
   const res = await fetch(PASSWORD_CSV_URL + (PASSWORD_CSV_URL.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now(), { cache: 'no-store' });
   if (!res.ok) throw new Error('HTTP ' + res.status);
   const rows = parseCSV(await res.text());
-  var first = '';
+  var titles = ['password', 'kata sandi', 'sandi'];
   for (var i = 0; i < rows.length; i++){
     for (var j = 0; j < rows[i].length; j++){
-      var c = (rows[i][j] || '').replace(/^\uFEFF/, '').trim();
-      if (!c) continue;
-      if (!first) first = c;
-      if (c.toLowerCase() === 'password'){
-        var right = (rows[i][j + 1] || '').trim();
-        var below = ((rows[i + 1] || [])[j] || '').trim();
-        if (right || below) return right || below;
+      var c = (rows[i][j] || '').replace(/^\uFEFF/, '').trim().toLowerCase();
+      if (titles.indexOf(c) < 0) continue;
+      for (var k = i + 1; k < rows.length; k++){
+        var v = ((rows[k] || [])[j] || '').trim();
+        if (v) return v;
       }
+      var right = (rows[i][j + 1] || '').trim();
+      if (right) return right;
     }
   }
-  return first;
+  throw new Error('NOTITLE');
 }
 
 async function tryLogin(){
@@ -688,7 +688,7 @@ async function tryLogin(){
     }
     errEl.textContent = 'Password salah, coba lagi.';
   } catch (e) {
-    errEl.textContent = 'Tidak bisa membaca password dari Google Sheets. Periksa koneksi internet dan pengaturan Publish to web.';
+    errEl.textContent = (e && e.message === 'NOTITLE') ? 'Judul "Password" tidak ditemukan di sheet.' : 'Tidak bisa membaca password dari Google Sheets. Periksa koneksi internet dan pengaturan Publish to web.';
   } finally { btn.disabled = false; }
   errEl.style.display = 'block'; inp.value = ''; inp.focus();
 }
