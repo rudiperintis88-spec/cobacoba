@@ -468,18 +468,22 @@ function renderKategoriTab(dd) {
   wireContentHandlers();
 }
 
-var penBucket = 'all', penKat = 'all', penDeb = 'all';
+var penBucket = 'all', penCab = 'all', penKat = 'all', penDeb = 'all';
 function fakMatch(d, q){ return d.invoices.some(function(i){ return i.faktur.toLowerCase().indexOf(q) >= 0; }); }
 function renderPenagihanTab(dd){
   var q = searchQuery.trim().toLowerCase();
   var kats = Object.keys(dd.invs.reduce(function(m, i){ m[i.kategori] = 1; return m; }, {})).sort();
   var debs = Object.keys(dd.invs.reduce(function(m, i){ m[i.nama] = 1; return m; }, {})).sort();
+  var cabSet = dd.invs.reduce(function(m, i){ m[i.divisi] = 1; return m; }, {});
+  var cabs = DIVISI_ORDER.filter(function(n){ return cabSet[n]; }).concat(Object.keys(cabSet).filter(function(n){ return DIVISI_ORDER.indexOf(n) < 0; }).sort());
+  if (cabs.indexOf(penCab) < 0) penCab = 'all';
   if (kats.indexOf(penKat) < 0) penKat = 'all';
   if (debs.indexOf(penDeb) < 0) penDeb = 'all';
   var R = { all: [-1e9, 1e9], b1: [1, 7], b2: [8, 14], b3: [15, 26], b4: [27, 1e9] }[penBucket];
   var list = dd.invs.filter(function(i){
     var h = parseInt(i.hari, 10); if (isNaN(h)) h = 0;
     if (penBucket !== 'all' && (h < R[0] || h > R[1])) return false;
+    if (penCab !== 'all' && i.divisi !== penCab) return false;
     if (penKat !== 'all' && i.kategori !== penKat) return false;
     if (penDeb !== 'all' && i.nama !== penDeb) return false;
     return !q || [i.nama, i.faktur, i.nopol, i.sa, i.sacode, i.cust, i.kategori].join(' ').toLowerCase().indexOf(q) >= 0;
@@ -503,7 +507,7 @@ function renderPenagihanTab(dd){
   if (!list.length) rows = '<tr><td colspan="11" class="loading">Tidak ada faktur yang cocok.</td></tr>';
   document.getElementById('content').innerHTML =
     '<div class="search-bar" style="display:flex;gap:10px;flex-wrap:wrap;"><input id="search" type="text" placeholder="Cari debitur, no faktur, no polisi, atau SA..." value="' + escapeHtml(searchQuery) + '" style="flex:1;min-width:220px;">' +
-    '<select id="penBucket" style="' + selCss + '">' + opts + '</select><select id="penKat" style="' + selCss + '">' + optHtml(kats, penKat, 'Semua kategori') + '</select><select id="penDeb" style="' + selCss + 'max-width:260px;">' + optHtml(debs, penDeb, 'Semua debitur') + '</select></div>' +
+    '<select id="penBucket" style="' + selCss + '">' + opts + '</select><select id="penCab" style="' + selCss + '">' + optHtml(cabs, penCab, 'Semua cabang') + '</select><select id="penKat" style="' + selCss + '">' + optHtml(kats, penKat, 'Semua kategori') + '</select><select id="penDeb" style="' + selCss + 'max-width:260px;">' + optHtml(debs, penDeb, 'Semua debitur') + '</select></div>' +
     '<div class="bar-title">' + numId(list.length) + ' faktur &middot; ' + rupiah(total) + '</div>' +
     '<div class="debtor" style="padding:6px 16px 12px;"><div class="table-scroll"><table><thead><tr>' + thS('no','No','num') + thS('nama','Nama Debitur') + thS('nopol','No Polisi') + thS('faktur','Faktur No.') + thS('top','TOP') + thS('tgljto','Tgl Jto') + thS('jumlah','Jumlah','num') + thS('giro','Giro') + thS('sacode','S A') + thS('sa','Nama SA') + thS('hari','Hari','num') + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   wireContentHandlers();
@@ -522,7 +526,7 @@ function wireContentHandlers() {
       renderContent();
     });
   });
-  var pf = { penBucket: v => { penBucket = v; }, penKat: v => { penKat = v; }, penDeb: v => { penDeb = v; } };
+  var pf = { penBucket: v => { penBucket = v; }, penCab: v => { penCab = v; }, penKat: v => { penKat = v; }, penDeb: v => { penDeb = v; } };
   Object.keys(pf).forEach(id => { var el = document.getElementById(id); if (el) el.addEventListener('change', e => { pf[id](e.target.value); renderContent(); }); });
   document.querySelectorAll('[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
@@ -579,7 +583,7 @@ function renderDivisiTabs(){
   tabsEl.querySelectorAll('.divisi-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       currentDivisi = btn.getAttribute('data-divisi');
-      searchQuery = ''; openDebtorKeys = {}; openCabangKeys = {}; penKat = 'all'; penDeb = 'all';
+      searchQuery = ''; openDebtorKeys = {}; openCabangKeys = {}; penCab = 'all'; penKat = 'all'; penDeb = 'all';
       tabsEl.querySelectorAll('.divisi-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderDivisiPanel();
@@ -646,51 +650,21 @@ function setupAutoRefresh() {
 }
 autoToggle.addEventListener('change', setupAutoRefresh);
 
-// Password gerbang masuk.
-// Kalau PASSWORD_CSV_URL diisi, password dibaca dari Google Sheets setiap kali login, jadi ganti di sheet = langsung berlaku.
-// Cara: di Google Sheets buka TAB password > File > Share > Publish to web > pilih tab itu saja, format CSV > salin link ke bawah ini.
-// Isi sheet: beri judul kolom "Password" (boleh juga "Kata Sandi"/"Sandi"), lalu passwordnya di sel terisi pertama tepat di bawah judul itu.
-// Kalau PASSWORD_CSV_URL kosong, dipakai DASHBOARD_PASSWORD. Kalau URL diisi tapi sheet gagal dibaca, login ditolak (tidak pakai password lama).
-const PASSWORD_CSV_URL = "";
+// Password gerbang masuk — GANTI teks di dalam tanda kutip ini kalau mau password lain
 const DASHBOARD_PASSWORD = "perintis2026";
 
-async function getCurrentPassword(){
-  if (!PASSWORD_CSV_URL) return DASHBOARD_PASSWORD;
-  const res = await fetch(PASSWORD_CSV_URL + (PASSWORD_CSV_URL.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now(), { cache: 'no-store' });
-  if (!res.ok) throw new Error('HTTP ' + res.status);
-  const rows = parseCSV(await res.text());
-  var titles = ['password', 'kata sandi', 'sandi'];
-  for (var i = 0; i < rows.length; i++){
-    for (var j = 0; j < rows[i].length; j++){
-      var c = (rows[i][j] || '').replace(/^\uFEFF/, '').trim().toLowerCase();
-      if (titles.indexOf(c) < 0) continue;
-      for (var k = i + 1; k < rows.length; k++){
-        var v = ((rows[k] || [])[j] || '').trim();
-        if (v) return v;
-      }
-      var right = (rows[i][j + 1] || '').trim();
-      if (right) return right;
-    }
+function tryLogin(){
+  var val = document.getElementById('gatePassword').value;
+  if (val === DASHBOARD_PASSWORD){
+    document.getElementById('loginGate').style.display = 'none';
+    document.querySelector('.wrap').style.display = '';
+    loadData();
+    setupAutoRefresh();
+  } else {
+    document.getElementById('gateError').style.display = 'block';
+    document.getElementById('gatePassword').value = '';
+    document.getElementById('gatePassword').focus();
   }
-  throw new Error('NOTITLE');
-}
-
-async function tryLogin(){
-  var errEl = document.getElementById('gateError'), inp = document.getElementById('gatePassword'), btn = document.getElementById('gateSubmit');
-  btn.disabled = true;
-  try {
-    var pw = await getCurrentPassword();
-    if (pw && inp.value === pw){
-      document.getElementById('loginGate').style.display = 'none';
-      document.querySelector('.wrap').style.display = '';
-      loadData(); setupAutoRefresh();
-      return;
-    }
-    errEl.textContent = 'Password salah, coba lagi.';
-  } catch (e) {
-    errEl.textContent = (e && e.message === 'NOTITLE') ? 'Judul "Password" tidak ditemukan di sheet.' : 'Tidak bisa membaca password dari Google Sheets. Periksa koneksi internet dan pengaturan Publish to web.';
-  } finally { btn.disabled = false; }
-  errEl.style.display = 'block'; inp.value = ''; inp.focus();
 }
 document.getElementById('gateSubmit').addEventListener('click', tryLogin);
 document.getElementById('gatePassword').addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
