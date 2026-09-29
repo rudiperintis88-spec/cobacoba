@@ -275,11 +275,20 @@ function normalizeDivisi(raw){
 var DIVISI_ORDER = ['Body Repair', 'GR Adam Malik', 'GR Flamboyan'];
 
 function dateNum(s){ var d = parseDateDDMMYYYY(s); return d ? d.year * 10000 + d.month * 100 + d.day : 99999999; }
+var SORT_DEF = {
+  nama: ['s', i => i.nama], nopol: ['s', i => i.nopol], faktur: ['s', i => i.faktur], top: ['s', i => i.top],
+  tgljto: ['n', i => dateNum(i.tgljto)], jumlah: ['n', i => i.jumlah], giro: ['s', i => i.giro],
+  sacode: ['s', i => i.sacode], sa: ['s', i => i.sa], hari: ['n', i => parseInt(i.hari, 10) || 0]
+};
+function sortArrow(k){ return sortKey === k ? (sortDir > 0 ? ' \u25b2' : ' \u25bc') : ''; }
+function thS(k, label, cls){ return '<th class="sortable' + (cls ? ' ' + cls : '') + '" data-sort="' + k + '">' + label + (k === 'no' ? '' : sortArrow(k)) + '</th>'; }
 function sortInvoices(list){
+  var def = SORT_DEF[sortKey] || SORT_DEF.tgljto;
   return list.slice().sort(function(a, b){
-    var ha = parseInt(a.hari, 10) || 0, hb = parseInt(b.hari, 10) || 0, c;
-    if (sortKey === 'hari'){ c = ha - hb; if (!c) c = dateNum(a.tgljto) - dateNum(b.tgljto); }
-    else { c = dateNum(a.tgljto) - dateNum(b.tgljto); if (!c) c = hb - ha; }
+    var x = def[1](a), y = def[1](b);
+    var c = def[0] === 's' ? String(x).localeCompare(String(y), 'id', { numeric: true }) : x - y;
+    if (!c) c = dateNum(a.tgljto) - dateNum(b.tgljto);
+    if (!c) c = (parseInt(b.hari, 10) || 0) - (parseInt(a.hari, 10) || 0);
     if (!c) c = a.faktur < b.faktur ? -1 : (a.faktur > b.faktur ? 1 : 0);
     return c * sortDir;
   });
@@ -396,7 +405,7 @@ function createDebtorHtml(d, keyPrefix) {
   monthsHtml += '</div>';
 
   var arrow = function(k){ return sortKey === k ? (sortDir > 0 ? ' \u25b2' : ' \u25bc') : ''; };
-  var invHtml = '<div class="bar-title">Daftar Faktur (' + shown.length + ')</div><div class="table-scroll"><table><thead><tr><th class="num">No</th><th>No Faktur</th><th class="sortable" data-sort="tgljto">Tgl Jto' + arrow('tgljto') + '</th><th>No Polisi</th><th>SA</th><th class="num sortable" data-sort="hari">Hari' + arrow('hari') + '</th><th class="num">Jumlah</th></tr></thead><tbody>';
+  var invHtml = '<div class="bar-title">Daftar Faktur (' + shown.length + ')</div><div class="table-scroll"><table><thead><tr>' + thS('no','No','num') + thS('faktur','No Faktur') + thS('tgljto','Tgl Jto') + thS('nopol','No Polisi') + thS('sa','SA') + thS('hari','Hari','num') + thS('jumlah','Jumlah','num') + '</tr></thead><tbody>';
   sortInvoices(shown).forEach((inv, i) => {
     invHtml += `<tr><td class="num">${i + 1}</td><td>${escapeHtml(inv.faktur)}</td><td>${escapeHtml(inv.tgljto)}</td><td>${escapeHtml(inv.nopol || '-')}</td><td>${escapeHtml(inv.sa)}</td><td class="num">${escapeHtml(String(inv.hari || '-'))}</td><td class="num">${rupiah(inv.jumlah)}</td></tr>`;
   });
@@ -459,20 +468,31 @@ function renderKategoriTab(dd) {
   wireContentHandlers();
 }
 
-var penBucket = 'all';
+var penBucket = 'all', penKat = 'all', penDeb = 'all';
 function fakMatch(d, q){ return d.invoices.some(function(i){ return i.faktur.toLowerCase().indexOf(q) >= 0; }); }
 function renderPenagihanTab(dd){
   var q = searchQuery.trim().toLowerCase();
+  var kats = Object.keys(dd.invs.reduce(function(m, i){ m[i.kategori] = 1; return m; }, {})).sort();
+  var debs = Object.keys(dd.invs.reduce(function(m, i){ m[i.nama] = 1; return m; }, {})).sort();
+  if (kats.indexOf(penKat) < 0) penKat = 'all';
+  if (debs.indexOf(penDeb) < 0) penDeb = 'all';
   var R = { all: [-1e9, 1e9], b1: [1, 7], b2: [8, 14], b3: [15, 26], b4: [27, 1e9] }[penBucket];
   var list = dd.invs.filter(function(i){
     var h = parseInt(i.hari, 10); if (isNaN(h)) h = 0;
     if (penBucket !== 'all' && (h < R[0] || h > R[1])) return false;
+    if (penKat !== 'all' && i.kategori !== penKat) return false;
+    if (penDeb !== 'all' && i.nama !== penDeb) return false;
     return !q || [i.nama, i.faktur, i.nopol, i.sa, i.sacode, i.cust, i.kategori].join(' ').toLowerCase().indexOf(q) >= 0;
   });
   var total = 0; list.forEach(function(i){ total += i.jumlah; });
   var opts = [['all','Semua umur'],['b1','1-7 hari'],['b2','8-14 hari'],['b3','15-26 hari'],['b4','> 26 hari']].map(function(o){
     return '<option value="' + o[0] + '"' + (o[0] === penBucket ? ' selected' : '') + '>' + o[1] + '</option>'; }).join('');
   var arrow = function(k){ return sortKey === k ? (sortDir > 0 ? ' \u25b2' : ' \u25bc') : ''; };
+  var selCss = 'padding:10px 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13.5px;';
+  var optHtml = function(arr, cur, allLabel){
+    return '<option value="all"' + (cur === 'all' ? ' selected' : '') + '>' + allLabel + '</option>' +
+      arr.map(function(v){ return '<option value="' + escapeHtml(v) + '"' + (v === cur ? ' selected' : '') + '>' + escapeHtml(v) + '</option>'; }).join('');
+  };
   var rows = '';
   sortInvoices(list).forEach(function(i, n){
     var h = parseInt(i.hari, 10);
@@ -482,11 +502,10 @@ function renderPenagihanTab(dd){
   });
   if (!list.length) rows = '<tr><td colspan="11" class="loading">Tidak ada faktur yang cocok.</td></tr>';
   document.getElementById('content').innerHTML =
-    '<div class="search-bar" style="display:flex;gap:10px;"><input id="search" type="text" placeholder="Cari debitur, no faktur, no polisi, atau SA..." value="' + escapeHtml(searchQuery) + '" style="flex:1;">' +
-    '<select id="penBucket" style="padding:0 12px;border:1px solid var(--border);border-radius:10px;background:var(--panel);color:var(--ink);font-size:13.5px;">' + opts + '</select></div>' +
+    '<div class="search-bar" style="display:flex;gap:10px;flex-wrap:wrap;"><input id="search" type="text" placeholder="Cari debitur, no faktur, no polisi, atau SA..." value="' + escapeHtml(searchQuery) + '" style="flex:1;min-width:220px;">' +
+    '<select id="penBucket" style="' + selCss + '">' + opts + '</select><select id="penKat" style="' + selCss + '">' + optHtml(kats, penKat, 'Semua kategori') + '</select><select id="penDeb" style="' + selCss + 'max-width:260px;">' + optHtml(debs, penDeb, 'Semua debitur') + '</select></div>' +
     '<div class="bar-title">' + numId(list.length) + ' faktur &middot; ' + rupiah(total) + '</div>' +
-    '<div class="debtor" style="padding:6px 16px 12px;"><div class="table-scroll"><table><thead><tr><th class="num">No</th><th>Nama Debitur</th><th>No Polisi</th><th>Faktur No.</th><th>TOP</th>' +
-    '<th class="sortable" data-sort="tgljto">Tgl Jto' + arrow('tgljto') + '</th><th class="num">Jumlah</th><th>Giro</th><th>S A</th><th>Nama SA</th><th class="num sortable" data-sort="hari">Hari' + arrow('hari') + '</th></tr></thead><tbody>' + rows + '</tbody></table></div></div>';
+    '<div class="debtor" style="padding:6px 16px 12px;"><div class="table-scroll"><table><thead><tr>' + thS('no','No','num') + thS('nama','Nama Debitur') + thS('nopol','No Polisi') + thS('faktur','Faktur No.') + thS('top','TOP') + thS('tgljto','Tgl Jto') + thS('jumlah','Jumlah','num') + thS('giro','Giro') + thS('sacode','S A') + thS('sa','Nama SA') + thS('hari','Hari','num') + '</tr></thead><tbody>' + rows + '</tbody></table></div></div>';
   wireContentHandlers();
 }
 
@@ -503,12 +522,12 @@ function wireContentHandlers() {
       renderContent();
     });
   });
-  var pb = document.getElementById('penBucket');
-  if (pb) pb.addEventListener('change', e => { penBucket = e.target.value; renderContent(); });
+  var pf = { penBucket: v => { penBucket = v; }, penKat: v => { penKat = v; }, penDeb: v => { penDeb = v; } };
+  Object.keys(pf).forEach(id => { var el = document.getElementById(id); if (el) el.addEventListener('change', e => { pf[id](e.target.value); renderContent(); }); });
   document.querySelectorAll('[data-sort]').forEach(th => {
     th.addEventListener('click', () => {
       var k = th.getAttribute('data-sort');
-      if (sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = (k === 'hari') ? -1 : 1; }
+      if (k === 'no' || sortKey === k) sortDir = -sortDir; else { sortKey = k; sortDir = (k === 'hari' || k === 'jumlah') ? -1 : 1; }
       renderContent();
     });
   });
@@ -560,7 +579,7 @@ function renderDivisiTabs(){
   tabsEl.querySelectorAll('.divisi-tab').forEach(btn => {
     btn.addEventListener('click', () => {
       currentDivisi = btn.getAttribute('data-divisi');
-      searchQuery = ''; openDebtorKeys = {}; openCabangKeys = {};
+      searchQuery = ''; openDebtorKeys = {}; openCabangKeys = {}; penKat = 'all'; penDeb = 'all';
       tabsEl.querySelectorAll('.divisi-tab').forEach(b => b.classList.remove('active'));
       btn.classList.add('active');
       renderDivisiPanel();
@@ -627,21 +646,51 @@ function setupAutoRefresh() {
 }
 autoToggle.addEventListener('change', setupAutoRefresh);
 
-// Password gerbang masuk — GANTI teks di dalam tanda kutip ini kalau mau password lain
+// Password gerbang masuk.
+// Kalau PASSWORD_CSV_URL diisi, password dibaca dari Google Sheets setiap kali login, jadi ganti di sheet = langsung berlaku.
+// Cara: di Google Sheets buka TAB password > File > Share > Publish to web > pilih tab itu saja, format CSV > salin link ke bawah ini.
+// Isi sheet: sel bertuliskan "password" lalu passwordnya di sel sebelah kanan (atau tepat di bawahnya); tanpa label, sel terisi pertama dipakai.
+// Kalau PASSWORD_CSV_URL kosong, dipakai DASHBOARD_PASSWORD. Kalau URL diisi tapi sheet gagal dibaca, login ditolak (tidak pakai password lama).
+const PASSWORD_CSV_URL = "";
 const DASHBOARD_PASSWORD = "perintis2026";
 
-function tryLogin(){
-  var val = document.getElementById('gatePassword').value;
-  if (val === DASHBOARD_PASSWORD){
-    document.getElementById('loginGate').style.display = 'none';
-    document.querySelector('.wrap').style.display = '';
-    loadData();
-    setupAutoRefresh();
-  } else {
-    document.getElementById('gateError').style.display = 'block';
-    document.getElementById('gatePassword').value = '';
-    document.getElementById('gatePassword').focus();
+async function getCurrentPassword(){
+  if (!PASSWORD_CSV_URL) return DASHBOARD_PASSWORD;
+  const res = await fetch(PASSWORD_CSV_URL + (PASSWORD_CSV_URL.indexOf('?') >= 0 ? '&' : '?') + '_ts=' + Date.now(), { cache: 'no-store' });
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const rows = parseCSV(await res.text());
+  var first = '';
+  for (var i = 0; i < rows.length; i++){
+    for (var j = 0; j < rows[i].length; j++){
+      var c = (rows[i][j] || '').replace(/^\uFEFF/, '').trim();
+      if (!c) continue;
+      if (!first) first = c;
+      if (c.toLowerCase() === 'password'){
+        var right = (rows[i][j + 1] || '').trim();
+        var below = ((rows[i + 1] || [])[j] || '').trim();
+        if (right || below) return right || below;
+      }
+    }
   }
+  return first;
+}
+
+async function tryLogin(){
+  var errEl = document.getElementById('gateError'), inp = document.getElementById('gatePassword'), btn = document.getElementById('gateSubmit');
+  btn.disabled = true;
+  try {
+    var pw = await getCurrentPassword();
+    if (pw && inp.value === pw){
+      document.getElementById('loginGate').style.display = 'none';
+      document.querySelector('.wrap').style.display = '';
+      loadData(); setupAutoRefresh();
+      return;
+    }
+    errEl.textContent = 'Password salah, coba lagi.';
+  } catch (e) {
+    errEl.textContent = 'Tidak bisa membaca password dari Google Sheets. Periksa koneksi internet dan pengaturan Publish to web.';
+  } finally { btn.disabled = false; }
+  errEl.style.display = 'block'; inp.value = ''; inp.focus();
 }
 document.getElementById('gateSubmit').addEventListener('click', tryLogin);
 document.getElementById('gatePassword').addEventListener('keydown', function(e){ if (e.key === 'Enter') tryLogin(); });
