@@ -110,9 +110,6 @@
   .cabang-body .list{margin-top:12px;}
 
   /* ===== Rekap Laporan ===== */
-  .btn.ghost{background:var(--panel);color:var(--ink);border:1px solid var(--border);}
-  .btn.ghost:hover{background:var(--panel-2);}
-  .btn.ghost.on{background:#fff4d6;border-color:#e6c36a;}
   .btn:disabled{opacity:.6;cursor:wait;}
   .rekap-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
   .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--panel);}
@@ -120,7 +117,6 @@
   .seg button.active{background:var(--blue);color:#fff;}
   .rekap-spacer{flex:1;}
   .rekap-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
-  .demo-flag{display:inline-block;background:#fff4d6;border:1px solid #e6c36a;color:#8a5a00;font-size:11.5px;font-weight:700;padding:2px 9px;border-radius:20px;margin-left:8px;vertical-align:middle;}
   .ba-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 22px 26px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
   .ba-title{font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:20px;text-align:center;margin:0 0 14px;letter-spacing:.02em;}
   .ba-sub{font-family:Georgia,'Times New Roman',serif;font-size:13.5px;margin:0 0 2px;}
@@ -162,7 +158,6 @@
       <p class="sub" id="source-sub">Sumber: Laporan Piutang</p>
     </div>
     <div class="controls">
-      <button class="btn ghost" id="demo-btn" title="Tampilkan data contoh sesuai foto Berita Acara">Data contoh</button>
       <label class="toggle"><input type="checkbox" id="auto-toggle" checked> Auto-refresh 60 dtk</label>
       <button class="btn" id="refresh-btn">&#8635; Refresh sekarang</button>
     </div>
@@ -427,39 +422,6 @@ function buildData(invs, reportTitle){
   return { grand_total: grandTotal, grand_count: invs.length, report_title: reportTitle, divisions: divisions };
 }
 
-// ===== DATA CONTOH (disalin dari foto Berita Acara; kategori hanya untuk peragaan) =====
-var DEMO_ROWS = [
-  ['D0033059TOB','PT ASURANSI TOTAL BERSAMA',7,2026,13154741],['D0033059TOB','PT ASURANSI TOTAL BERSAMA',8,2026,28019951],
-  ['E0030825ABD','ASURANSI BINA DANA ARTA, PT',5,2026,1415250],['E0030825ABD','ASURANSI BINA DANA ARTA, PT',6,2026,186941242],['E0030825ABD','ASURANSI BINA DANA ARTA, PT',7,2026,29786671],['E0030825ABD','ASURANSI BINA DANA ARTA, PT',8,2026,103662991],
-  ['E0030997HAP','HARTA AMAN PRATAMA TBK, PT',7,2026,7274493],['E0030997HAP','HARTA AMAN PRATAMA TBK, PT',8,2026,19407866],
-  ['E0032385MI','PT ASURANSI UMUM MEGA',3,2026,3185003],['E0032385MI','PT ASURANSI UMUM MEGA',4,2026,45516912],['E0032385MI','PT ASURANSI UMUM MEGA',5,2026,16815302],['E0032385MI','PT ASURANSI UMUM MEGA',6,2026,60551774],['E0032385MI','PT ASURANSI UMUM MEGA',7,2026,8355385],['E0032385MI','PT ASURANSI UMUM MEGA',8,2026,220036109],
-  ['E0032559MSI','PT . ASURANSI MSIG INDONESIA',8,2026,2811600],
-  ['E0032624PPI','PT . PAN PACIFIC INSURANCE',7,2026,945104],['E0032624PPI','PT . PAN PACIFIC INSURANCE',8,2026,11021372],
-  ['E0032963AAB','PT . ASURANSI ASTRA BUANA',7,2026,7455677],['E0032963AAB','PT . ASURANSI ASTRA BUANA',8,2026,77497941],
-  ['E0033172SNM','PT ASURANSI SINARMAS',7,2026,2811196],
-  ['E0033701MAG','PT,ASURANSI MULTI ARTHA GUNA.TBK',7,2026,17850957],
-  ['E0034022SII','PT. SUNDAY INSURANCE INDONESIA',6,2026,2794539],['E0034022SII','PT. SUNDAY INSURANCE INDONESIA',7,2026,10134178],['E0034022SII','PT. SUNDAY INSURANCE INDONESIA',8,2026,22343359],
-  ['E0034129AMM','PT. ASURANSI MSIG INDONESIA',7,2026,250000],['E0034129AMM','PT. ASURANSI MSIG INDONESIA',8,2026,64509391],
-  ['E0034373ZAI','ZURICH ASURANSI INDONESIA,PT TBK',12,2025,1730099],['E0034373ZAI','ZURICH ASURANSI INDONESIA,PT TBK',7,2026,327468732],['E0034373ZAI','ZURICH ASURANSI INDONESIA,PT TBK',8,2026,131635771],
-  ['E0034736ACA','ASURANSI CENTRAL ASIA CAB.MEDAN',7,2026,19109312],['E0034736ACA','ASURANSI CENTRAL ASIA CAB.MEDAN',8,2026,20163960],
-  ['E0034760SHB','PT ASURANSI SAHABAT ARTHA PROTEKSI',7,2026,13798882],
-  ['E0034895SII','PT SOMPO INSURANCE INDONESIA',3,2026,6122224],['E0034895SII','PT SOMPO INSURANCE INDONESIA',4,2026,22410644],['E0034895SII','PT SOMPO INSURANCE INDONESIA',5,2026,4719168],['E0034895SII','PT SOMPO INSURANCE INDONESIA',6,2026,1772070],['E0034895SII','PT SOMPO INSURANCE INDONESIA',7,2026,23093047],['E0034895SII','PT SOMPO INSURANCE INDONESIA',8,2026,98126675],
-  ['E0035447RAK','ASURANSI RAKSA PRATIKARA',7,2026,535038],['E0035447RAK','ASURANSI RAKSA PRATIKARA',8,2026,4939185],
-  ['E0035998JSD','ASURANSI JASINDO SYARIAH',4,2026,990000],['E0035998JSD','ASURANSI JASINDO SYARIAH',5,2026,23750721]
-];
-var DEMO_KAT = { 'E0030997HAP':'TAM','E0034022SII':'TAM','E0035447RAK':'TAM','E0035998JSD':'TAM','E0033172SNM':'PRIBADI','E0034760SHB':'PRIBADI' };
-function buildDemoData(){
-  var ref = new Date(2026, 7, 31);
-  var invs = DEMO_ROWS.map(function(r, n){
-    var jto = new Date(r[3], r[2] - 1, 15);
-    var hari = Math.max(0, Math.round((ref - jto) / 86400000));
-    var nama = NAME_MAP[r[1]] || r[1];
-    return { nama: nama, cust: r[0], faktur: 'CONTOH/' + String(n + 1).padStart(3, '0'),
-             tgljto: '15/' + String(r[2]).padStart(2, '0') + '/' + r[3], nopol: '', sa: '', hari: String(hari),
-             jumlah: r[4], top: '', giro: '', sacode: '', divisi: 'Body Repair', kategori: DEMO_KAT[r[0]] || 'ASURANSI' };
-  });
-  return buildData(invs, 'Opname Piutang Asuransi di PT. Perintis Perkasa (Flamboyan) BP Per 31 Agustus 2026');
-}
 
 function computeAgingBuckets(debtors) {
   const buckets = {
@@ -658,7 +620,6 @@ function renderPrioritasTab(dd){
 
 // ===================== REKAP LAPORAN (format Berita Acara) + EXPORT =====================
 var rekapMode = 'debitur';   // 'debitur' | 'kategori'
-var demoMode = false;
 var BULAN_ID = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 
 function bulanLabel(key){ if (key === 'unknown') return 'Tanpa Tgl Jto'; var p = key.split('-'); return BULAN_ID[parseInt(p[1], 10)] + ' ' + p[0]; }
@@ -760,7 +721,7 @@ function renderRekapTab(dd){
   if (!secs.length) html += '<div class="loading">Tidak ada data.</div>';
   secs.forEach(function(s){
     var r = buildRekapLines(s.invs, rekapMode);
-    html += '<div class="ba-wrap" style="margin-bottom:18px;"><p class="ba-title">BERITA ACARA' + (demoMode ? '<span class="demo-flag">DATA CONTOH</span>' : '') + '</p>' +
+    html += '<div class="ba-wrap" style="margin-bottom:18px;"><p class="ba-title">BERITA ACARA</p>' +
       '<p class="ba-sub">' + escapeHtml(rekapTitle()) + '</p>' +
       '<p class="ba-sub" style="color:var(--muted);font-size:12.5px;">Divisi: ' + escapeHtml(s.divisi) + ' &middot; ' + modeLabel + ' &middot; ' + numId(s.invs.length) + ' faktur</p>' +
       rekapTableHtml(r.lines, rekapMode) + '</div>';
@@ -791,7 +752,7 @@ function makePdf(sec, mode){
   doc.setFont('times', 'bold'); doc.setFontSize(15); doc.text('BERITA ACARA', W / 2, 40, { align: 'center' });
   doc.setFont('times', 'normal'); doc.setFontSize(10.5);
   doc.text(rekapTitle(), 36, 60);
-  doc.text('Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur') + (demoMode ? '   |   DATA CONTOH' : ''), 36, 74);
+  doc.text('Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur'), 36, 74);
   var fills = { cat: [232, 238, 252], catsub: [243, 246, 253], grand: [255, 248, 201] };
   var body = r.lines.map(function(L){
     return lineCells(L, mode).map(function(c){
@@ -832,7 +793,7 @@ async function makeXlsx(sec, mode){
   ws.mergeCells(1, 1, 1, nc);
   ws.getCell(1, 1).value = 'BERITA ACARA'; ws.getCell(1, 1).font = { name: FONT, bold: true, size: 15 }; ws.getCell(1, 1).alignment = { horizontal: 'center' };
   ws.getCell(2, 1).value = rekapTitle(); ws.getCell(2, 1).font = { name: FONT, size: 11 };
-  ws.getCell(3, 1).value = 'Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur') + (demoMode ? '   |   DATA CONTOH' : '');
+  ws.getCell(3, 1).value = 'Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur');
   ws.getCell(3, 1).font = { name: FONT, size: 11 };
   rekapHeads(mode).forEach(function(t, i){
     var c = ws.getCell(HEAD, i + 1);
@@ -1010,8 +971,8 @@ function render(data) {
   document.getElementById('source-sub').textContent = FIXED_DIVISI ? 'Sumber: Laporan Piutang (' + numId(data.divisions[FIXED_DIVISI].count) + ' faktur)' : 'Sumber: Laporan Piutang (' + numId(data.grand_count) + ' faktur, ' + numId(Object.keys(data.divisions).length) + ' divisi)';
   var perDate = extractPerDate(data.report_title);
   var opnameTitle = document.getElementById('opname-title');
-  opnameTitle.innerHTML = escapeHtml(perDate || data.report_title || '') + (demoMode ? '<span class="demo-flag">DATA CONTOH</span>' : '');
-  opnameTitle.style.display = (perDate || data.report_title || demoMode) ? '' : 'none';
+  opnameTitle.textContent = perDate || data.report_title || '';
+  opnameTitle.style.display = (perDate || data.report_title) ? '' : 'none';
 
   document.getElementById('emptyState').style.display = 'none';
   document.getElementById('divisiPanel').style.display = 'block';
@@ -1034,12 +995,6 @@ async function loadData() {
   const statusEl = document.getElementById('status');
   const errBanner = document.getElementById('error-banner');
   errBanner.style.display = 'none';
-  if (demoMode){
-    render(buildDemoData());
-    statusEl.classList.remove('err');
-    statusEl.innerHTML = 'Menampilkan <b>DATA CONTOH</b> (bukan data live). Klik "Data contoh" lagi untuk kembali ke data live.';
-    return;
-  }
   statusEl.innerHTML = '<span class="spin"></span>Mengambil data terbaru...';
 
   try {
@@ -1062,13 +1017,6 @@ async function loadData() {
 }
 
 document.getElementById('refresh-btn').addEventListener('click', loadData);
-document.getElementById('demo-btn').addEventListener('click', function(){
-  demoMode = !demoMode;
-  this.classList.toggle('on', demoMode);
-  this.textContent = demoMode ? 'Kembali ke data live' : 'Data contoh';
-  openDebtorKeys = {}; openCabangKeys = {};
-  loadData();
-});
 
 const autoToggle = document.getElementById('auto-toggle');
 function setupAutoRefresh() {
