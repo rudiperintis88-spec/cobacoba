@@ -32,7 +32,7 @@
 <div id="gate">
   <div class="gbox">
     <p class="t">Perintis Group</p>
-    <p class="s">Masukkan password untuk melanjutkan</p>
+    <p class="s">PT Perintis Perkasa, Medan</p>
     <div class="gwrap">
       <input type="password" id="gpw" placeholder="Masukkan password" autofocus>
       <button type="button" id="geye" aria-label="Tampilkan password"><svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"><path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z"/><circle cx="12" cy="12" r="3"/></svg></button>
@@ -46,7 +46,6 @@
   <span class="brand">PT Perintis Perkasa</span>
   <button class="maintab active" data-t="unit">Piutang Unit</button>
   <button class="maintab" data-t="grbp">Piutang GR &amp; BP</button>
-  <button class="maintab" id="logout" style="margin-left:auto;top:0;border-radius:8px;border-bottom:1px solid var(--border);margin-bottom:8px;padding:6px 14px;font-weight:500;">Keluar</button>
 </div>
 <div class="frames">
   <iframe id="f-unit" class="active" title="Piutang Unit"></iframe>
@@ -72,19 +71,12 @@ function enter(){
 }
 function login(){
   if (document.getElementById('gpw').value === PW) {
-    try { localStorage.setItem(KEY, '1'); } catch(e){}
     enter();
   } else {
     document.getElementById('gerr').style.display = 'block';
     document.getElementById('gpw').value = ''; document.getElementById('gpw').focus();
   }
 }
-document.getElementById('logout').addEventListener('click', function(){
-  try { localStorage.removeItem(KEY); } catch(e){}
-  location.reload();
-});
-var remembered = false; try { remembered = localStorage.getItem(KEY) === '1'; } catch(e){}
-if (remembered) enter();
 document.getElementById('gsub').addEventListener('click', login);
 document.getElementById('gpw').addEventListener('keydown', function(e){ if (e.key === 'Enter') login(); });
 document.getElementById('geye').addEventListener('click', function(){
