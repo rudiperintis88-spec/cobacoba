@@ -117,20 +117,22 @@
   .seg button.active{background:var(--blue);color:#fff;}
   .rekap-spacer{flex:1;}
   .rekap-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
-  .ba-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 22px 26px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
-  .ba-title{font-family:Georgia,'Times New Roman',serif;font-weight:700;font-size:20px;text-align:center;margin:0 0 14px;letter-spacing:.02em;}
-  .ba-sub{font-family:Georgia,'Times New Roman',serif;font-size:13.5px;margin:0 0 2px;}
-  table.ba{width:100%;border-collapse:collapse;margin-top:10px;font-family:Georgia,'Times New Roman',serif;font-size:13px;}
-  table.ba th{background:#ffff00;color:#000;border:1px solid #000;padding:5px 8px;text-align:center;font-weight:700;font-size:13px;white-space:nowrap;}
-  table.ba td{border:1px solid #000;padding:3px 8px;font-size:13px;}
-  table.ba td.num,table.ba th.num{text-align:right;}
-  table.ba td.ctr{text-align:center;}
-  table.ba tr.sub td{border-top:none;}
-  table.ba tr.sub td.amt{font-weight:700;}
-  table.ba tr.cat td{background:#e8eefc;font-weight:700;border-color:#000;}
-  table.ba tr.catsub td{background:#f3f6fd;font-weight:700;}
-  table.ba tr.grand td{background:#fff8c9;font-weight:700;font-size:14px;}
-  @media (max-width:760px){ .ba-wrap{padding:14px 10px;} }
+  .ba-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .ba-title{font-size:18px;font-weight:700;margin:0 0 4px;}
+  .ba-sub{font-size:13px;color:var(--muted);margin:0 0 2px;}
+  table.ba{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;font-variant-numeric:tabular-nums;}
+  table.ba th{background:#eef0f4;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.05em;font-weight:700;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  table.ba th.num{text-align:right;} table.ba th.ctr{text-align:center;}
+  table.ba td{padding:7px 10px;border-bottom:1px solid #f0f0ee;}
+  table.ba td.num{text-align:right;white-space:nowrap;} table.ba td.ctr{text-align:center;color:var(--muted);}
+  table.ba tr.row.first td{border-top:1px solid #d9dbe1;}
+  table.ba tr.row.first td:nth-child(3){font-weight:600;}
+  table.ba tr.sub td{background:#f4f6fb;font-weight:600;border-bottom:1px solid #d9dbe1;}
+  table.ba tr.sub td.num{color:var(--blue);}
+  table.ba tr.cat td{background:#e3e9fb;color:#243a8f;font-weight:700;font-size:14px;padding:10px;border-top:14px solid #fff;}
+  table.ba tr.catsub td{background:#d5defa;font-weight:700;}
+  table.ba tr.grand td{background:#1f2a44;color:#fff;font-weight:700;font-size:15px;padding:12px 10px;border-top:14px solid #fff;}
+  @media (max-width:760px){ .ba-wrap{padding:14px 10px;} table.ba td,table.ba th{padding:6px 6px;} }
 </style>
 </head>
 <body>
@@ -624,7 +626,7 @@ var BULAN_ID = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agu
 
 function bulanLabel(key){ if (key === 'unknown') return 'Tanpa Tgl Jto'; var p = key.split('-'); return BULAN_ID[parseInt(p[1], 10)] + ' ' + p[0]; }
 function rekapTitle(){ return (lastData && lastData.report_title) || 'Opname Piutang di PT. Perintis Perkasa'; }
-function rekapHeads(mode){ var h = ['No', 'No.Cust', 'Nama Debitur', 'Piutang Bulan', 'Jumlah', 'Subtotal']; if (mode === 'kategori') h.push('Subtotal Kategori'); return h; }
+function rekapHeads(){ return ['No', 'No. Customer', 'Nama Debitur', 'Bulan', 'Jumlah']; }
 
 // Debitur diurutkan dari total terbesar; baris per bulan (Tgl Jto) urut kronologis.
 function rekapDebtors(invs){
@@ -645,13 +647,14 @@ function rekapDebtors(invs){
   }).sort(function(a, b){ return (b.total - a.total) || a.name.localeCompare(b.name, 'id'); });
 }
 
-// Hasil: daftar baris bertipe row / sub / cat / catsub / grand
+// Hasil: daftar baris bertipe row / sub / cat / catsub / grand (semua nominal di satu kolom Jumlah)
 function buildRekapLines(invs, mode){
   var lines = [], no = 0, grand = 0;
   function addDebtors(debtors){
     debtors.forEach(function(d){
-      d.rows.forEach(function(r){ no++; lines.push({ t: 'row', no: no, cust: d.cust, nama: d.name, bulan: r.bulan, jumlah: r.jumlah }); });
-      lines.push({ t: 'sub', amount: d.total });
+      no++;
+      d.rows.forEach(function(r, idx){ lines.push({ t: 'row', first: idx === 0, no: no, cust: d.cust, nama: d.name, bulan: r.bulan, jumlah: r.jumlah }); });
+      lines.push({ t: 'sub', nama: d.name, amount: d.total });
     });
   }
   if (mode === 'kategori'){
@@ -676,15 +679,17 @@ function buildRekapLines(invs, mode){
   return { lines: lines, grand: grand };
 }
 
-// Sel-sel per baris (dipakai tampilan layar dan PDF)
-function lineCells(L, mode){
-  var nc = mode === 'kategori' ? 7 : 6;
-  var blank = function(n){ var a = []; for (var i = 0; i < n; i++) a.push({ v: '' }); return a; };
-  if (L.t === 'row') return [{ v: L.no, a: 'r' }, { v: L.cust }, { v: L.nama }, { v: L.bulan }, { v: L.jumlah, a: 'r', money: 1 }].concat(blank(nc - 5));
-  if (L.t === 'sub') return blank(5).concat([{ v: L.amount, a: 'r', money: 1, b: 1 }]).concat(blank(nc - 6));
-  if (L.t === 'cat') return [{ v: 'KATEGORI: ' + L.name + '  ·  ' + L.ndeb + ' debitur', span: nc, b: 1 }];
-  if (L.t === 'catsub') return [{ v: 'SUBTOTAL KATEGORI ' + L.name, span: 5, a: 'r', b: 1 }, { v: '' }, { v: L.amount, a: 'r', money: 1, b: 1 }];
-  return [{ v: 'GRAND TOTAL', span: nc - 1, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+// Sel-sel per baris (dipakai tampilan layar dan PDF). a: r = kanan, c = tengah
+function lineCells(L){
+  if (L.t === 'row'){
+    return L.first
+      ? [{ v: L.no, a: 'c' }, { v: L.cust }, { v: L.nama, b: 1 }, { v: L.bulan }, { v: L.jumlah, a: 'r', money: 1 }]
+      : [{ v: '' }, { v: '' }, { v: '' }, { v: L.bulan }, { v: L.jumlah, a: 'r', money: 1 }];
+  }
+  if (L.t === 'sub') return [{ v: 'Subtotal ' + L.nama, span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+  if (L.t === 'cat') return [{ v: 'KATEGORI: ' + L.name + '  ·  ' + L.ndeb + ' debitur', span: 5, b: 1 }];
+  if (L.t === 'catsub') return [{ v: 'Subtotal Kategori ' + L.name, span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+  return [{ v: 'GRAND TOTAL', span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
 }
 
 function rekapSections(dd){
@@ -697,10 +702,11 @@ function rekapSections(dd){
 }
 
 function rekapTableHtml(lines, mode){
-  var h = '<div class="table-scroll"><table class="ba"><thead><tr>' + rekapHeads(mode).map(function(t){ return '<th>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+  var hc = ['ctr', '', '', '', 'num'];
+  var h = '<div class="table-scroll"><table class="ba"><thead><tr>' + rekapHeads().map(function(t, i){ return '<th class="' + hc[i] + '"' + (i === 0 ? ' style="width:48px"' : '') + '>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
   lines.forEach(function(L){
-    h += '<tr class="' + L.t + '">' + lineCells(L, mode).map(function(c){
-      return '<td' + (c.span ? ' colspan="' + c.span + '"' : '') + (c.a === 'r' ? ' class="num"' : '') + '>' + (c.money ? numId(c.v) : escapeHtml(String(c.v))) + '</td>';
+    h += '<tr class="' + L.t + (L.first ? ' first' : '') + '">' + lineCells(L).map(function(c){
+      return '<td' + (c.span ? ' colspan="' + c.span + '"' : '') + (c.a === 'r' ? ' class="num"' : (c.a === 'c' ? ' class="ctr"' : '')) + '>' + (c.money ? numId(c.v) : escapeHtml(String(c.v))) + '</td>';
     }).join('') + '</tr>';
   });
   return h + '</tbody></table></div>';
@@ -709,7 +715,7 @@ function rekapTableHtml(lines, mode){
 function renderRekapTab(dd){
   var isAll = currentDivisi === 'Semua Cabang';
   var secs = rekapSections(dd);
-  var modeLabel = rekapMode === 'kategori' ? 'Rekap Per Kategori' : 'Rekap Per Debitur';
+  var modeLabel = rekapMode === 'kategori' ? 'Per Kategori' : 'Per Debitur';
   var html = '<div class="rekap-bar"><div class="seg">' +
     '<button data-rm="debitur" class="' + (rekapMode === 'debitur' ? 'active' : '') + '">Per Debitur</button>' +
     '<button data-rm="kategori" class="' + (rekapMode === 'kategori' ? 'active' : '') + '">Per Kategori</button></div>' +
@@ -721,7 +727,7 @@ function renderRekapTab(dd){
   if (!secs.length) html += '<div class="loading">Tidak ada data.</div>';
   secs.forEach(function(s){
     var r = buildRekapLines(s.invs, rekapMode);
-    html += '<div class="ba-wrap" style="margin-bottom:18px;"><p class="ba-title">BERITA ACARA</p>' +
+    html += '<div class="ba-wrap" style="margin-bottom:18px;"><p class="ba-title">Rekap Piutang</p>' +
       '<p class="ba-sub">' + escapeHtml(rekapTitle()) + '</p>' +
       '<p class="ba-sub" style="color:var(--muted);font-size:12.5px;">Divisi: ' + escapeHtml(s.divisi) + ' &middot; ' + modeLabel + ' &middot; ' + numId(s.invs.length) + ' faktur</p>' +
       rekapTableHtml(r.lines, rekapMode) + '</div>';
@@ -746,94 +752,97 @@ function pdfReady(){ return !!(window.jspdf && window.jspdf.jsPDF && window.jspd
 
 function makePdf(sec, mode){
   var k = mode === 'kategori';
-  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: k ? 'landscape' : 'portrait' });
+  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
   var r = buildRekapLines(sec.invs, mode);
-  doc.setFont('times', 'bold'); doc.setFontSize(15); doc.text('BERITA ACARA', W / 2, 40, { align: 'center' });
-  doc.setFont('times', 'normal'); doc.setFontSize(10.5);
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Rekap Piutang', 36, 44);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 95, 105);
   doc.text(rekapTitle(), 36, 60);
-  doc.text('Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur'), 36, 74);
-  var fills = { cat: [232, 238, 252], catsub: [243, 246, 253], grand: [255, 248, 201] };
+  doc.text('Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur', 36, 74);
+  doc.setTextColor(0, 0, 0);
+  var fills = { sub: [244, 246, 251], cat: [227, 233, 251], catsub: [213, 222, 250], grand: [31, 42, 68] };
   var body = r.lines.map(function(L){
-    return lineCells(L, mode).map(function(c){
-      var cell = { content: c.money ? (c.v === '' ? '' : numId(c.v)) : String(c.v), styles: {} };
+    return lineCells(L).map(function(c){
+      var cell = { content: c.money ? numId(c.v) : String(c.v), styles: {} };
       if (c.span) cell.colSpan = c.span;
       if (c.a === 'r') cell.styles.halign = 'right';
+      if (c.a === 'c') cell.styles.halign = 'center';
       if (c.b) cell.styles.fontStyle = 'bold';
       if (fills[L.t]) cell.styles.fillColor = fills[L.t];
+      if (L.t === 'cat') cell.styles.textColor = [36, 58, 143];
+      if (L.t === 'grand') { cell.styles.textColor = [255, 255, 255]; cell.styles.fontSize = 10; }
       return cell;
     });
   });
-  var cs = { 0: { cellWidth: 28, halign: 'right' }, 1: { cellWidth: 74 }, 3: { cellWidth: 80 }, 4: { cellWidth: 72, halign: 'right' }, 5: { cellWidth: 74, halign: 'right' } };
-  if (k) cs[6] = { cellWidth: 84, halign: 'right' };
   doc.autoTable({
-    startY: 86, head: [rekapHeads(mode)], body: body, theme: 'grid',
-    styles: { font: 'times', fontSize: 9, cellPadding: { top: 2.5, bottom: 2.5, left: 4, right: 4 }, lineColor: [0, 0, 0], lineWidth: 0.5, textColor: 0, overflow: 'linebreak' },
-    headStyles: { fillColor: [255, 255, 0], textColor: 0, halign: 'center', fontStyle: 'bold' },
-    columnStyles: cs, margin: { left: 36, right: 36, bottom: 40 }, rowPageBreak: 'avoid'
+    startY: 88, head: [rekapHeads()], body: body, theme: 'grid',
+    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 3.5, bottom: 3.5, left: 6, right: 6 }, lineColor: [225, 227, 232], lineWidth: 0.4, textColor: 30, overflow: 'linebreak' },
+    headStyles: { fillColor: [238, 240, 244], textColor: [90, 95, 105], fontStyle: 'bold', fontSize: 8.5 },
+    columnStyles: { 0: { cellWidth: 30, halign: 'center' }, 1: { cellWidth: 82 }, 3: { cellWidth: 90 }, 4: { cellWidth: 90, halign: 'right' } },
+    didParseCell: function(d){ if (d.section === 'head' && d.column.index === 4) d.cell.styles.halign = 'right'; if (d.section === 'head' && d.column.index === 0) d.cell.styles.halign = 'center'; },
+    margin: { left: 36, right: 36, bottom: 40 }, rowPageBreak: 'avoid'
   });
   var n = doc.internal.getNumberOfPages();
   for (var p = 1; p <= n; p++){
-    doc.setPage(p); doc.setFont('times', 'normal'); doc.setFontSize(8);
+    doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
     doc.text('Halaman ' + p + ' / ' + n, W - 36, H - 20, { align: 'right' });
   }
   return doc;
 }
 
 async function makeXlsx(sec, mode){
-  var k = mode === 'kategori', nc = k ? 7 : 6, HEAD = 5;
+  var k = mode === 'kategori', nc = 5, HEAD = 5;
   var wb = new window.ExcelJS.Workbook(); wb.creator = 'Dashboard Piutang';
   var ws = wb.addWorksheet(k ? 'Rekap Per Kategori' : 'Rekap Per Debitur', {
-    pageSetup: { orientation: k ? 'landscape' : 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: HEAD + ':' + HEAD },
+    pageSetup: { orientation: 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: HEAD + ':' + HEAD },
     views: [{ state: 'frozen', ySplit: HEAD }]
   });
-  [6, 16, 42, 18, 18, 18, 20].slice(0, nc).forEach(function(w, i){ ws.getColumn(i + 1).width = w; });
-  var FONT = 'Times New Roman', thin = { style: 'thin', color: { argb: 'FF000000' } };
-  var border = { top: thin, left: thin, bottom: thin, right: thin };
-  ws.mergeCells(1, 1, 1, nc);
-  ws.getCell(1, 1).value = 'BERITA ACARA'; ws.getCell(1, 1).font = { name: FONT, bold: true, size: 15 }; ws.getCell(1, 1).alignment = { horizontal: 'center' };
-  ws.getCell(2, 1).value = rekapTitle(); ws.getCell(2, 1).font = { name: FONT, size: 11 };
-  ws.getCell(3, 1).value = 'Divisi: ' + sec.divisi + '   |   Rekap Per ' + (k ? 'Kategori' : 'Debitur');
-  ws.getCell(3, 1).font = { name: FONT, size: 11 };
-  rekapHeads(mode).forEach(function(t, i){
+  [6, 16, 42, 18, 20].forEach(function(w, i){ ws.getColumn(i + 1).width = w; });
+  var FONT = 'Calibri', line = { style: 'thin', color: { argb: 'FFD9DBE1' } };
+  var border = { top: line, left: line, bottom: line, right: line };
+  var solid = function(argb){ return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } }; };
+  ws.getCell(1, 1).value = 'Rekap Piutang'; ws.getCell(1, 1).font = { name: FONT, bold: true, size: 15 };
+  ws.getCell(2, 1).value = rekapTitle(); ws.getCell(2, 1).font = { name: FONT, size: 11, color: { argb: 'FF5A5F69' } };
+  ws.getCell(3, 1).value = 'Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur';
+  ws.getCell(3, 1).font = { name: FONT, size: 11, color: { argb: 'FF5A5F69' } };
+  rekapHeads().forEach(function(t, i){
     var c = ws.getCell(HEAD, i + 1);
-    c.value = t; c.font = { name: FONT, bold: true, size: 11 }; c.border = border;
-    c.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: 'FFFFFF00' } };
-    c.alignment = { horizontal: 'center', vertical: 'middle', wrapText: true };
+    c.value = t; c.font = { name: FONT, bold: true, size: 11, color: { argb: 'FF5A5F69' } }; c.border = border; c.fill = solid('FFEEF0F4');
+    c.alignment = { horizontal: i === 4 ? 'right' : (i === 0 ? 'center' : 'left'), vertical: 'middle' };
   });
-  var fillArgb = { cat: 'FFE8EEFC', catsub: 'FFF3F6FD', grand: 'FFFFF8C9' };
+  var fillArgb = { sub: 'FFF4F6FB', cat: 'FFE3E9FB', catsub: 'FFD5DEFA', grand: 'FF1F2A44' };
   var r = buildRekapLines(sec.invs, mode);
   var cur = HEAD + 1, debStart = null, catStart = null, firstData = HEAD + 1;
   r.lines.forEach(function(L){
-    var cells = lineCells(L, mode), col = 1;
+    var cells = lineCells(L), col = 1;
     cells.forEach(function(cell){
       var span = cell.span || 1;
       for (var s = 0; s < span; s++){
         var x = ws.getCell(cur, col + s);
-        x.border = border; x.font = { name: FONT, size: 11, bold: !!cell.b };
-        if (fillArgb[L.t]) x.fill = { type: 'pattern', pattern: 'solid', fgColor: { argb: fillArgb[L.t] } };
+        x.border = border;
+        x.font = { name: FONT, size: L.t === 'grand' ? 12 : 11, bold: !!cell.b, color: { argb: L.t === 'grand' ? 'FFFFFFFF' : (L.t === 'cat' ? 'FF243A8F' : 'FF1C1C1A') } };
+        if (fillArgb[L.t]) x.fill = solid(fillArgb[L.t]);
       }
       var c0 = ws.getCell(cur, col);
       c0.value = cell.v === '' ? null : cell.v;
-      c0.alignment = { horizontal: cell.a === 'r' ? 'right' : 'left', vertical: 'middle' };
+      c0.alignment = { horizontal: cell.a === 'r' ? 'right' : (cell.a === 'c' ? 'center' : 'left'), vertical: 'middle' };
       if (cell.money) c0.numFmt = '#,##0';
       if (span > 1) ws.mergeCells(cur, col, cur, col + span - 1);
       col += span;
     });
+    // Rumus SUBTOTAL(9,...) mengabaikan subtotal lain di dalam rentang, jadi tidak terhitung dua kali
     if (L.t === 'row'){
       if (debStart === null) debStart = cur;
-      if (k && catStart === null) catStart = cur;
     } else if (L.t === 'sub'){
-      ws.getCell(cur, 6).value = { formula: 'SUM(E' + debStart + ':E' + (cur - 1) + ')', result: L.amount };
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + debStart + ':E' + (cur - 1) + ')', result: L.amount };
       debStart = null;
     } else if (L.t === 'cat'){
-      catStart = null;
+      catStart = cur + 1;
     } else if (L.t === 'catsub'){
-      ws.getCell(cur, 7).value = { formula: 'SUM(F' + catStart + ':F' + (cur - 1) + ')', result: L.amount };
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + catStart + ':E' + (cur - 1) + ')', result: L.amount };
       catStart = null;
     } else if (L.t === 'grand'){
-      var gc = k ? 'G' : 'F';
-      ws.getCell(cur, nc).value = { formula: 'SUM(' + gc + firstData + ':' + gc + (cur - 1) + ')', result: L.amount };
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + firstData + ':E' + (cur - 1) + ')', result: L.amount };
     }
     cur++;
   });
