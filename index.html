@@ -187,9 +187,9 @@
     <div class="tabs" id="innerTabs" style="display:flex;gap:8px;margin-bottom:18px;">
       <button class="tab-btn active" data-tab="debitur">Per Debitur</button>
       <button class="tab-btn" data-tab="kategori">Per Kategori</button>
-      <button class="tab-btn" data-tab="rekap">Rekap Laporan</button>
       <button class="tab-btn" data-tab="penagihan">Penagihan Piutang</button>
       <button class="tab-btn" data-tab="prioritas">Prioritas Tagihan</button>
+      <button class="tab-btn" data-tab="rekap">Rekap Laporan</button>
     </div>
     <div id="content"></div>
   </div>
@@ -692,6 +692,22 @@ function lineCells(L){
   return [{ v: 'GRAND TOTAL', span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
 }
 
+// Kelompokkan baris jadi blok yang tidak boleh terpotong saat dicetak:
+// [judul kategori] + baris bulan debitur + subtotal debitur. Subtotal kategori dan grand total menempel pada blok terakhir.
+function rekapBlocks(lines){
+  var blocks = [], cur = null;
+  lines.forEach(function(L){
+    if (L.t === 'catsub' || L.t === 'grand'){
+      if (blocks.length) blocks[blocks.length - 1].push(L); else blocks.push([L]);
+      cur = null; return;
+    }
+    if (!cur){ cur = []; blocks.push(cur); }
+    cur.push(L);
+    if (L.t === 'sub') cur = null;
+  });
+  return blocks;
+}
+
 function rekapSections(dd){
   if (currentDivisi !== 'Semua Cabang') return [{ divisi: currentDivisi, invs: dd.invs }];
   var by = {};
@@ -751,41 +767,72 @@ function downloadBlob(blob, name){
 function pdfReady(){ return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }
 
 function makePdf(sec, mode){
-  var k = mode === 'kategori';
-  var doc = new window.jspdf.jsPDF({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  var k = mode === 'kategori', JS = window.jspdf.jsPDF;
+  var doc = new JS({ unit: 'pt', format: 'a4', orientation: 'portrait' });
   var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  var ML = 36, MR = 36, TW = W - ML - MR, BOT = 44, TOP2 = 40;   // TOP2 = batas atas halaman lanjutan
+  var cw = [30, 82, 0, 90, 96]; cw[2] = TW - cw[0] - cw[1] - cw[3] - cw[4];
   var r = buildRekapLines(sec.invs, mode);
-  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.text('Rekap Piutang', 36, 44);
-  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 95, 105);
-  doc.text(rekapTitle(), 36, 60);
-  doc.text('Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur', 36, 74);
-  doc.setTextColor(0, 0, 0);
   var fills = { sub: [244, 246, 251], cat: [227, 233, 251], catsub: [213, 222, 250], grand: [31, 42, 68] };
-  var body = r.lines.map(function(L){
-    return lineCells(L).map(function(c){
-      var cell = { content: c.money ? numId(c.v) : String(c.v), styles: {} };
-      if (c.span) cell.colSpan = c.span;
-      if (c.a === 'r') cell.styles.halign = 'right';
-      if (c.a === 'c') cell.styles.halign = 'center';
-      if (c.b) cell.styles.fontStyle = 'bold';
-      if (fills[L.t]) cell.styles.fillColor = fills[L.t];
-      if (L.t === 'cat') cell.styles.textColor = [36, 58, 143];
-      if (L.t === 'grand') { cell.styles.textColor = [255, 255, 255]; cell.styles.fontSize = 10; }
-      return cell;
+  function toBody(lines){
+    return lines.map(function(L){
+      return lineCells(L).map(function(c){
+        var cell = { content: c.money ? numId(c.v) : String(c.v), styles: {} };
+        if (c.span) cell.colSpan = c.span;
+        if (c.a === 'r') cell.styles.halign = 'right';
+        if (c.a === 'c') cell.styles.halign = 'center';
+        if (c.b) cell.styles.fontStyle = 'bold';
+        if (fills[L.t]) cell.styles.fillColor = fills[L.t];
+        if (L.t === 'cat') cell.styles.textColor = [36, 58, 143];
+        if (L.t === 'grand') { cell.styles.textColor = [255, 255, 255]; cell.styles.fontSize = 10; }
+        return cell;
+      });
     });
-  });
-  doc.autoTable({
-    startY: 88, head: [rekapHeads()], body: body, theme: 'grid',
+  }
+  var common = {
+    theme: 'grid', tableWidth: TW,
     styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 3.5, bottom: 3.5, left: 6, right: 6 }, lineColor: [225, 227, 232], lineWidth: 0.4, textColor: 30, overflow: 'linebreak' },
     headStyles: { fillColor: [238, 240, 244], textColor: [90, 95, 105], fontStyle: 'bold', fontSize: 8.5 },
-    columnStyles: { 0: { cellWidth: 30, halign: 'center' }, 1: { cellWidth: 82 }, 3: { cellWidth: 90 }, 4: { cellWidth: 90, halign: 'right' } },
-    didParseCell: function(d){ if (d.section === 'head' && d.column.index === 4) d.cell.styles.halign = 'right'; if (d.section === 'head' && d.column.index === 0) d.cell.styles.halign = 'center'; },
-    margin: { left: 36, right: 36, bottom: 40 }, rowPageBreak: 'avoid'
+    columnStyles: { 0: { cellWidth: cw[0], halign: 'center' }, 1: { cellWidth: cw[1] }, 2: { cellWidth: cw[2] }, 3: { cellWidth: cw[3] }, 4: { cellWidth: cw[4], halign: 'right' } },
+    didParseCell: function(d){
+      if (d.section === 'head' && d.column.index === 4) d.cell.styles.halign = 'right';
+      if (d.section === 'head' && d.column.index === 0) d.cell.styles.halign = 'center';
+    }
+  };
+  var scratch = new JS({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  function measure(body){   // tinggi tabel sebenarnya (termasuk baris yang membungkus), diukur dulu sebelum digambar
+    scratch.autoTable(Object.assign({}, common, { startY: 0, body: body, showHead: 'never', margin: { left: ML, right: MR, top: 0, bottom: 0 } }));
+    return scratch.lastAutoTable.finalY;
+  }
+  function drawHead(y){
+    doc.autoTable(Object.assign({}, common, { startY: y, head: [rekapHeads()], body: [], margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+    return doc.lastAutoTable.finalY;
+  }
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(0, 0, 0); doc.text('Rekap Piutang', ML, 44);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 95, 105);
+  doc.text(rekapTitle(), ML, 60);
+  doc.text('Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur', ML, 74);
+  doc.setTextColor(0, 0, 0);
+
+  var y = drawHead(88), pageTop = y;
+  rekapBlocks(r.lines).forEach(function(blk){
+    var body = toBody(blk), h = measure(body);
+    if (h > H - BOT - y - 1 && y > pageTop){      // tidak muat di sisa halaman -> pindah ke halaman baru
+      doc.addPage(); y = drawHead(TOP2); pageTop = y;
+    }
+    if (h > H - BOT - y - 1){                      // satu blok lebih tinggi dari satu halaman: terpaksa lanjut, header diulang
+      doc.autoTable(Object.assign({}, common, { startY: y, head: [rekapHeads()], body: body, showHead: 'everyPage', margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+      y = doc.lastAutoTable.finalY; pageTop = -1;
+    } else {
+      doc.autoTable(Object.assign({}, common, { startY: y, body: body, showHead: 'never', pageBreak: 'avoid', margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+      y = doc.lastAutoTable.finalY;
+    }
   });
   var n = doc.internal.getNumberOfPages();
   for (var p = 1; p <= n; p++){
     doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
-    doc.text('Halaman ' + p + ' / ' + n, W - 36, H - 20, { align: 'right' });
+    doc.text('Halaman ' + p + ' / ' + n, W - MR, H - 20, { align: 'right' });
   }
   return doc;
 }
@@ -794,10 +841,12 @@ async function makeXlsx(sec, mode){
   var k = mode === 'kategori', nc = 5, HEAD = 5;
   var wb = new window.ExcelJS.Workbook(); wb.creator = 'Dashboard Piutang';
   var ws = wb.addWorksheet(k ? 'Rekap Per Kategori' : 'Rekap Per Debitur', {
-    pageSetup: { orientation: 'portrait', paperSize: 9, fitToPage: true, fitToWidth: 1, fitToHeight: 0, printTitlesRow: HEAD + ':' + HEAD },
+    pageSetup: { orientation: 'portrait', paperSize: 9, scale: 85, horizontalCentered: true, printTitlesRow: HEAD + ':' + HEAD,
+                 margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } },
+    headerFooter: { oddFooter: '&RHalaman &P dari &N' },
     views: [{ state: 'frozen', ySplit: HEAD }]
   });
-  [6, 16, 42, 18, 20].forEach(function(w, i){ ws.getColumn(i + 1).width = w; });
+  [6, 16, 44, 18, 20].forEach(function(w, i){ ws.getColumn(i + 1).width = w; });
   var FONT = 'Calibri', line = { style: 'thin', color: { argb: 'FFD9DBE1' } };
   var border = { top: line, left: line, bottom: line, right: line };
   var solid = function(argb){ return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } }; };
@@ -813,7 +862,13 @@ async function makeXlsx(sec, mode){
   var fillArgb = { sub: 'FFF4F6FB', cat: 'FFE3E9FB', catsub: 'FFD5DEFA', grand: 'FF1F2A44' };
   var r = buildRekapLines(sec.invs, mode);
   var cur = HEAD + 1, debStart = null, catStart = null, firstData = HEAD + 1;
-  r.lines.forEach(function(L){
+  var PAGE_ROWS = 46, used = HEAD;   // perkiraan jumlah baris per halaman cetak (skala 85%), dipakai agar satu blok debitur tidak terpotong
+  function lineWeight(L){ return (L.t === 'row' && L.first && (String(L.nama).length > 46 || String(L.cust).length > 16)) ? 2 : 1; }
+  rekapBlocks(r.lines).forEach(function(blk){
+  var w = 0; blk.forEach(function(L){ w += lineWeight(L); });
+  if (used + w > PAGE_ROWS && w <= PAGE_ROWS - 1 && cur - 1 > HEAD){ ws.getRow(cur - 1).addPageBreak(); used = 1; }
+  used += w;
+  blk.forEach(function(L){
     var cells = lineCells(L), col = 1;
     cells.forEach(function(cell){
       var span = cell.span || 1;
@@ -825,7 +880,7 @@ async function makeXlsx(sec, mode){
       }
       var c0 = ws.getCell(cur, col);
       c0.value = cell.v === '' ? null : cell.v;
-      c0.alignment = { horizontal: cell.a === 'r' ? 'right' : (cell.a === 'c' ? 'center' : 'left'), vertical: 'middle' };
+      c0.alignment = { horizontal: cell.a === 'r' ? 'right' : (cell.a === 'c' ? 'center' : 'left'), vertical: 'middle', wrapText: !cell.money && span === 1 };
       if (cell.money) c0.numFmt = '#,##0';
       if (span > 1) ws.mergeCells(cur, col, cur, col + span - 1);
       col += span;
@@ -845,6 +900,7 @@ async function makeXlsx(sec, mode){
       ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + firstData + ':E' + (cur - 1) + ')', result: L.amount };
     }
     cur++;
+  });
   });
   return await wb.xlsx.writeBuffer();
 }
