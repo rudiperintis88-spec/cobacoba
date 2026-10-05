@@ -5,7 +5,7 @@
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
 <title>Body Repair — PT Perintis Perkasa</title>
 <style>
-:root{--bg:#f7f7f5;--panel:#fff;--border:#e2e2de;--ink:#1c1c1a;--muted:#6b6b66;--accent:#2a4bd6;--red:#c8394a;--bar:48px}
+:root{--bg:#f7f7f5;--panel:#fff;--border:#e2e2de;--ink:#1c1c1a;--muted:#6b6b66;--accent:#2a4bd6;--red:#c8394a;--bar:58px}
 @media (prefers-color-scheme:dark){:root{--bg:#0f1117;--panel:#171a23;--border:#2a2e3d;--ink:#eceef6;--muted:#9aa0b4;--accent:#8fa8ee;--red:#ff7a70}}
 *{box-sizing:border-box}
 html,body{height:100%;margin:0}
@@ -21,12 +21,14 @@ body{background:var(--bg);color:var(--ink);font-family:Inter,'Segoe UI',system-u
 .go:hover{background:#3457e0}
 #err{color:var(--red);font-size:12.5px;margin:10px 0 0;display:none}
 #app{display:none}
-.bar{position:fixed;top:0;left:0;right:0;height:var(--bar);display:flex;align-items:flex-end;gap:2px;padding:0 12px;background:var(--panel);border-bottom:1px solid var(--border);z-index:50;overflow-x:auto}
-.tab{font:600 13.5px inherit;font-family:inherit;padding:0 18px;height:38px;border:1px solid transparent;border-bottom:none;border-radius:8px 8px 0 0;background:transparent;color:var(--muted);cursor:pointer;white-space:nowrap}
+.bar{position:fixed;top:0;left:0;right:0;height:var(--bar);display:flex;align-items:stretch;gap:6px;padding:0 18px;background:var(--panel);border-bottom:1px solid var(--border);z-index:50;overflow-x:auto;white-space:nowrap}
+.ttl{display:flex;align-items:center;font-size:15px;color:var(--muted);margin-right:18px}
+.ttl b{color:var(--ink);font-weight:700;margin-left:5px}
+.tab{font-family:inherit;font-weight:600;font-size:15px;padding:0 14px;border:0;border-bottom:3px solid transparent;background:transparent;color:var(--muted);cursor:pointer}
 .tab:hover{color:var(--ink)}
-.tab[aria-selected=true]{background:var(--bg);color:var(--ink);border-color:var(--border);height:40px;margin-bottom:-1px;border-bottom:1px solid var(--bg);box-shadow:inset 0 2px 0 var(--accent)}
+.tab[aria-selected=true]{color:var(--accent);border-bottom-color:var(--accent)}
 .sp{flex:1}
-.out{align-self:center;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font:600 12.5px inherit;font-family:inherit;padding:6px 12px;cursor:pointer;margin-bottom:0;white-space:nowrap}
+.out{align-self:center;background:none;border:1px solid var(--border);border-radius:8px;color:var(--muted);font-family:inherit;font-weight:600;font-size:12.5px;padding:6px 12px;cursor:pointer}
 .out:hover{color:var(--ink)}
 iframe{position:fixed;top:var(--bar);left:0;width:100%;height:calc(100% - var(--bar));border:0;background:var(--bg);display:none}
 iframe.on{display:block}
@@ -47,9 +49,12 @@ iframe.on{display:block}
 </div>
 
 <div id="app">
-  <div class="bar" role="tablist" aria-label="Laporan">
+  <div class="bar">
+    <div class="ttl">PT Perintis Perkasa, Medan · <b>Body Repair</b></div>
+    <div style="display:flex;align-items:stretch" role="tablist" aria-label="Laporan">
     <button class="tab" role="tab" id="t-piutang" aria-selected="true" data-k="piutang">Piutang</button>
     <button class="tab" role="tab" id="t-material" aria-selected="false" data-k="material">Material Belum Faktur</button>
+    </div>
     <span class="sp"></span>
     <button class="out" id="out" type="button">Keluar</button>
   </div>
