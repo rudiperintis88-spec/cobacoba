@@ -3,8 +3,8 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Material Belum Faktur GR&amp;BP</title>
-<meta property="og:title" content="Material Belum Faktur GR&amp;BP">
+<title>Material Belum Faktur - GR Adam Malik</title>
+<meta property="og:title" content="Material Belum Faktur - GR Adam Malik">
 <meta property="og:type" content="website">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
@@ -295,12 +295,21 @@ tr.total td{background:var(--mark);color:var(--markink);font-weight:700;border-t
   .hero{padding:18px 16px}
 }
 @media print{.tabrow .export,nav.subtabs,.divtabs,.controls,.jump,.liverow,.cats,.xbar,.fhead{display:none}.grid{overflow:visible}body{background:#fff}}
+
+/* navigasi antar halaman */
+.pagenav{display:flex;flex-wrap:wrap;align-items:center;gap:8px;margin-top:16px}
+.pagenav .pl{color:var(--muted);font-size:13px;margin-right:4px}
+.pagenav a{display:inline-flex;align-items:center;padding:7px 15px;border-radius:999px;background:var(--thbg);border:1px solid var(--line);color:var(--ink);text-decoration:none;font-weight:600;font-size:14px;line-height:1.2}
+.pagenav a:hover{border-color:var(--line2)}
+.pagenav a[aria-current="page"]{background:var(--accent-soft);color:var(--accent);border-color:var(--accent)}
+.pagenav a:focus-visible{outline:2px solid var(--focus);outline-offset:2px}
+@media print{.pagenav{display:none}}
 </style>
 </head>
 <body>
 <div class="page">
   <header class="top">
-    <div class="co">PT Perintis Perkasa, Medan</div>
+    <div class="co">PT Perintis Perkasa, Medan · <b>GR Adam Malik</b></div>
     <h1 class="serif">Material Belum Dibuka Faktur</h1>
     <div class="liverow">
       <span class="live off" id="live"><svg class="sync" viewBox="0 0 22 22" aria-hidden="true"><rect width="22" height="22" rx="5"/><g class="arr" fill="none" stroke="#fff" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M6.3 9.6a5 5 0 0 1 8.7-1.7"/><path d="M15.6 5.8v2.9h-2.9"/><path d="M15.7 12.4a5 5 0 0 1-8.7 1.7"/><path d="M6.4 16.2v-2.9h2.9"/></g></svg><span id="livetext">Menghubungkan ke Google Sheet</span></span>
@@ -310,6 +319,8 @@ tr.total td{background:var(--mark);color:var(--markink);font-weight:700;border-t
     <div class="source" id="source">Sumber: Laporan Material Yg Belum Dibuka Faktur</div>
     <div class="detail" id="detail" aria-live="polite"></div>
   </header>
+
+  <nav class="pagenav" aria-label="Halaman"><span class="pl">Halaman:</span><a href="index.html">Semua Cabang</a><a href="adam-malik.html" aria-current="page">GR Adam Malik</a><a href="body-repair.html">Body Repair</a><a href="flamboyan.html">GR Flamboyan</a></nav>
 
   <section class="summary" id="summary" aria-label="Ringkasan">
     <div class="hero">
@@ -326,7 +337,7 @@ tr.total td{background:var(--mark);color:var(--markink);font-weight:700;border-t
     <h2 class="serif">Material</h2>
     <span class="cap mono">per service kategori · per PKB/WO</span>
   </div>
-  <nav class="divtabs" id="divtabs" role="tablist" aria-label="Divisi"></nav>
+  <nav class="divtabs" id="divtabs" role="tablist" aria-label="Divisi" hidden></nav>
   <div class="tabrow">
     <nav class="subtabs" id="tabs" role="tablist" aria-label="Sheet"></nav>
     <div class="export" role="group" aria-label="Ekspor data">
@@ -367,6 +378,7 @@ tr.total td{background:var(--mark);color:var(--markink);font-weight:700;border-t
 <script>
 (function(){
 'use strict';
+var ONLY='GR Adam Malik'; /* '' = halaman gabungan (semua cabang); selain itu = hanya satu divisi */
 var FILE_ID='1r0swpSbld_Uukv-urpt8ch-Y0g0l2uCu0djwlp1a4wI', SERVER='Google Drive', TOOL='download_file_content';
 var XLSX_MIME='application/vnd.openxmlformats-officedocument.spreadsheetml.sheet';
 var FALLBACK={'000019/WO/PB/12/25':{tgl:'2025-12-03',srv:'Light'},'000071/WO/PB/12/25':{tgl:'2025-12-12',srv:'Light'}};
@@ -1374,8 +1386,9 @@ function showFreshness(src,ts){
   if(src==='live')setLive('ok','Live · tersinkron <b>'+stamp(ts)+'</b> · otomatis tiap '+REFRESH_TXT,'');
   else if(src==='snap')setLive('off','Salinan tersimpan · belum tersambung ke Google Sheet','');
 }
+function onlyDiv(m){if(!ONLY)return m;m.divs=m.divs.filter(function(d){return d.name===ONLY});m.divs.forEach(function(d){d.sheets=d.sheets.filter(function(x){return x.view!=='gabungan'})});return m}
 function apply(raw,src,ts){
-  raw=fixRaw(raw);var m=build(raw),changed=m.sig!==lastSig;
+  raw=fixRaw(raw);var m=build(raw),changed=m.sig!==lastSig;m=onlyDiv(m);
   var pd=curDiv,pc=cur;
   model=m;
   if(changed||!built){
@@ -1383,7 +1396,7 @@ function apply(raw,src,ts){
     var hd='',ht='';
     try{var hs=decodeURIComponent(location.hash.slice(1));if(!hs)hs=sessionStorage.getItem('mbf-pos')||'';var hp=hs.split('/');hd=hp[0]||'';ht=hp[1]||''}catch(e){}
     var names=m.divs.map(function(d){return d.name});
-    var dv=pd&&names.indexOf(pd)>-1?pd:(names.indexOf(hd)>-1?hd:ALL);
+    var dv=ONLY?ONLY:(pd&&names.indexOf(pd)>-1?pd:(names.indexOf(hd)>-1?hd:ALL));
     selectDiv(dv,pc||ht);
   }
   lastSig=m.sig;showFreshness(src,ts);
