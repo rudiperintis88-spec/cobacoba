@@ -3,7 +3,12 @@
 <head>
 <meta charset="UTF-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Piutang GR Flamboyan — PT Perintis Perkasa</title>
+<title>Piutang GR & BP — PT Perintis Perkasa</title>
+<!-- Library untuk export PDF / Excel / ZIP (butuh koneksi internet) -->
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/exceljs/4.4.0/exceljs.min.js"></script>
+<script defer src="https://cdnjs.cloudflare.com/ajax/libs/jszip/3.10.1/jszip.min.js"></script>
 <style>
   :root{
     --bg:#f7f7f5; --panel:#ffffff; --panel-2:#f0f0ee; --border:#e2e2de;
@@ -103,12 +108,37 @@
   .cabang-group.open .cabang-body{display:block;}
   .cabang-group.open .chevron{transform:rotate(90deg);}
   .cabang-body .list{margin-top:12px;}
+
+  /* ===== Rekap Laporan ===== */
+  .btn:disabled{opacity:.6;cursor:wait;}
+  .rekap-bar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+  .seg{display:inline-flex;border:1px solid var(--border);border-radius:9px;overflow:hidden;background:var(--panel);}
+  .seg button{border:none;background:transparent;padding:9px 16px;font-size:13px;font-weight:600;color:var(--muted);cursor:pointer;font-family:inherit;}
+  .seg button.active{background:var(--blue);color:#fff;}
+  .rekap-spacer{flex:1;}
+  .rekap-note{font-size:12.5px;color:var(--muted);margin:0 0 14px;}
+  .ba-wrap{background:var(--panel);border:1px solid var(--border);border-radius:14px;padding:22px 22px 18px;box-shadow:0 1px 3px rgba(0,0,0,0.05);}
+  .ba-title{font-size:18px;font-weight:700;margin:0 0 4px;}
+  .ba-sub{font-size:13px;color:var(--muted);margin:0 0 2px;}
+  table.ba{width:100%;border-collapse:collapse;margin-top:14px;font-size:13.5px;font-variant-numeric:tabular-nums;}
+  table.ba th{background:#eef0f4;color:var(--muted);text-transform:uppercase;font-size:11px;letter-spacing:.05em;font-weight:700;padding:9px 10px;text-align:left;border-bottom:1px solid var(--border);white-space:nowrap;}
+  table.ba th.num{text-align:right;} table.ba th.ctr{text-align:center;}
+  table.ba td{padding:7px 10px;border-bottom:1px solid #f0f0ee;}
+  table.ba td.num{text-align:right;white-space:nowrap;} table.ba td.ctr{text-align:center;color:var(--muted);}
+  table.ba tr.row.first td{border-top:1px solid #d9dbe1;}
+  table.ba tr.row.first td:nth-child(3){font-weight:600;}
+  table.ba tr.sub td{background:#f4f6fb;font-weight:600;border-bottom:1px solid #d9dbe1;}
+  table.ba tr.sub td.num{color:var(--blue);}
+  table.ba tr.cat td{background:#e3e9fb;color:#243a8f;font-weight:700;font-size:14px;padding:10px;border-top:14px solid #fff;}
+  table.ba tr.catsub td{background:#d5defa;font-weight:700;}
+  table.ba tr.grand td{background:#1f2a44;color:#fff;font-weight:700;font-size:15px;padding:12px 10px;border-top:14px solid #fff;}
+  @media (max-width:760px){ .ba-wrap{padding:14px 10px;} table.ba td,table.ba th{padding:6px 6px;} }
 </style>
 </head>
 <body>
 <div id="loginGate" style="position:fixed;inset:0;background:var(--bg);z-index:9999;display:flex;align-items:center;justify-content:center;padding:20px;">
   <div style="background:var(--panel);border:1px solid var(--border);border-radius:16px;padding:32px;width:320px;max-width:100%;box-shadow:0 4px 16px rgba(0,0,0,.08);text-align:center;">
-    <p style="font-weight:700;font-size:18px;margin:0 0 4px;font-family:Georgia,serif;">GR Flamboyan</p>
+    <p style="font-weight:700;font-size:18px;margin:0 0 4px;font-family:Georgia,serif;">GR &amp; BP</p>
     <p style="color:var(--muted);font-size:13px;margin:0 0 18px;">PT Perintis Perkasa, Medan</p>
     <div style="position:relative;margin-bottom:10px;">
       <input type="password" id="gatePassword" placeholder="Masukkan password" autofocus
@@ -125,7 +155,7 @@
   <div class="topline">
     <div>
       <p class="brand">PT Perintis Perkasa, Medan</p>
-      <h1>Piutang GR Flamboyan</h1>
+      <h1>Piutang GR & BP</h1>
       <p class="sub" id="opname-title" style="margin-bottom:2px;"></p>
       <p class="sub" id="source-sub">Sumber: Laporan Piutang</p>
     </div>
@@ -159,6 +189,7 @@
       <button class="tab-btn" data-tab="kategori">Per Kategori</button>
       <button class="tab-btn" data-tab="penagihan">Penagihan Piutang</button>
       <button class="tab-btn" data-tab="prioritas">Prioritas Tagihan</button>
+      <button class="tab-btn" data-tab="rekap">Rekap Laporan</button>
     </div>
     <div id="content"></div>
   </div>
@@ -185,7 +216,7 @@ var currentDivisi = null;
 var currentTab = 'debitur';
 var searchQuery = '';
 var openDebtorKeys = {}, openCabangKeys = {};
-var FIXED_DIVISI = 'GR Flamboyan'; // kosong = semua divisi; isi nama divisi = dashboard khusus divisi itu
+var FIXED_DIVISI = ''; // kosong = semua divisi; isi nama divisi = dashboard khusus divisi itu
 var sortKey = 'tgljto', sortDir = 1; // default: Tgl Jto terlama dulu, lalu Hari terbesar
 
 function rupiah(n){ return 'Rp ' + Math.round(n).toLocaleString('id-ID'); }
@@ -380,6 +411,9 @@ function processRows(rows) {
              sa: g('sa'), hari: g('hari'), jumlah: parseAmount(g('jumlah')), top: g('top'), giro: g('giro'), sacode: g('sacode'),
              divisi: normalizeDivisi(f.divisi), kategori: tentukanKategori(f) };
   });
+  return buildData(invs, reportTitle);
+}
+function buildData(invs, reportTitle){
   var grandTotal = 0; invs.forEach(function(i){ grandTotal += i.jumlah; });
   var byDivisi = {};
   DIVISI_ORDER.forEach(function(n){ byDivisi[n] = []; });
@@ -387,8 +421,9 @@ function processRows(rows) {
   var divisions = { 'Semua Cabang': groupDebtors(invs) };
   Object.keys(byDivisi).forEach(function(n){ divisions[n] = groupDebtors(byDivisi[n]); });
 
-  return { grand_total: grandTotal, grand_count: dataRows.length, report_title: reportTitle, divisions: divisions };
+  return { grand_total: grandTotal, grand_count: invs.length, report_title: reportTitle, divisions: divisions };
 }
+
 
 function computeAgingBuckets(debtors) {
   const buckets = {
@@ -585,6 +620,327 @@ function renderPrioritasTab(dd){
   wireContentHandlers();
 }
 
+// ===================== REKAP LAPORAN (format Berita Acara) + EXPORT =====================
+var rekapMode = 'debitur';   // 'debitur' | 'kategori'
+var BULAN_ID = ['','Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+
+function bulanLabel(key){ if (key === 'unknown') return 'Tanpa Tgl Jto'; var p = key.split('-'); return BULAN_ID[parseInt(p[1], 10)] + ' ' + p[0]; }
+function rekapTitle(){ return (lastData && lastData.report_title) || 'Opname Piutang di PT. Perintis Perkasa'; }
+function rekapHeads(){ return ['No', 'No. Customer', 'Nama Debitur', 'Bulan', 'Jumlah']; }
+
+// Debitur diurutkan dari total terbesar; baris per bulan (Tgl Jto) urut kronologis.
+function rekapDebtors(invs){
+  var by = {};
+  invs.forEach(function(inv){
+    var d = by[inv.nama] || (by[inv.nama] = { name: inv.nama, custs: [], total: 0, mm: {} });
+    if (inv.cust && d.custs.indexOf(inv.cust) < 0) d.custs.push(inv.cust);
+    d.total += inv.jumlah;
+    var dt = parseDateDDMMYYYY(inv.tgljto);
+    var key = dt ? dt.year + '-' + String(dt.month).padStart(2, '0') : 'unknown';
+    d.mm[key] = (d.mm[key] || 0) + inv.jumlah;
+  });
+  return Object.keys(by).map(function(k){
+    var d = by[k];
+    d.cust = d.custs.join(' / ');
+    d.rows = Object.keys(d.mm).sort().map(function(key){ return { bulan: bulanLabel(key), jumlah: d.mm[key] }; });
+    return d;
+  }).sort(function(a, b){ return (b.total - a.total) || a.name.localeCompare(b.name, 'id'); });
+}
+
+// Hasil: daftar baris bertipe row / sub / cat / catsub / grand (semua nominal di satu kolom Jumlah)
+function buildRekapLines(invs, mode){
+  var lines = [], no = 0, grand = 0;
+  function addDebtors(debtors){
+    debtors.forEach(function(d){
+      no++;
+      d.rows.forEach(function(r, idx){ lines.push({ t: 'row', first: idx === 0, no: no, cust: d.cust, nama: d.name, bulan: r.bulan, jumlah: r.jumlah }); });
+      lines.push({ t: 'sub', nama: d.name, amount: d.total });
+    });
+  }
+  if (mode === 'kategori'){
+    var byK = {};
+    invs.forEach(function(i){ (byK[i.kategori] = byK[i.kategori] || []).push(i); });
+    var cats = Object.keys(byK).map(function(k){
+      var t = 0; byK[k].forEach(function(i){ t += i.jumlah; });
+      return { name: k, total: t, debtors: rekapDebtors(byK[k]) };
+    }).sort(function(a, b){ return (b.total - a.total) || a.name.localeCompare(b.name, 'id'); });
+    cats.forEach(function(c){
+      lines.push({ t: 'cat', name: c.name, ndeb: c.debtors.length });
+      addDebtors(c.debtors);
+      lines.push({ t: 'catsub', name: c.name, amount: c.total });
+      grand += c.total;
+    });
+  } else {
+    var ds = rekapDebtors(invs);
+    addDebtors(ds);
+    ds.forEach(function(d){ grand += d.total; });
+  }
+  lines.push({ t: 'grand', amount: grand });
+  return { lines: lines, grand: grand };
+}
+
+// Sel-sel per baris (dipakai tampilan layar dan PDF). a: r = kanan, c = tengah
+function lineCells(L){
+  if (L.t === 'row'){
+    return L.first
+      ? [{ v: L.no, a: 'c' }, { v: L.cust }, { v: L.nama, b: 1 }, { v: L.bulan }, { v: L.jumlah, a: 'r', money: 1 }]
+      : [{ v: '' }, { v: '' }, { v: '' }, { v: L.bulan }, { v: L.jumlah, a: 'r', money: 1 }];
+  }
+  if (L.t === 'sub') return [{ v: 'Subtotal ' + L.nama, span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+  if (L.t === 'cat') return [{ v: 'KATEGORI: ' + L.name + '  ·  ' + L.ndeb + ' debitur', span: 5, b: 1 }];
+  if (L.t === 'catsub') return [{ v: 'Subtotal Kategori ' + L.name, span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+  return [{ v: 'GRAND TOTAL', span: 4, a: 'r', b: 1 }, { v: L.amount, a: 'r', money: 1, b: 1 }];
+}
+
+// Kelompokkan baris jadi blok yang tidak boleh terpotong saat dicetak:
+// [judul kategori] + baris bulan debitur + subtotal debitur. Subtotal kategori dan grand total menempel pada blok terakhir.
+function rekapBlocks(lines){
+  var blocks = [], cur = null;
+  lines.forEach(function(L){
+    if (L.t === 'catsub' || L.t === 'grand'){
+      if (blocks.length) blocks[blocks.length - 1].push(L); else blocks.push([L]);
+      cur = null; return;
+    }
+    if (!cur){ cur = []; blocks.push(cur); }
+    cur.push(L);
+    if (L.t === 'sub') cur = null;
+  });
+  return blocks;
+}
+
+function rekapSections(dd){
+  if (currentDivisi !== 'Semua Cabang') return [{ divisi: currentDivisi, invs: dd.invs }];
+  var by = {};
+  dd.invs.forEach(function(i){ (by[i.divisi] = by[i.divisi] || []).push(i); });
+  var names = DIVISI_ORDER.filter(function(n){ return by[n] && by[n].length; })
+    .concat(Object.keys(by).filter(function(n){ return DIVISI_ORDER.indexOf(n) < 0; }).sort());
+  return names.map(function(n){ return { divisi: n, invs: by[n] }; });
+}
+
+function rekapTableHtml(lines, mode){
+  var hc = ['ctr', '', '', '', 'num'];
+  var h = '<div class="table-scroll"><table class="ba"><thead><tr>' + rekapHeads().map(function(t, i){ return '<th class="' + hc[i] + '"' + (i === 0 ? ' style="width:48px"' : '') + '>' + t + '</th>'; }).join('') + '</tr></thead><tbody>';
+  lines.forEach(function(L){
+    h += '<tr class="' + L.t + (L.first ? ' first' : '') + '">' + lineCells(L).map(function(c){
+      return '<td' + (c.span ? ' colspan="' + c.span + '"' : '') + (c.a === 'r' ? ' class="num"' : (c.a === 'c' ? ' class="ctr"' : '')) + '>' + (c.money ? numId(c.v) : escapeHtml(String(c.v))) + '</td>';
+    }).join('') + '</tr>';
+  });
+  return h + '</tbody></table></div>';
+}
+
+function renderRekapTab(dd){
+  var isAll = currentDivisi === 'Semua Cabang';
+  var secs = rekapSections(dd);
+  var modeLabel = rekapMode === 'kategori' ? 'Per Kategori' : 'Per Debitur';
+  var html = '<div class="rekap-bar"><div class="seg">' +
+    '<button data-rm="debitur" class="' + (rekapMode === 'debitur' ? 'active' : '') + '">Per Debitur</button>' +
+    '<button data-rm="kategori" class="' + (rekapMode === 'kategori' ? 'active' : '') + '">Per Kategori</button></div>' +
+    '<span class="rekap-spacer"></span>' +
+    '<button class="btn" id="expPdf">&#11015; Export PDF</button><button class="btn" id="expXls">&#11015; Export Excel</button></div>';
+  html += '<p class="rekap-note">Diurutkan dari nominal terbesar. ' + (isAll
+    ? 'Karena ini tab Semua Cabang, export dipisah per divisi: hasilnya satu file ZIP berisi satu file per divisi (' + secs.map(function(s){ return escapeHtml(s.divisi); }).join(', ') + ').'
+    : 'Export mengikuti tampilan di bawah (' + modeLabel + ', divisi ' + escapeHtml(currentDivisi) + ').') + '</p>';
+  if (!secs.length) html += '<div class="loading">Tidak ada data.</div>';
+  secs.forEach(function(s){
+    var r = buildRekapLines(s.invs, rekapMode);
+    html += '<div class="ba-wrap" style="margin-bottom:18px;"><p class="ba-title">Rekap Piutang</p>' +
+      '<p class="ba-sub">' + escapeHtml(rekapTitle()) + '</p>' +
+      '<p class="ba-sub" style="color:var(--muted);font-size:12.5px;">Divisi: ' + escapeHtml(s.divisi) + ' &middot; ' + modeLabel + ' &middot; ' + numId(s.invs.length) + ' faktur</p>' +
+      rekapTableHtml(r.lines, rekapMode) + '</div>';
+  });
+  document.getElementById('content').innerHTML = html;
+  document.querySelectorAll('[data-rm]').forEach(function(b){
+    b.addEventListener('click', function(){ rekapMode = b.getAttribute('data-rm'); renderContent(); });
+  });
+  document.getElementById('expPdf').addEventListener('click', function(){ exportRekap('pdf'); });
+  document.getElementById('expXls').addEventListener('click', function(){ exportRekap('xlsx'); });
+}
+
+// ---------- Export ----------
+function safeName(s){ return String(s).replace(/[^A-Za-z0-9]+/g, '_').replace(/^_+|_+$/g, ''); }
+function downloadBlob(blob, name){
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = name;
+  document.body.appendChild(a); a.click();
+  setTimeout(function(){ URL.revokeObjectURL(a.href); a.remove(); }, 1500);
+}
+function pdfReady(){ return !!(window.jspdf && window.jspdf.jsPDF && window.jspdf.jsPDF.API && window.jspdf.jsPDF.API.autoTable); }
+
+function makePdf(sec, mode){
+  var k = mode === 'kategori', JS = window.jspdf.jsPDF;
+  var doc = new JS({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  var W = doc.internal.pageSize.getWidth(), H = doc.internal.pageSize.getHeight();
+  var ML = 36, MR = 36, TW = W - ML - MR, BOT = 44, TOP2 = 40;   // TOP2 = batas atas halaman lanjutan
+  var cw = [30, 82, 0, 90, 96]; cw[2] = TW - cw[0] - cw[1] - cw[3] - cw[4];
+  var r = buildRekapLines(sec.invs, mode);
+  var fills = { sub: [244, 246, 251], cat: [227, 233, 251], catsub: [213, 222, 250], grand: [31, 42, 68] };
+  function toBody(lines){
+    return lines.map(function(L){
+      return lineCells(L).map(function(c){
+        var cell = { content: c.money ? numId(c.v) : String(c.v), styles: {} };
+        if (c.span) cell.colSpan = c.span;
+        if (c.a === 'r') cell.styles.halign = 'right';
+        if (c.a === 'c') cell.styles.halign = 'center';
+        if (c.b) cell.styles.fontStyle = 'bold';
+        if (fills[L.t]) cell.styles.fillColor = fills[L.t];
+        if (L.t === 'cat') cell.styles.textColor = [36, 58, 143];
+        if (L.t === 'grand') { cell.styles.textColor = [255, 255, 255]; cell.styles.fontSize = 10; }
+        return cell;
+      });
+    });
+  }
+  var common = {
+    theme: 'grid', tableWidth: TW,
+    styles: { font: 'helvetica', fontSize: 9, cellPadding: { top: 3.5, bottom: 3.5, left: 6, right: 6 }, lineColor: [225, 227, 232], lineWidth: 0.4, textColor: 30, overflow: 'linebreak' },
+    headStyles: { fillColor: [238, 240, 244], textColor: [90, 95, 105], fontStyle: 'bold', fontSize: 8.5 },
+    columnStyles: { 0: { cellWidth: cw[0], halign: 'center' }, 1: { cellWidth: cw[1] }, 2: { cellWidth: cw[2] }, 3: { cellWidth: cw[3] }, 4: { cellWidth: cw[4], halign: 'right' } },
+    didParseCell: function(d){
+      if (d.section === 'head' && d.column.index === 4) d.cell.styles.halign = 'right';
+      if (d.section === 'head' && d.column.index === 0) d.cell.styles.halign = 'center';
+    }
+  };
+  var scratch = new JS({ unit: 'pt', format: 'a4', orientation: 'portrait' });
+  function measure(body){   // tinggi tabel sebenarnya (termasuk baris yang membungkus), diukur dulu sebelum digambar
+    scratch.autoTable(Object.assign({}, common, { startY: 0, body: body, showHead: 'never', margin: { left: ML, right: MR, top: 0, bottom: 0 } }));
+    return scratch.lastAutoTable.finalY;
+  }
+  function drawHead(y){
+    doc.autoTable(Object.assign({}, common, { startY: y, head: [rekapHeads()], body: [], margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+    return doc.lastAutoTable.finalY;
+  }
+
+  doc.setFont('helvetica', 'bold'); doc.setFontSize(15); doc.setTextColor(0, 0, 0); doc.text('Rekap Piutang', ML, 44);
+  doc.setFont('helvetica', 'normal'); doc.setFontSize(10); doc.setTextColor(90, 95, 105);
+  doc.text(rekapTitle(), ML, 60);
+  doc.text('Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur', ML, 74);
+  doc.setTextColor(0, 0, 0);
+
+  var y = drawHead(88), pageTop = y;
+  rekapBlocks(r.lines).forEach(function(blk){
+    var body = toBody(blk), h = measure(body);
+    if (h > H - BOT - y - 1 && y > pageTop){      // tidak muat di sisa halaman -> pindah ke halaman baru
+      doc.addPage(); y = drawHead(TOP2); pageTop = y;
+    }
+    if (h > H - BOT - y - 1){                      // satu blok lebih tinggi dari satu halaman: terpaksa lanjut, header diulang
+      doc.autoTable(Object.assign({}, common, { startY: y, head: [rekapHeads()], body: body, showHead: 'everyPage', margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+      y = doc.lastAutoTable.finalY; pageTop = -1;
+    } else {
+      doc.autoTable(Object.assign({}, common, { startY: y, body: body, showHead: 'never', pageBreak: 'avoid', margin: { left: ML, right: MR, top: TOP2, bottom: BOT } }));
+      y = doc.lastAutoTable.finalY;
+    }
+  });
+  var n = doc.internal.getNumberOfPages();
+  for (var p = 1; p <= n; p++){
+    doc.setPage(p); doc.setFont('helvetica', 'normal'); doc.setFontSize(8); doc.setTextColor(120, 120, 120);
+    doc.text('Halaman ' + p + ' / ' + n, W - MR, H - 20, { align: 'right' });
+  }
+  return doc;
+}
+
+async function makeXlsx(sec, mode){
+  var k = mode === 'kategori', nc = 5, HEAD = 5;
+  var wb = new window.ExcelJS.Workbook(); wb.creator = 'Dashboard Piutang';
+  var ws = wb.addWorksheet(k ? 'Rekap Per Kategori' : 'Rekap Per Debitur', {
+    pageSetup: { orientation: 'portrait', paperSize: 9, scale: 85, horizontalCentered: true, printTitlesRow: HEAD + ':' + HEAD,
+                 margins: { left: 0.5, right: 0.5, top: 0.6, bottom: 0.6, header: 0.3, footer: 0.3 } },
+    headerFooter: { oddFooter: '&RHalaman &P dari &N' },
+    views: [{ state: 'frozen', ySplit: HEAD }]
+  });
+  [6, 16, 44, 18, 20].forEach(function(w, i){ ws.getColumn(i + 1).width = w; });
+  var FONT = 'Calibri', line = { style: 'thin', color: { argb: 'FFD9DBE1' } };
+  var border = { top: line, left: line, bottom: line, right: line };
+  var solid = function(argb){ return { type: 'pattern', pattern: 'solid', fgColor: { argb: argb } }; };
+  ws.getCell(1, 1).value = 'Rekap Piutang'; ws.getCell(1, 1).font = { name: FONT, bold: true, size: 15 };
+  ws.getCell(2, 1).value = rekapTitle(); ws.getCell(2, 1).font = { name: FONT, size: 11, color: { argb: 'FF5A5F69' } };
+  ws.getCell(3, 1).value = 'Divisi: ' + sec.divisi + '   |   ' + (k ? 'Per Kategori' : 'Per Debitur') + '   |   ' + sec.invs.length + ' faktur';
+  ws.getCell(3, 1).font = { name: FONT, size: 11, color: { argb: 'FF5A5F69' } };
+  rekapHeads().forEach(function(t, i){
+    var c = ws.getCell(HEAD, i + 1);
+    c.value = t; c.font = { name: FONT, bold: true, size: 11, color: { argb: 'FF5A5F69' } }; c.border = border; c.fill = solid('FFEEF0F4');
+    c.alignment = { horizontal: i === 4 ? 'right' : (i === 0 ? 'center' : 'left'), vertical: 'middle' };
+  });
+  var fillArgb = { sub: 'FFF4F6FB', cat: 'FFE3E9FB', catsub: 'FFD5DEFA', grand: 'FF1F2A44' };
+  var r = buildRekapLines(sec.invs, mode);
+  var cur = HEAD + 1, debStart = null, catStart = null, firstData = HEAD + 1;
+  var PAGE_ROWS = 46, used = HEAD;   // perkiraan jumlah baris per halaman cetak (skala 85%), dipakai agar satu blok debitur tidak terpotong
+  function lineWeight(L){ return (L.t === 'row' && L.first && (String(L.nama).length > 46 || String(L.cust).length > 16)) ? 2 : 1; }
+  rekapBlocks(r.lines).forEach(function(blk){
+  var w = 0; blk.forEach(function(L){ w += lineWeight(L); });
+  if (used + w > PAGE_ROWS && w <= PAGE_ROWS - 1 && cur - 1 > HEAD){ ws.getRow(cur - 1).addPageBreak(); used = 1; }
+  used += w;
+  blk.forEach(function(L){
+    var cells = lineCells(L), col = 1;
+    cells.forEach(function(cell){
+      var span = cell.span || 1;
+      for (var s = 0; s < span; s++){
+        var x = ws.getCell(cur, col + s);
+        x.border = border;
+        x.font = { name: FONT, size: L.t === 'grand' ? 12 : 11, bold: !!cell.b, color: { argb: L.t === 'grand' ? 'FFFFFFFF' : (L.t === 'cat' ? 'FF243A8F' : 'FF1C1C1A') } };
+        if (fillArgb[L.t]) x.fill = solid(fillArgb[L.t]);
+      }
+      var c0 = ws.getCell(cur, col);
+      c0.value = cell.v === '' ? null : cell.v;
+      c0.alignment = { horizontal: cell.a === 'r' ? 'right' : (cell.a === 'c' ? 'center' : 'left'), vertical: 'middle', wrapText: !cell.money && span === 1 };
+      if (cell.money) c0.numFmt = '#,##0';
+      if (span > 1) ws.mergeCells(cur, col, cur, col + span - 1);
+      col += span;
+    });
+    // Rumus SUBTOTAL(9,...) mengabaikan subtotal lain di dalam rentang, jadi tidak terhitung dua kali
+    if (L.t === 'row'){
+      if (debStart === null) debStart = cur;
+    } else if (L.t === 'sub'){
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + debStart + ':E' + (cur - 1) + ')', result: L.amount };
+      debStart = null;
+    } else if (L.t === 'cat'){
+      catStart = cur + 1;
+    } else if (L.t === 'catsub'){
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + catStart + ':E' + (cur - 1) + ')', result: L.amount };
+      catStart = null;
+    } else if (L.t === 'grand'){
+      ws.getCell(cur, 5).value = { formula: 'SUBTOTAL(9,E' + firstData + ':E' + (cur - 1) + ')', result: L.amount };
+    }
+    cur++;
+  });
+  });
+  return await wb.xlsx.writeBuffer();
+}
+
+async function exportRekap(kind){
+  var bP = document.getElementById('expPdf'), bX = document.getElementById('expXls');
+  var oldP = bP.innerHTML, oldX = bX.innerHTML;
+  try {
+    var dd = currentDivisiData(), secs = dd ? rekapSections(dd) : [], mode = rekapMode;
+    if (!secs.length) throw new Error('Tidak ada data untuk diexport.');
+    if (kind === 'pdf' && !pdfReady()) throw new Error('Library PDF belum termuat. Pastikan internet aktif lalu muat ulang halaman.');
+    if (kind === 'xlsx' && !window.ExcelJS) throw new Error('Library Excel belum termuat. Pastikan internet aktif lalu muat ulang halaman.');
+    var multi = currentDivisi === 'Semua Cabang' && secs.length > 1;
+    if (multi && !window.JSZip) throw new Error('Library ZIP belum termuat. Pastikan internet aktif lalu muat ulang halaman.');
+    bP.disabled = bX.disabled = true;
+    (kind === 'pdf' ? bP : bX).textContent = 'Menyiapkan...';
+    var d = new Date(), stamp = d.getFullYear() + String(d.getMonth() + 1).padStart(2, '0') + String(d.getDate()).padStart(2, '0');
+    var label = mode === 'kategori' ? 'Per_Kategori' : 'Per_Debitur';
+    var files = [];
+    for (var i = 0; i < secs.length; i++){
+      var name = 'Rekap_Piutang_' + safeName(secs[i].divisi) + '_' + label + '_' + stamp + '.' + kind;
+      if (kind === 'pdf') files.push({ name: name, data: makePdf(secs[i], mode).output('blob') });
+      else files.push({ name: name, data: new Blob([await makeXlsx(secs[i], mode)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }) });
+    }
+    if (multi){
+      var zip = new window.JSZip();
+      files.forEach(function(f){ zip.file(f.name, f.data); });
+      downloadBlob(await zip.generateAsync({ type: 'blob' }), 'Rekap_Piutang_Semua_Cabang_' + label + '_' + (kind === 'pdf' ? 'PDF' : 'Excel') + '_' + stamp + '.zip');
+    } else {
+      downloadBlob(files[0].data, files[0].name);
+    }
+  } catch (err) {
+    alert('Export gagal: ' + err.message);
+  } finally {
+    var p2 = document.getElementById('expPdf'), x2 = document.getElementById('expXls');
+    if (p2){ p2.disabled = false; p2.innerHTML = oldP; }
+    if (x2){ x2.disabled = false; x2.innerHTML = oldX; }
+  }
+}
+
 function selectBucket(key){
   penBucket = (currentTab === 'penagihan' && penBucket === key) ? 'all' : key;
   currentTab = 'penagihan'; searchQuery = '';
@@ -637,6 +993,7 @@ function renderContent(){
   if (currentTab === 'debitur') renderDebiturTab(dd.debtors);
   else if (currentTab === 'penagihan') renderPenagihanTab(dd);
   else if (currentTab === 'prioritas') renderPrioritasTab(dd);
+  else if (currentTab === 'rekap') renderRekapTab(dd);
   else renderKategoriTab(dd);
   renderAgingCards(dd.debtors);
   if (typing) { var s = document.getElementById('search'); if (s) { s.focus(); s.setSelectionRange(ss, se); } }
@@ -702,8 +1059,8 @@ document.querySelectorAll('#innerTabs .tab-btn').forEach(btn => {
 async function loadData() {
   const statusEl = document.getElementById('status');
   const errBanner = document.getElementById('error-banner');
-  statusEl.innerHTML = '<span class="spin"></span>Mengambil data terbaru...';
   errBanner.style.display = 'none';
+  statusEl.innerHTML = '<span class="spin"></span>Mengambil data terbaru...';
 
   try {
     const res = await fetch(CSV_URL + '&_ts=' + Date.now(), { cache: 'no-store' });
@@ -734,7 +1091,7 @@ function setupAutoRefresh() {
 autoToggle.addEventListener('change', setupAutoRefresh);
 
 // Password gerbang masuk — GANTI teks di dalam tanda kutip ini kalau mau password lain
-const DASHBOARD_PASSWORD = "perintispf2026";
+const DASHBOARD_PASSWORD = "perintis2026";
 
 function tryLogin(){
   var val = document.getElementById('gatePassword').value;
