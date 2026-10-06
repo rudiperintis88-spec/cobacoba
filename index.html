@@ -1789,7 +1789,7 @@ function parsePiutangCsv(csv) {
   let label = null, h = -1;
   for (let i = 0; i < csv.length && i < 40; i++) {
     const row = csv[i] || [];
-    if (!label) for (const c of row) { const t = String(c || '').trim(); if (/^Per\s*:/i.test(t)) { label = t; break; } }  // salin teks sel apa adanya
+    if (!label) for (const c of row) { const t = String(c || '').trim(); if (/^Per\b/i.test(t)) { label = t; break; } }  // salin teks sel apa adanya
     if ((cellStr(row[0]) === 'No' && cellStr(row[1]) === 'No.Cust') || cellStr(row[2]).toLowerCase() === 'nama debitur') { h = i; break; }
   }
   if (h < 0) { const e = new Error('Header tidak ditemukan'); e.code = 'HEADER_NOT_FOUND'; throw e; }
