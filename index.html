@@ -165,6 +165,12 @@
     --radius: 10px; --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
   }
   #paneFu .masthead { margin-bottom: 26px; }
+  #paneFu .masthead { align-items: flex-start; }
+  #paneFu .masthead > div:first-child { flex: 1 1 auto; min-width: 0; }
+  #paneFu .masthead h1 { font-size: clamp(1.3rem, 2.2vw, 1.7rem); margin-bottom: 4px; }
+  #paneFu .masthead .sync { flex: 0 0 auto; }
+  #paneFu .masthead .sync-text { font-size: 0.9rem; }
+  #paneFu .masthead .source { margin-top: 6px; font-size: 0.9rem; }
   #paneFu .masthead h1 .dv { color: var(--dvcolor); }
   #paneFu .fu-toolbar-head h2 .dv { color: var(--dvcolor); }
   .sumrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
@@ -201,6 +207,25 @@
   .dp-export-btn { background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 9px 14px; font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
   .dp-export-btn:hover { background: var(--panel-2); }
   .fu-count { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
+
+  /* ---- header Followup: judul diperkecil, tombol Refresh di kanan atas ---- */
+  #paneFu .top { align-items: flex-start; }
+  #paneFu .top > div:first-child { flex: 1 1 360px; min-width: 0; }
+  #paneFu .masthead h1 { font-size: clamp(1.3rem, 2.3vw, 1.75rem); line-height: 1.2; margin: 0 0 6px; }
+  #paneFu .company { font-size: 0.9rem; }
+  #paneFu .per { font-size: 0.9rem; }
+  .fu-sync { display: flex; flex-direction: column; align-items: flex-end; gap: 6px; text-align: right; flex: 0 1 auto; }
+  .fu-sync .btn { padding: 8px 16px; }
+  .fu-sync .sync-text { font-size: 0.85rem; }
+  .fu-sync .source { margin: 0; font-size: 0.85rem; }
+  @media (max-width: 900px) { .fu-sync { align-items: flex-start; text-align: left; } }
+  /* ---- kartu ringkasan & header kolom bisa diklik ---- */
+  .sumchip[data-fusum] { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .sumchip[data-fusum]:hover { border-color: #c4ccd7; box-shadow: 0 2px 12px rgba(21,26,34,.07); }
+  .sumchip.active { outline: 2px solid var(--blue); }
+  .sumchip.crit.active { outline-color: var(--red); }
+  table.fu-table th[data-key]::after { content: "\2195"; font-size: 10px; margin-left: 5px; color: var(--ink-faint); opacity: .6; }
+  table.fu-table th[data-key].sorted::after { content: none; }
 </style>
 </head>
 <body>
@@ -314,21 +339,19 @@
         <h1>Followup Penagihan ke Leasing &mdash; <span class="dv">Gatsu</span></h1>
         <div class="per"><span id="perDateLabel"></span></div>
       </div>
-      <div class="sync noprint">
-        <div class="sync-row">
-          <span class="sync-text" id="syncStatus">&#128260; Memuat data live&hellip;</span>
-          <button class="btn" id="refreshBtn" type="button"><span class="ico" aria-hidden="true">&#8635;</span>Refresh</button>
-        </div>
+      <div class="sync fu-sync noprint">
+        <button class="btn" id="refreshBtn" type="button"><span class="ico" aria-hidden="true">&#8635;</span>Refresh</button>
+        <span class="sync-text" id="syncStatus">&#128260; Memuat data live&hellip;</span>
         <p class="source">Sumber: Laporan Piutang Per Nama</p>
       </div>
     </header>
     <div id="syncMessage" style="display:none; margin:0 0 20px; padding:10px 14px; border-radius:8px; font-size:12.5px;"></div>
 
     <div class="sumrow">
-      <div class="sumchip"><div class="k">Total piutang Gatsu</div><div class="v" id="sumTotal">&ndash;</div></div>
-      <div class="sumchip"><div class="k">Jumlah faktur</div><div class="v" id="sumFaktur">&ndash;</div></div>
-      <div class="sumchip"><div class="k">Belum ditagih</div><div class="v" id="sumBelum">&ndash;</div></div>
-      <div class="sumchip crit"><div class="k">Umur &gt; 26 hari</div><div class="v" id="sumCrit">&ndash;</div></div>
+      <div class="sumchip" data-fusum="all" role="button" tabindex="0" title="Tampilkan semua faktur"><div class="k">Total piutang Gatsu</div><div class="v" id="sumTotal">&ndash;</div></div>
+      <div class="sumchip" data-fusum="all" role="button" tabindex="0" title="Tampilkan semua faktur"><div class="k">Jumlah faktur</div><div class="v" id="sumFaktur">&ndash;</div></div>
+      <div class="sumchip" data-fusum="belum" role="button" tabindex="0" title="Klik untuk menampilkan faktur yang belum ditagih"><div class="k">Belum ditagih</div><div class="v" id="sumBelum">&ndash;</div></div>
+      <div class="sumchip crit" data-fusum="crit" role="button" tabindex="0" title="Klik untuk menampilkan faktur umur lebih dari 26 hari"><div class="k">Umur &gt; 26 hari</div><div class="v" id="sumCrit">&ndash;</div></div>
     </div>
 
     <div class="fu-toolbar-head">
@@ -1378,7 +1401,7 @@
   };
 
   let fuAllRows = [];
-  let fuState = { search: '', leasing: '', status: 'all', sortKey: 'leasing', sortDir: 'asc' };
+  let fuState = { search: '', leasing: '', status: 'all', crit: false, sortKey: 'leasing', sortDir: 'asc' };
 
   function filteredList() {
     const q = fuState.search.trim().toLowerCase();
@@ -1386,6 +1409,7 @@
       if (fuState.leasing && leasingOf(r) !== fuState.leasing) return false;
       if (fuState.status === 'belum' && !isBelumTagih(r)) return false;
       if (fuState.status === 'sudah' && isBelumTagih(r)) return false;
+      if (fuState.crit && !(r.hari > 26)) return false;
       if (q && !`${r.nama} ${r.faktur} ${r.salesman}`.toLowerCase().includes(q)) return false;
       return true;
     });
@@ -1477,9 +1501,15 @@
         <td>${esc(r.tglBarcode) && r.tglBarcode !== '#N/A' ? esc(r.tglBarcode) : '–'}</td>
       </tr>`;
     }).join('');
-    document.getElementById('fuCount').textContent = `${list.length} dari ${fuAllRows.length} faktur ${DIVISI} ditampilkan`;
+    document.getElementById('fuCount').textContent = `${list.length} dari ${fuAllRows.length} faktur ${DIVISI} ditampilkan` + (fuState.crit ? ' · umur > 26 hari' : '');
+    document.querySelectorAll('#paneFu .sumchip[data-fusum]').forEach(c => {
+      const k = c.dataset.fusum;
+      c.classList.toggle('active', (k === 'belum' && fuState.status === 'belum' && !fuState.crit) || (k === 'crit' && fuState.crit));
+    });
+    document.querySelectorAll('#fuStatusTabs button').forEach(b => b.classList.toggle('active', b.dataset.status === fuState.status && !fuState.crit));
     document.querySelectorAll('#fuTable th[data-key]').forEach(th => {
       const ex = th.querySelector('.sort-arrow'); if (ex) ex.remove();
+      th.classList.toggle('sorted', th.dataset.key === fuState.sortKey);
       if (th.dataset.key === fuState.sortKey) th.insertAdjacentHTML('beforeend', `<span class="sort-arrow">${fuState.sortDir === 'asc' ? '▲' : '▼'}</span>`);
     });
   }
@@ -1489,7 +1519,7 @@
     document.getElementById('fuLeasingFilter').addEventListener('change', e => { fuState.leasing = e.target.value; applyFollowupFilters(); });
     document.querySelectorAll('#fuStatusTabs button').forEach(btn => btn.addEventListener('click', () => {
       document.querySelectorAll('#fuStatusTabs button').forEach(b => b.classList.toggle('active', b === btn));
-      fuState.status = btn.dataset.status; applyFollowupFilters();
+      fuState.status = btn.dataset.status; fuState.crit = false; applyFollowupFilters();
     }));
     document.querySelectorAll('#fuTable th[data-key]').forEach(th => th.addEventListener('click', () => {
       const key = th.dataset.key;
@@ -1497,6 +1527,17 @@
       else { fuState.sortKey = key; fuState.sortDir = key === 'hari' ? 'desc' : 'asc'; }
       applyFollowupFilters();
     }));
+    document.querySelectorAll('#paneFu .sumchip[data-fusum]').forEach(c => {
+      const go = () => {
+        const k = c.dataset.fusum;
+        if (k === 'all') { fuState.status = 'all'; fuState.crit = false; }
+        else if (k === 'belum') { fuState.status = (fuState.status === 'belum' && !fuState.crit) ? 'all' : 'belum'; fuState.crit = false; }
+        else if (k === 'crit') { fuState.crit = !fuState.crit; fuState.status = 'all'; }
+        applyFollowupFilters();
+      };
+      c.addEventListener('click', go);
+      c.addEventListener('keydown', e => { if (e.key === 'Enter' || e.key === ' ') { e.preventDefault(); go(); } });
+    });
     document.getElementById('fuExportExcel').addEventListener('click', () => window.__canExport && exportToExcel('Followup_Penagihan_' + DIVISI.replace(/\s+/g, '_') + '.xlsx', gatherFuExportSheet()));
     document.getElementById('fuExportPdf').addEventListener('click', () => window.__canExport && exportToPdf('Followup_Penagihan_' + DIVISI.replace(/\s+/g, '_') + '.pdf', 'Followup Penagihan ke Leasing — ' + DIVISI, gatherFuExportSheet()));
   }
