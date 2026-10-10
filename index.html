@@ -3,10 +3,10 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BPKB Belum Diserahkan (Cash) - Gatsu - PT Perintis Perkasa</title>
+<title>BPKB Cash &amp; Followup Leasing - Gatsu - PT Perintis Perkasa</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
     --bg: #ffffff; --ink: #151a22; --muted: #6b7684; --line: #e4e8ee; --card: #ffffff; --soft: #f5f6f8;
@@ -151,6 +151,56 @@
     border: 0; border-radius: 14px; padding: 15px 18px; cursor: pointer; }
   .lock-go:hover { filter: brightness(1.08); }
   @media print { body.noexport main { display: none !important; } }
+
+  /* ===== tab Followup Penagihan ke Leasing ===== */
+  .mainnav { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 24px; }
+  .mtab { font: inherit; font-weight: 600; color: var(--muted); background: #fff; cursor: pointer; border: 1px solid var(--line); border-radius: 12px; padding: 11px 20px; }
+  .mtab:hover { color: var(--ink); }
+  .mtab[aria-selected="true"] { color: #fff; background: #6d28d9; border-color: #6d28d9; }
+  #paneFu {
+    --bg-2: #F4F6F8; --panel: #FFFFFF; --panel-2: #F3F5F7; --panel-3: #ECEEF2; --line-soft: #EBEDF1;
+    --ink-dim: #5B6472; --ink-faint: #8A93A1;
+    --gatsu: #1D4ED8; --flamboyan: #C2410C; --gagak: #0F766E;
+    --b1: #16A34A; --b2: #B45309; --b3: #C2410C; --b4: #DC2626; --b4-bg: #FEF2F2; --accent2: #6D28D9;
+    --radius: 10px; --mono: 'IBM Plex Mono', ui-monospace, Consolas, monospace;
+  }
+  #paneFu .masthead { margin-bottom: 26px; }
+  #paneFu .masthead h1 .dv { color: var(--dvcolor); }
+  #paneFu .fu-toolbar-head h2 .dv { color: var(--dvcolor); }
+  .sumrow { display: grid; grid-template-columns: repeat(4, 1fr); gap: 12px; margin-bottom: 22px; }
+  @media (max-width: 780px) { .sumrow { grid-template-columns: repeat(2, 1fr); } }
+  .sumchip { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); padding: 14px 16px; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
+  .sumchip .k { font-size: 11.5px; color: var(--ink-faint); }
+  .sumchip .v { font-family: var(--serif); font-size: 22px; font-weight: 500; margin-top: 2px; }
+  .sumchip.crit .v { color: var(--b4); }
+  .jumlah-mono { font-family: var(--mono); }
+  .fu-toolbar-head { display: flex; justify-content: space-between; align-items: baseline; margin-bottom: 14px; flex-wrap: wrap; gap: 8px; }
+  .fu-toolbar-head h2 { font-family: var(--serif); font-size: 19px; font-weight: 500; margin: 0; }
+  .fu-hint { font-size: 11.5px; color: var(--ink-faint); }
+  .fu-toolbar { display: flex; gap: 10px; margin-bottom: 16px; flex-wrap: wrap; }
+  .fu-toolbar input[type=text] { flex: 1; min-width: 220px; background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; font: inherit; font-size: 13px; color: var(--ink); }
+  .fu-toolbar select { background: var(--panel); border: 1px solid var(--line); border-radius: 8px; padding: 9px 13px; font: inherit; font-size: 13px; color: var(--ink); }
+  .fu-status-tabs { display: flex; gap: 6px; }
+  .fu-status-tabs button { background: var(--panel); border: 1px solid var(--line); color: var(--ink-dim); border-radius: 8px; padding: 9px 14px; font: inherit; font-size: 12.5px; font-weight: 600; cursor: pointer; white-space: nowrap; }
+  .fu-status-tabs button.active { background: var(--ink); color: #fff; border-color: var(--ink); }
+  .fu-table-wrap { background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); overflow-x: auto; box-shadow: 0 1px 3px rgba(16,24,40,.05); }
+  table.fu-table { width: 100%; min-width: 0; border-collapse: collapse; font-size: 12.5px; white-space: nowrap; }
+  table.fu-table th { text-align: left; font-weight: 600; color: var(--ink-dim); padding: 11px 14px; font-size: 11px; background: var(--panel-2); border-bottom: 1px solid var(--line); cursor: pointer; user-select: none; }
+  table.fu-table th:hover { color: var(--ink); background: var(--panel-3); }
+  table.fu-table th .sort-arrow { font-size: 9px; margin-left: 3px; color: var(--accent2); }
+  table.fu-table td { padding: 10px 14px; border-top: 0; border-bottom: 1px solid var(--line-soft); color: var(--ink); vertical-align: middle; }
+  table.fu-table tr:last-child td { border-bottom: none; }
+  table.fu-table tr:hover td { background: var(--panel-2); }
+  table.fu-table td.fu-jumlah { text-align: right; font-family: var(--mono); font-weight: 600; }
+  table.fu-table td.fu-hari { text-align: right; font-family: var(--mono); font-weight: 700; }
+  table.fu-table td.fu-hari.crit { color: var(--b4); }
+  .fu-status-pill { display: inline-block; padding: 2px 9px; border-radius: 20px; font-size: 10.5px; font-weight: 700; margin-right: 6px; }
+  .fu-status-pill.sudah { background: #DCFCE7; color: #15803D; border: 1px solid #86EFAC; }
+  .fu-status-pill.belum { background: var(--panel-3); color: var(--ink-faint); border: 1px solid var(--line); }
+  .dp-export { display: flex; gap: 8px; margin-left: auto; }
+  .dp-export-btn { background: var(--panel); border: 1px solid var(--line); color: var(--ink); border-radius: 8px; padding: 9px 14px; font: inherit; font-size: 12.5px; cursor: pointer; white-space: nowrap; }
+  .dp-export-btn:hover { background: var(--panel-2); }
+  .fu-count { color: var(--muted); font-size: 12.5px; margin-top: 12px; }
 </style>
 </head>
 <body>
@@ -170,6 +220,11 @@
   </div>
 </div>
 <main id="app" hidden>
+  <nav class="mainnav noprint" role="tablist" aria-label="Laporan" id="mainNav">
+    <button type="button" class="mtab" role="tab" data-pane="paneBpkb" aria-selected="true">BPKB Belum Diserahkan (Cash)</button>
+    <button type="button" class="mtab" role="tab" data-pane="paneFu" aria-selected="false">Followup Penagihan ke Leasing</button>
+  </nav>
+  <div id="paneBpkb">
   <header class="top">
     <div>
       <p class="company">PT Perintis Perkasa, Medan &middot; Cabang Gatsu</p>
@@ -251,12 +306,79 @@
     <div class="empty" id="supEmpty" hidden></div>
   </div>
   <p class="foot">Umur (hari) dibaca dari kolom Hari di sheet (dibulatkan). Kategori &lt; 60, &gt; 60, dan &gt; 90 hari mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr. Klik kartu ringkasan untuk menampilkan daftar unitnya. Tab Detail Per Supervisor menampilkan unit milik satu supervisor. Data diperbarui otomatis tiap 2 menit.</p>
+  </div>
+  <div id="paneFu" hidden style="--dvcolor: var(--gatsu)">
+    <header class="top masthead">
+      <div>
+        <p class="company co">PT Perintis Perkasa, Medan &middot; Cabang Gatsu</p>
+        <h1>Followup Penagihan ke Leasing &mdash; <span class="dv">Gatsu</span></h1>
+        <div class="per"><span id="perDateLabel"></span></div>
+      </div>
+      <div class="sync noprint">
+        <div class="sync-row">
+          <span class="sync-text" id="syncStatus">&#128260; Memuat data live&hellip;</span>
+          <button class="btn" id="refreshBtn" type="button"><span class="ico" aria-hidden="true">&#8635;</span>Refresh</button>
+        </div>
+        <p class="source">Sumber: Laporan Piutang Per Nama</p>
+      </div>
+    </header>
+    <div id="syncMessage" style="display:none; margin:0 0 20px; padding:10px 14px; border-radius:8px; font-size:12.5px;"></div>
+
+    <div class="sumrow">
+      <div class="sumchip"><div class="k">Total piutang Gatsu</div><div class="v" id="sumTotal">&ndash;</div></div>
+      <div class="sumchip"><div class="k">Jumlah faktur</div><div class="v" id="sumFaktur">&ndash;</div></div>
+      <div class="sumchip"><div class="k">Belum ditagih</div><div class="v" id="sumBelum">&ndash;</div></div>
+      <div class="sumchip crit"><div class="k">Umur &gt; 26 hari</div><div class="v" id="sumCrit">&ndash;</div></div>
+    </div>
+
+    <div class="fu-toolbar-head">
+      <h2>Followup Penagihan ke Leasing</h2>
+      <span class="fu-hint">klik header kolom untuk urutkan</span>
+    </div>
+    <div class="fu-toolbar noprint">
+      <input type="text" id="fuSearch" placeholder="Cari nama customer, faktur, atau salesman&hellip;">
+      <select id="fuLeasingFilter"><option value="">Semua leasing</option></select>
+      <div class="fu-status-tabs" id="fuStatusTabs">
+        <button type="button" class="active" data-status="all">Semua</button>
+        <button type="button" data-status="belum">Belum tagih</button>
+        <button type="button" data-status="sudah">Sudah tagih</button>
+      </div>
+      <div class="dp-export" id="fuExports" hidden>
+        <button id="fuExportPdf" class="dp-export-btn" type="button">&#11015; Export PDF</button>
+        <button id="fuExportExcel" class="dp-export-btn" type="button">&#11015; Export Excel</button>
+      </div>
+    </div>
+    <div class="fu-table-wrap">
+      <table class="fu-table" id="fuTable">
+        <thead>
+          <tr>
+            <th style="text-align:right">No</th>
+            <th data-key="nama">Nama Customer</th>
+            <th data-key="tglJto">Tgl JTO</th>
+            <th data-key="leasing">Leasing</th>
+            <th data-key="jumlah" style="text-align:right">Jumlah</th>
+            <th data-key="tglBuatTagihan">Tgl Buat Tagihan</th>
+            <th data-key="hari" style="text-align:right">Hari</th>
+            <th data-key="salesman">Salesman</th>
+            <th data-key="supervisor">Supervisor</th>
+            <th data-key="faktur">Faktur No.</th>
+            <th data-key="tglBarcode">Tgl Barcode</th>
+          </tr>
+        </thead>
+        <tbody id="fuBody"></tbody>
+      </table>
+    </div>
+    <div class="fu-count" id="fuCount"></div>
+  </div>
 </main>
 <div class="toast" id="toast" role="status"></div>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<script>window.XLSX_READ = window.XLSX;</script>
+<script src="https://cdn.jsdelivr.net/npm/xlsx-js-style@1.2.0/dist/xlsx.bundle.js"></script>
+<script>window.XLSX_STYLE = window.XLSX; window.XLSX = window.XLSX_READ;</script>
 <script>
 (function () {
   /* ---------- konfigurasi ---------- */
@@ -1003,6 +1125,441 @@
 })();
 </script>
 <script>
+(function(){
+  const DIVISI = 'Gatsu';
+  const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8rWnYng7TGqvAMl7aryX7yZE7hQnzwF3Urqwu1t8bPq9AFJBXPfqaGmUzTk08Nw91e6mQGV6kbc2J/pub?gid=860325626&single=true&output=csv';
+
+  /* dibuka oleh gate password dashboard */
+  let started = false;
+  window.__bootFu = function () { if (!started) { started = true; start(); } };
+
+  function cleanSalesmanFull(s) {
+    if (!s) return '-';
+    const parts = String(s).split('=');
+    return parts.length > 1 ? parts[1].trim() : parts[0].trim();
+  }
+
+  function detectDelimiter(text) {
+    const lines = text.split(/\r?\n/).filter(l => l.trim().length > 0).slice(0, 15);
+    const candidates = ['\t', ',', ';'];
+    let best = ',', bestMax = 1;
+    for (const d of candidates) {
+      const maxCount = Math.max(...lines.map(l => l.split(d).length));
+      if (maxCount > bestMax) { bestMax = maxCount; best = d; }
+    }
+    return best;
+  }
+
+  function parseCSVFull(text) {
+    const delim = detectDelimiter(text);
+    const rows = [];
+    let row = [], field = '', inQuotes = false;
+    for (let i = 0; i < text.length; i++) {
+      const c = text[i];
+      if (inQuotes) {
+        if (c === '"') {
+          if (text[i+1] === '"') { field += '"'; i++; }
+          else { inQuotes = false; }
+        } else field += c;
+      } else {
+        if (c === '"') inQuotes = true;
+        else if (c === delim) { row.push(field); field = ''; }
+        else if (c === '\n') { row.push(field); rows.push(row); row = []; field = ''; }
+        else if (c === '\r') { /* skip */ }
+        else field += c;
+      }
+    }
+    if (field.length || row.length) { row.push(field); rows.push(row); }
+    return rows;
+  }
+
+  function cellStr(v) { return v == null ? '' : String(v).trim(); }
+
+  function cellNum(v) {
+    if (v == null) return 0;
+    if (typeof v === 'number') return v;
+    // Indonesian number format uses "." as a thousands separator (e.g. "243.200.000"),
+    // never as a decimal point for these whole-Rupiah fields — strip it along with any
+    // other non-digit characters so it doesn't get misread as a decimal point.
+    const n = Number(String(v).replace(/[^0-9-]/g, ''));
+    return isNaN(n) ? 0 : n;
+  }
+
+  function parseAgingRows(rows) {
+    let headerIdx = -1;
+    for (let i = 0; i < rows.length; i++) {
+      const row = rows[i];
+      if (row && cellStr(row[0]) === 'No' && cellStr(row[1]) === 'No.Cust') { headerIdx = i; break; }
+    }
+    if (headerIdx === -1) { const e = new Error('Header tidak ditemukan'); e.code = 'HEADER_NOT_FOUND'; throw e; }
+    const out = [];
+    for (let i = headerIdx + 1; i < rows.length; i++) {
+      const row = rows[i];
+      if (!row) continue;
+      const nama = row[2];
+      const jumlah = cellNum(row[6]);
+      if (!nama || !jumlah) continue;
+      out.push({
+        noCust: cellStr(row[1]),
+        nama: cellStr(nama),
+        faktur: cellStr(row[3]),
+        divisi: cellStr(row[9]),
+        cara: cellStr(row[10]),
+        leasing: cellStr(row[11]),
+        jumlah,
+        giro: cellStr(row[7]),
+        type: cellStr(row[8]),
+        tglJtoDisplay: cellStr(row[5]),
+        hari: cellNum(row[17]),
+        salesman: cellStr(row[12]),
+        supervisor: cellStr(row[13]),
+        tglBuatTagihan: cellStr(row[14]),
+        tglBarcode: cellStr(row[15]),
+        followup: (row[16] && cellStr(row[16]) !== '#N/A') ? cellStr(row[16]) : '',
+      });
+    }
+    if (!out.length) { const e = new Error('Tidak ada baris data'); e.code = 'NO_ROWS'; throw e; }
+    return out;
+  }
+
+  function extractPerDate(rows) {
+    for (const row of rows) {
+      if (!row) continue;
+      for (const cell of row) {
+        // Salin teks sel "Per : ..." dari sheet APA ADANYA (termasuk jam), tanpa diolah ulang
+        const m = String(cell || '').trim().match(/\bPer\s*:[\s\S]*/i);
+        if (m) return m[0].trim();
+      }
+      if (row.some(c => cellStr(c) === 'No') ) break; // stop once we reach the real header row
+    }
+    return null;
+  }
+
+  function fmtNumExport(n) {
+    return Math.round(n || 0).toLocaleString('id-ID');
+  }
+
+  function fmtDateExport(d) {
+    const dd = String(d.getDate()).padStart(2, '0');
+    const mm = String(d.getMonth() + 1).padStart(2, '0');
+    return `${dd}/${mm}/${d.getFullYear()}`;
+  }
+
+  function exportToExcel(filename, sheets) {
+    if (typeof XLSX_STYLE === 'undefined') { alert('Library Excel belum termuat — pastikan koneksi internet aktif, lalu coba lagi.'); return; }
+    const wb = XLSX_STYLE.utils.book_new();
+    sheets.forEach(s => {
+      const matrix = [];
+      const boldRows = []; // baris judul & Total dibuat bold
+      const wrapRows = []; // baris data dengan kolom teks panjang (mis. catatan) -> wrap text
+      const emitGroup = (g) => {
+        if (g.title) { matrix.push([g.title]); boldRows.push(matrix.length - 1); }
+        matrix.push(g.headers);
+        g.rows.forEach(r => {
+          if (g.wrapCols) wrapRows.push({ r: matrix.length, cols: g.wrapCols });
+          matrix.push(r);
+        });
+        if (g.totalRow) { matrix.push(g.totalRow); boldRows.push(matrix.length - 1); }
+        matrix.push([]);
+      };
+      if (s.sections) {
+        s.sections.forEach(sec => {
+          matrix.push([sec.title]); boldRows.push(matrix.length - 1);
+          matrix.push([]);
+          sec.groups.forEach(emitGroup);
+        });
+      } else {
+        s.groups.forEach(emitGroup);
+      }
+      const ws = XLSX_STYLE.utils.aoa_to_sheet(matrix);
+      const range = XLSX_STYLE.utils.decode_range(ws['!ref'] || 'A1:A1');
+      boldRows.forEach(r => {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const ref = XLSX_STYLE.utils.encode_cell({ r, c });
+          if (ws[ref]) ws[ref].s = { font: { bold: true } };
+        }
+      });
+      wrapRows.forEach(({ r, cols }) => {
+        for (let c = range.s.c; c <= range.e.c; c++) {
+          const ref = XLSX_STYLE.utils.encode_cell({ r, c });
+          if (ws[ref]) ws[ref].s = { alignment: { vertical: 'top', wrapText: cols.includes(c) } };
+        }
+      });
+      if (s.colWidths) ws['!cols'] = s.colWidths.map(w => ({ wch: w }));
+      XLSX_STYLE.utils.book_append_sheet(wb, ws, String(s.name).slice(0, 31));
+    });
+    XLSX_STYLE.writeFile(wb, filename, { cellStyles: true });
+  }
+
+  function exportToPdf(filename, title, sheets) {
+    if (!window.jspdf) { alert('Library PDF belum termuat — pastikan koneksi internet aktif, lalu coba lagi.'); return; }
+    const { jsPDF } = window.jspdf;
+    const doc = new jsPDF({ orientation: 'landscape' });
+    const PAGE_H = doc.internal.pageSize.getHeight();
+    const BOTTOM_MARGIN = 15;
+    sheets.forEach((s, si) => {
+      if (si > 0) doc.addPage();
+      doc.setFontSize(13);
+      doc.text(String(s.name || title), 14, 15);
+      let y = 22;
+      const emitGroup = (g, extraHeight = 0, sectionTitle = null) => {
+        // Perkiraan tinggi seluruh grup (judul + header + baris + Total), supaya
+        // satu grup tidak kepotong jadi dua halaman — kalau tidak muat, pindah
+        // grup ini utuh ke halaman baru. extraHeight/sectionTitle = ruang & teks
+        // judul section yang harus ikut dihitung BERSAMAAN saat ini grup pertama
+        // di section-nya, supaya judul section tidak pernah nyangkut sendirian.
+        // baris dengan kolom teks panjang (mis. catatan) lebih tinggi dari 5 mm
+        const rowsHeight = g.tallCols
+          ? g.rows.reduce((a, r) => a + Math.max(5, 2 + 3.2 * Math.max(...g.tallCols.map(c => String(r[c] == null ? '' : r[c]).split('\n').reduce((n, seg) => n + Math.max(1, Math.ceil(seg.length / 48)), 0)))), 0)
+          : g.rows.length * 5;
+        const estHeight = extraHeight + (g.title ? 6 : 0) + 7 + rowsHeight + (g.totalRow ? 5.5 : 0) + 8;
+        const cappedEst = Math.min(estHeight, PAGE_H - BOTTOM_MARGIN - 22 - extraHeight);
+        if (y + extraHeight + cappedEst > PAGE_H - BOTTOM_MARGIN) {
+          doc.addPage();
+          y = 15;
+        }
+        if (sectionTitle) {
+          doc.setFontSize(12.5);
+          doc.setFont(undefined, 'bold');
+          doc.text(sectionTitle, 14, y);
+          doc.setFont(undefined, 'normal');
+          y += 7;
+        }
+        if (g.title) {
+          doc.setFontSize(10.5);
+          doc.setFont(undefined, 'bold');
+          doc.text(g.title, 14, y);
+          doc.setFont(undefined, 'normal');
+          y += 4;
+        }
+        doc.autoTable({
+          head: [g.headers],
+          body: g.rows,
+          foot: g.totalRow ? [g.totalRow] : undefined,
+          footStyles: { fontStyle: 'bold', fillColor: [240, 242, 245], textColor: [20, 20, 20] },
+          showFoot: 'lastPage', // Total cuma tampil sekali di halaman terakhir tabel ini, tidak dobel tiap tabel terpotong halaman
+          startY: y,
+          styles: { fontSize: 7.5 },
+          columnStyles: g.columnStyles,
+          rowPageBreak: 'avoid',
+        });
+        y = doc.lastAutoTable.finalY + 8;
+      };
+      if (s.sections) {
+        s.sections.forEach(sec => {
+          sec.groups.forEach((g, gi) => {
+            if (gi === 0) {
+              emitGroup(g, 15, sec.title);
+              return;
+            }
+            emitGroup(g);
+          });
+        });
+      } else {
+        s.groups.forEach(g => emitGroup(g));
+      }
+    });
+    doc.save(filename);
+  }
+
+  function isBelumTagih(r) {
+    return /belum/i.test(r.tglBuatTagihan || '');
+  }
+
+  const fmtRp = n => 'Rp ' + Math.round(n).toLocaleString('id-ID');
+  const esc = s => String(s == null ? '' : s).replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+  const MONTHS_ID_LONG = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+  const fmtTglLong = d => `${d.getDate()} ${MONTHS_ID_LONG[d.getMonth()]} ${d.getFullYear()}`;
+  const fmtTimeShort = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
+  const leasingOf = r => (r.cara === 'Tunai' || !r.leasing) ? 'Cash' : r.leasing;
+  const parseDMY = s => {
+    const m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
+    return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0;
+  };
+
+  let fuAllRows = [];
+  let fuState = { search: '', leasing: '', status: 'all', sortKey: 'leasing', sortDir: 'asc' };
+
+  function filteredList() {
+    const q = fuState.search.trim().toLowerCase();
+    return fuAllRows.filter(r => {
+      if (fuState.leasing && leasingOf(r) !== fuState.leasing) return false;
+      if (fuState.status === 'belum' && !isBelumTagih(r)) return false;
+      if (fuState.status === 'sudah' && isBelumTagih(r)) return false;
+      if (q && !`${r.nama} ${r.faktur} ${r.salesman}`.toLowerCase().includes(q)) return false;
+      return true;
+    });
+  }
+
+  function gatherFuExportSheet() {
+    const list = filteredList();
+    list.sort((a, b) => {
+      const la = leasingOf(a), lb = leasingOf(b);
+      if (la !== lb) return la.localeCompare(lb);
+      const da = parseDMY(a.tglJtoDisplay), db = parseDMY(b.tglJtoDisplay);
+      if (da !== db) return da - db;
+      return a.hari - b.hari;
+    });
+    const colHeaders = ['No', 'Nama Customer', 'Tgl JTO', 'Jumlah', 'Tgl Buat Tagihan', 'Hari', 'Salesman', 'Supervisor', 'Faktur No.', 'Tgl Barcode'];
+    const groups = [];
+    let current = null;
+    list.forEach(r => {
+      const k = leasingOf(r);
+      if (!current || current.key !== k) {
+        current = { key: k, title: `Leasing: ${k}`, headers: colHeaders, rows: [] };
+        groups.push(current);
+      }
+      const belum = isBelumTagih(r);
+      current.rows.push([
+        current.rows.length + 1, r.nama, r.tglJtoDisplay, fmtNumExport(r.jumlah),
+        belum ? 'Belum' : `Sudah (${r.tglBuatTagihan})`, r.hari,
+        cleanSalesmanFull(r.salesman), r.supervisor || '–', r.faktur,
+        (r.tglBarcode && r.tglBarcode !== '#N/A') ? r.tglBarcode : '–',
+      ]);
+    });
+    groups.forEach(g => {
+      const gr = list.filter(r => leasingOf(r) === g.key);
+      const totalRow = new Array(colHeaders.length).fill('');
+      totalRow[1] = `TOTAL (${gr.length} unit)`;
+      totalRow[3] = fmtNumExport(gr.reduce((s, r) => s + r.jumlah, 0));
+      g.totalRow = totalRow;
+    });
+    return [{ name: 'Followup ' + DIVISI, groups }];
+  }
+
+  function populateLeasingFilter() {
+    const sel = document.getElementById('fuLeasingFilter');
+    const names = Array.from(new Set(fuAllRows.map(leasingOf))).sort();
+    const cur = sel.value;
+    sel.innerHTML = '<option value="">Semua leasing</option>' + names.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+    if (names.includes(cur)) sel.value = cur;
+  }
+
+  function renderSummary() {
+    const tot = fuAllRows.reduce((s, r) => s + r.jumlah, 0);
+    const belum = fuAllRows.filter(isBelumTagih).length;
+    const crit = fuAllRows.filter(r => r.hari > 26).length;
+    document.getElementById('sumTotal').textContent = fmtRp(tot);
+    document.getElementById('sumFaktur').textContent = fuAllRows.length;
+    document.getElementById('sumBelum').textContent = belum;
+    document.getElementById('sumCrit').textContent = crit;
+  }
+
+  function applyFollowupFilters() {
+    let list = filteredList();
+    const key = fuState.sortKey, dir = fuState.sortDir === 'asc' ? 1 : -1;
+    list = list.slice().sort((a, b) => {
+      if (key === 'leasing') {
+        const va = leasingOf(a), vb = leasingOf(b);
+        if (va !== vb) return va.localeCompare(vb) * dir;
+        const da = parseDMY(a.tglJtoDisplay), db = parseDMY(b.tglJtoDisplay);
+        if (da !== db) return (da - db) * dir;
+        return (a.hari - b.hari) * dir;
+      }
+      const va = key === 'tglJto' ? parseDMY(a.tglJtoDisplay) : a[key];
+      const vb = key === 'tglJto' ? parseDMY(b.tglJtoDisplay) : b[key];
+      if (typeof va === 'number' && typeof vb === 'number') return (va - vb) * dir;
+      return String(va || '').localeCompare(String(vb || '')) * dir;
+    });
+    document.getElementById('fuBody').innerHTML = list.map((r, idx) => {
+      const belum = isBelumTagih(r);
+      return `<tr class="${r.hari > 26 ? 'fu-highlight' : ''}">
+        <td style="text-align:right">${idx + 1}</td>
+        <td>${esc(r.nama)}</td>
+        <td>${esc(r.tglJtoDisplay)}</td>
+        <td>${esc(leasingOf(r))}</td>
+        <td class="fu-jumlah">${fmtRp(r.jumlah)}</td>
+        <td><span class="fu-status-pill ${belum ? 'belum' : 'sudah'}">${belum ? 'Belum' : 'Sudah'}</span>${!belum ? esc(r.tglBuatTagihan) : ''}</td>
+        <td class="fu-hari ${r.hari > 26 ? 'crit' : ''}">${r.hari} hr</td>
+        <td>${esc(cleanSalesmanFull(r.salesman))}</td>
+        <td>${esc(r.supervisor) || '–'}</td>
+        <td class="jumlah-mono">${esc(r.faktur)}</td>
+        <td>${esc(r.tglBarcode) && r.tglBarcode !== '#N/A' ? esc(r.tglBarcode) : '–'}</td>
+      </tr>`;
+    }).join('');
+    document.getElementById('fuCount').textContent = `${list.length} dari ${fuAllRows.length} faktur ${DIVISI} ditampilkan`;
+    document.querySelectorAll('#fuTable th[data-key]').forEach(th => {
+      const ex = th.querySelector('.sort-arrow'); if (ex) ex.remove();
+      if (th.dataset.key === fuState.sortKey) th.insertAdjacentHTML('beforeend', `<span class="sort-arrow">${fuState.sortDir === 'asc' ? '▲' : '▼'}</span>`);
+    });
+  }
+
+  function wireFollowupTab() {
+    document.getElementById('fuSearch').addEventListener('input', e => { fuState.search = e.target.value; applyFollowupFilters(); });
+    document.getElementById('fuLeasingFilter').addEventListener('change', e => { fuState.leasing = e.target.value; applyFollowupFilters(); });
+    document.querySelectorAll('#fuStatusTabs button').forEach(btn => btn.addEventListener('click', () => {
+      document.querySelectorAll('#fuStatusTabs button').forEach(b => b.classList.toggle('active', b === btn));
+      fuState.status = btn.dataset.status; applyFollowupFilters();
+    }));
+    document.querySelectorAll('#fuTable th[data-key]').forEach(th => th.addEventListener('click', () => {
+      const key = th.dataset.key;
+      if (fuState.sortKey === key) fuState.sortDir = fuState.sortDir === 'asc' ? 'desc' : 'asc';
+      else { fuState.sortKey = key; fuState.sortDir = key === 'hari' ? 'desc' : 'asc'; }
+      applyFollowupFilters();
+    }));
+    document.getElementById('fuExportExcel').addEventListener('click', () => window.__canExport && exportToExcel('Followup_Penagihan_' + DIVISI.replace(/\s+/g, '_') + '.xlsx', gatherFuExportSheet()));
+    document.getElementById('fuExportPdf').addEventListener('click', () => window.__canExport && exportToPdf('Followup_Penagihan_' + DIVISI.replace(/\s+/g, '_') + '.pdf', 'Followup Penagihan ke Leasing — ' + DIVISI, gatherFuExportSheet()));
+  }
+
+  /* ---------------- tarik data live dari Google Sheets ---------------- */
+  const syncStatusEl = document.getElementById('syncStatus');
+  const syncMessageEl = document.getElementById('syncMessage');
+  const refreshBtn = document.getElementById('refreshBtn');
+  function showSyncMessage(kind, text) {
+    syncMessageEl.style.display = 'block'; syncMessageEl.textContent = text;
+    syncMessageEl.style.background = kind === 'error' ? 'var(--b4-bg)' : '#4ADE8022';
+    syncMessageEl.style.color = kind === 'error' ? 'var(--b4)' : 'var(--b1)';
+    if (kind === 'success') setTimeout(() => { syncMessageEl.style.display = 'none'; }, 4000);
+  }
+  async function refreshFromSheet(isAuto) {
+    refreshBtn.disabled = true;
+    try {
+      const res = await fetch(PUBLISHED_CSV_URL, { cache: 'no-store' });
+      if (!res.ok) { const e = new Error('HTTP ' + res.status); e.code = 'HTTP_' + res.status; throw e; }
+      const rows = parseCSVFull(await res.text());
+      const perDate = extractPerDate(rows);
+      if (perDate) document.getElementById('perDateLabel').textContent = perDate;
+      fuAllRows = parseAgingRows(rows).filter(r => r.divisi === DIVISI);
+      populateLeasingFilter(); renderSummary(); applyFollowupFilters();
+      const now = new Date();
+      syncStatusEl.innerHTML = `🔄 Live · tersinkron <b>${fmtTglLong(now)}, ${fmtTimeShort(now)}</b> · otomatis tiap 2 menit`;
+      if (!isAuto) showSyncMessage('success', `✓ Data ${DIVISI} diperbarui — ${fuAllRows.length} faktur`);
+    } catch (err) {
+      const code = err && err.code;
+      let msg = `Gagal menyinkronkan data (${code || 'kesalahan tidak dikenal'}). Coba lagi.`;
+      if (code === 'HEADER_NOT_FOUND') msg = 'Format header sheet tidak dikenali — mungkin struktur laporan berubah.';
+      else if (code === 'NO_ROWS') msg = 'Tidak ada baris data piutang yang terbaca dari sheet.';
+      else if (String(code).startsWith('HTTP_')) msg = `Google Sheets menolak permintaan (${code}). Pastikan sheet masih dibagikan sebagai "Anyone with link".`;
+      else if (/fetch/i.test(String(err && err.message))) msg = 'Gagal mengambil data — periksa koneksi internet.';
+      syncStatusEl.innerHTML = '⚠ Gagal sinkron — menampilkan data terakhir';
+      if (!isAuto) showSyncMessage('error', msg);
+      console.error('refresh error', err);
+    } finally { refreshBtn.disabled = false; }
+  }
+
+  function start() {
+    wireFollowupTab();
+    refreshBtn.addEventListener('click', () => refreshFromSheet(false));
+    refreshFromSheet(false);
+    setInterval(() => refreshFromSheet(true), 120000);
+  }
+})();
+</script>
+<script>
+(function () {
+  var nav = document.getElementById("mainNav");
+  nav.addEventListener("click", function (e) {
+    var b = e.target.closest ? e.target.closest(".mtab") : null;
+    if (!b) return;
+    Array.prototype.forEach.call(nav.querySelectorAll(".mtab"), function (t) {
+      var on = t === b;
+      t.setAttribute("aria-selected", on ? "true" : "false");
+      document.getElementById(t.dataset.pane).hidden = !on;
+    });
+  });
+})();
+</script>
+<script>
 (function () {
   var HASH_VIEW = "21d825447ec592bf770f5f011d0ec64c3d505a2e156ab489d52d733049f66c7b", HASH_EXPORT = "ee2f2000b535d31ef0b071038b22ee1d9f3cc4fb56f4b46bd831bf7827dcb4b8";
 
@@ -1036,9 +1593,10 @@ function sha256hex(str) {
   function open() {
     el("lock").hidden = true;
     var can = !!window.__canExport;
-    el("btnPdf").hidden = !can; el("btnExcel").hidden = !can;
+    el("btnPdf").hidden = !can; el("btnExcel").hidden = !can; el("fuExports").hidden = !can;
     document.body.classList.toggle("noexport", !can);
     if (window.__bootDash) window.__bootDash();
+    if (window.__bootFu) window.__bootFu();
   }
   function el(id) { return document.getElementById(id); }
   function tryPw() {
