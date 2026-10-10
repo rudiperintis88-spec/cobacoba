@@ -211,7 +211,7 @@
     </table>
     <div class="empty" id="supEmpty" hidden></div>
   </div>
-  <p class="foot">Umur (hari) dibaca dari kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr di sheet, yang dihitung dari tanggal faktur asli. Klik kartu ringkasan untuk menampilkan daftar unitnya. Tab Detail Per Supervisor menampilkan unit milik satu supervisor. Data diperbarui otomatis tiap 2 menit.</p>
+  <p class="foot">Umur (hari) dibaca dari kolom Hari di sheet (dibulatkan). Kategori &lt; 60, &gt; 60, dan &gt; 90 hari mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr. Klik kartu ringkasan untuk menampilkan daftar unitnya. Tab Detail Per Supervisor menampilkan unit milik satu supervisor. Data diperbarui otomatis tiap 2 menit.</p>
 </main>
 <div class="toast" id="toast" role="status"></div>
 
@@ -284,23 +284,36 @@
     return m ? m[3] + m[2] + m[1] : "00000000";
   }
 
-  // Kolom sheet cabang: B=1 Customer, C=2 STNK a/n, D=3 NoRangka, G=6 No Polisi, H=7 Terima Tanggal,
-  // I=8 Serah STNK, L=11 <60Hr, M=12 >60Hr, N=13 >90Hr, O=14 Leasing, Q=16 BPKB No Cetak, U=20 Salesman, V=21 Supervisor
-  function extract(table) {
+  // Umur dari kolom "Hari" (Y): angka desimal, mis. 35.33 -> 35. Bila sudah angka (jalur xlsx) dipakai langsung;
+  // bila berupa teks (jalur CSV) dibaca dengan num().
+  function hariVal(v) {
+    if (typeof v === "number") return isFinite(v) ? Math.round(v) : null;
+    return num(v);
+  }
+
+  // Kolom sheet cabang: B=1 Customer, C=2 STNK a/n, D=3 NoRangka, G=6 No Polisi, I=8 Serah STNK,
+  // J=9 Nomor BPKB, K=10 Terima Tanggal (BPKB), L=11 <60Hr, M=12 >60Hr, N=13 >90Hr, O=14 Leasing,
+  // U=20 Salesman, V=21 Supervisor, Y=24 Hari
+  // raw = isi sheet yang sama dalam bentuk angka asli (opsional), dipakai untuk membaca kolom Hari
+  function extract(table, raw) {
     var res = [];
-    table.forEach(function (c) {
+    table.forEach(function (c, ix) {
       if (!c || c.length < 15) return;
       if (!/^\s*\d+\s*$/.test(String(c[0]))) return;
       if (String(c[14]).trim().toLowerCase() !== "cash") return;
-      var b = "", days = null, n;
-      if ((n = num(c[13])) != null) { b = "gt90"; days = n; }
-      else if ((n = num(c[12])) != null) { b = "gt60"; days = n; }
-      else if ((n = num(c[11])) != null) { b = "lt60"; days = n; }
+      var rr = raw && raw[ix], hv = hariVal(rr && rr[24] !== undefined && rr[24] !== "" ? rr[24] : c[24]);
+      var b = "", n;
+      // kategori mengikuti kolom <60Hr / >60Hr / >90Hr di sheet
+      if (num(c[13]) != null) b = "gt90";
+      else if (num(c[12]) != null) b = "gt60";
+      else if (num(c[11]) != null) b = "lt60";
+      var days = hv != null ? hv : (num(c[13]) != null ? num(c[13]) : num(c[12]) != null ? num(c[12]) : num(c[11]));
+      if (!b && days != null) b = days > 90 ? "gt90" : days >= 60 ? "gt60" : "lt60";
       res.push({
         c: [c[1], c[2], c[3], c[6], "Cash", cleanName(c[20]), c[21]].map(function (x) { return String(x == null ? "" : x).trim(); }),
         days: days, b: b, blank: String(c[8] == null ? "" : c[8]).trim() === "",
-        terima: normDate(c[7]),
-        bpkb: String(c[16] == null ? "" : c[16]).trim()
+        terima: normDate(c[10]),
+        bpkb: String(c[9] == null ? "" : c[9]).trim()
       });
     });
     return res;
@@ -390,7 +403,8 @@
       var ws = wb.Sheets[d];
       if (!ws) throw { code: "struktur", message: 'Sheet "' + d + '" tidak ditemukan di Google Sheet.' };
       var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "", dateNF: "dd/mm/yyyy" });
-      got[d] = extract(rows).map(function (r) { r.div = d; return r; }); marks[d] = findMarker(rows);
+      var rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
+      got[d] = extract(rows, rawRows).map(function (r) { r.div = d; return r; }); marks[d] = findMarker(rows);
     });
     var prev = perFor(active);
     DIVISIONS.forEach(function (d) { data[d] = got[d]; per[d] = marks[d]; perISO[d] = markerISO(marks[d]); });
