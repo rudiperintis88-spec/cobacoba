@@ -76,6 +76,12 @@
   .bigval { font-family: var(--serif); font-weight: 600; font-size: clamp(3rem, 7vw, 4.6rem); line-height: 1; margin: 14px 0 18px; font-variant-numeric: lining-nums; }
   .alert .val { color: var(--red); }
 
+  .card[data-filter] { cursor: pointer; transition: border-color .15s, box-shadow .15s; }
+  .card[data-filter]:hover { border-color: #c4ccd7; box-shadow: 0 2px 12px rgba(21,26,34,.07); }
+  .card.active { outline: 2px solid var(--blue); }
+  .card.alert.active { outline-color: var(--red); }
+  .chip { display: flex; flex-wrap: wrap; align-items: center; gap: 12px; margin: 0 0 12px; padding: 10px 16px; border-radius: 10px; background: var(--blue-soft); }
+  .chip[hidden] { display: none; }
   .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
   .tools input[type="search"] { flex: 1 1 260px; font: inherit; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; }
   .tools input[type="file"] { display: none; }
@@ -85,14 +91,13 @@
   table { border-collapse: collapse; width: 100%; min-width: 920px; }
   thead th { background: var(--soft); color: var(--ink); text-align: left; font-weight: 600; padding: 12px 14px; white-space: nowrap; border-bottom: 1px solid var(--line); }
   tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; white-space: nowrap; }
-  .th-in { display: inline-flex; align-items: center; gap: 8px; }
-  .sort { display: inline-flex; flex-direction: column; gap: 0; line-height: 1; }
-  .sb {
-    font: inherit; font-size: 9px; line-height: 11px; padding: 0 3px; border: 0; background: none;
-    color: #aab2bd; cursor: pointer; border-radius: 3px;
+  .sbtn {
+    font: inherit; font-weight: 600; color: inherit; background: none; border: 0; padding: 0;
+    cursor: pointer; display: inline-flex; align-items: center; gap: 6px; white-space: nowrap;
   }
-  .sb:hover { color: var(--ink); background: #e9edf2; }
-  .sb.on { color: #fff; background: var(--blue); }
+  .sbtn:hover .arr { color: var(--ink); }
+  .arr { font-size: 11px; color: #aab2bd; min-width: 12px; }
+  .arr.on { color: var(--blue); }
   tbody tr:first-child td { border-top: none; }
   tbody tr:hover { background: #fafbfc; }
   .r { text-align: right; width: 56px; font-variant-numeric: tabular-nums; }
@@ -138,27 +143,27 @@
   <div class="tabs noprint" role="tablist" aria-label="Divisi" id="tabs"></div>
 
   <section class="cards" aria-label="Ringkasan">
-    <div class="card big">
+    <div class="card big" data-filter="" role="button" tabindex="0" title="Tampilkan semua unit">
       <div class="lbl" id="bigLabel">Total BPKB Cash belum diserahkan</div>
       <div class="bigval" id="bigVal">0</div>
       <div class="unit" id="bigSub"></div>
     </div>
-    <div class="card">
+    <div class="card" data-filter="lt60" role="button" tabindex="0" title="Klik untuk melihat daftar unit">
       <div class="lbl"><span class="dot" style="background:var(--green)"></span>&lt; 60 hari</div>
       <div class="val" id="c60">0</div>
       <div class="unit">unit</div>
     </div>
-    <div class="card">
+    <div class="card" data-filter="gt60" role="button" tabindex="0" title="Klik untuk melihat daftar unit">
       <div class="lbl"><span class="dot" style="background:var(--orange)"></span>&gt; 60 hari</div>
       <div class="val" id="c90">0</div>
       <div class="unit">unit</div>
     </div>
-    <div class="card">
+    <div class="card" data-filter="stnk" role="button" tabindex="0" title="Klik untuk melihat daftar unit">
       <div class="lbl"><span class="dot" style="background:var(--blue)"></span>STNK belum diserahkan</div>
       <div class="val" id="cStnk">0</div>
       <div class="unit">unit, tanggal serah STNK masih kosong</div>
     </div>
-    <div class="card alert">
+    <div class="card alert" data-filter="gt90" role="button" tabindex="0" title="Klik untuk melihat daftar unit">
       <div class="lbl"><span class="dot" style="background:var(--red)"></span>&gt; 90 hari</div>
       <div class="val" id="c91">0</div>
       <div class="unit">unit &middot; prioritas serah</div>
@@ -173,6 +178,8 @@
     <button class="btn plain" id="btnPrint" type="button">Cetak</button>
   </div>
 
+  <div class="chip noprint" id="chip" hidden></div>
+
   <div class="table-wrap">
     <table>
       <thead>
@@ -182,7 +189,7 @@
     </table>
     <div class="empty" id="empty" hidden>Tidak ada data yang cocok dengan pencarian.</div>
   </div>
-  <p class="foot">Umur BPKB mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr di sheet, yang dihitung dari tanggal faktur asli. Data diperbarui otomatis tiap 2 menit.</p>
+  <p class="foot">Umur BPKB mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr di sheet, yang dihitung dari tanggal faktur asli. Klik kartu ringkasan untuk menampilkan daftar unitnya. Data diperbarui otomatis tiap 2 menit.</p>
 </main>
 
 <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
@@ -201,6 +208,19 @@
 
   // Data contoh (dipakai bila Google Sheets belum bisa dibaca)
   // [customer, stnk a/n, no rangka, no polisi, leasing, salesman, supervisor], umur hari, bucket, stnkKosong
+  // Tanggal BAST: seragamkan menjadi dd/mm/yyyy
+  function normDate(v) {
+    v = String(v == null ? "" : v).trim();
+    var m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})/.exec(v);
+    if (m) return ("0" + m[1]).slice(-2) + "/" + ("0" + m[2]).slice(-2) + "/" + m[3];
+    m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
+    return m ? m[3] + "/" + m[2] + "/" + m[1] : v;
+  }
+  function dkey(v) {
+    var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v || "");
+    return m ? m[3] + m[2] + m[1] : "00000000";
+  }
+
   // Nama salesman di sheet berformat "KODE=NAMA LENGKAP"; yang diambil hanya nama lengkap
   function cleanName(s) {
     s = String(s == null ? "" : s).trim();
@@ -237,6 +257,15 @@
       S(["PT ARONTA CITRA PERSADA","PT ARONTA CITRA PERSADA","JTFST22PXT0054813","BK 7954 DQ","Cash","TPIN-F=TOPIN NAPITUPULU","PRODIPA"],51,"lt60")
     ]
   };
+
+  var BAST_SAMPLE = {
+    "Gatsu": ["22/05/2026","28/05/2026","15/04/2023","21/04/2026","25/05/2026","02/05/2014","06/04/2026","25/02/2026"],
+    "Gagak Hitam": ["20/10/2025","04/03/2026","14/04/2026","18/04/2026"],
+    "Flamboyan": ["10/06/2025","21/04/2026","17/03/2026","18/03/2026","25/03/2026","21/05/2026"]
+  };
+  Object.keys(BAST_SAMPLE).forEach(function (d) {
+    SAMPLE[d].forEach(function (r, i) { r.bast = BAST_SAMPLE[d][i] || ""; });
+  });
 
   var data = {};            // data[divisi] = array of rows
   var ok = {};              // ok[divisi] = true bila sukses diambil dari Google Sheets
@@ -294,7 +323,8 @@
       res.push({
         c: [c[1], c[2], c[3], c[6], "Cash", cleanName(c[20]), c[21]].map(function (x) { return String(x || "").trim(); }),
         days: days, b: b, blank: String(c[8] || "").trim() === "",
-        div: String(c[22] || "").trim()
+        div: String(c[22] || "").trim(),
+        bast: normDate(c[5])
       });
     });
     return res;
@@ -373,46 +403,56 @@
   var COLS = [
     { t: "Customer Nama", i: 0 }, { t: "STNK a/n", i: 1 }, { t: "No Rangka", i: 2 },
     { t: "No Polisi", i: 3 }, { t: "Leasing", i: 4 }, { t: "Salesman", i: 5 },
-    { t: "Supervisor", i: 6 }, { t: "Divisi", i: 7 }
+    { t: "Supervisor", i: 6 }, { t: "Divisi", i: 7 }, { t: "Tanggal BAST", i: 8 }
   ];
   var sortCol = -1, sortDir = "asc";
+  var cardFilter = "";
+  var FILTER_NAMES = { lt60: "< 60 hari", gt60: "> 60 hari", gt90: "> 90 hari", stnk: "STNK belum diserahkan" };
 
   function buildHead() {
     var h = '<th class="r">No</th>';
     COLS.forEach(function (c) {
-      h += '<th><span class="th-in"><span>' + c.t + '</span><span class="sort">' +
-        '<button type="button" class="sb" data-col="' + c.i + '" data-dir="asc" aria-label="Urutkan ' + c.t + ' dari kecil ke besar">&#9650;</button>' +
-        '<button type="button" class="sb" data-col="' + c.i + '" data-dir="desc" aria-label="Urutkan ' + c.t + ' dari besar ke kecil">&#9660;</button>' +
-        '</span></span></th>';
+      h += '<th data-col="' + c.i + '" aria-sort="none"><button type="button" class="sbtn" data-col="' + c.i +
+        '" title="Klik untuk mengurutkan"><span>' + c.t + '</span><span class="arr">&#8645;</span></button></th>';
     });
     el("headRow").innerHTML = h;
     el("headRow").addEventListener("click", function (e) {
-      var b = e.target.closest ? e.target.closest(".sb") : null;
+      var b = e.target.closest ? e.target.closest(".sbtn") : null;
       if (!b) return;
-      var col = parseInt(b.dataset.col, 10), dir = b.dataset.dir;
-      if (sortCol === col && sortDir === dir) { sortCol = -1; }   // klik lagi = matikan urutan
-      else { sortCol = col; sortDir = dir; }
+      var col = parseInt(b.dataset.col, 10);
+      if (sortCol !== col) { sortCol = col; sortDir = "asc"; }      // klik pertama: naik
+      else if (sortDir === "asc") { sortDir = "desc"; }             // klik kedua: turun
+      else { sortCol = -1; }                                        // klik ketiga: kembali ke urutan sheet
       renderAll();
     });
   }
 
   function updateHead() {
-    Array.prototype.forEach.call(el("headRow").querySelectorAll(".sb"), function (b) {
-      var on = parseInt(b.dataset.col, 10) === sortCol && b.dataset.dir === sortDir;
-      b.classList.toggle("on", on);
-      b.setAttribute("aria-pressed", on ? "true" : "false");
+    Array.prototype.forEach.call(el("headRow").querySelectorAll("th[data-col]"), function (th) {
+      var col = parseInt(th.dataset.col, 10), arr = th.querySelector(".arr");
+      var on = col === sortCol;
+      arr.textContent = on ? (sortDir === "asc" ? "\u25B2" : "\u25BC") : "\u21C5";
+      arr.classList.toggle("on", on);
+      th.setAttribute("aria-sort", on ? (sortDir === "asc" ? "ascending" : "descending") : "none");
     });
   }
 
-  function cellOf(r, col) { return col === 7 ? active : r.c[col]; }
+  function cellOf(r, col) { return col === 7 ? active : col === 8 ? (r.bast || "") : r.c[col]; }
+
+  function matchesCard(r) {
+    if (!cardFilter) return true;
+    if (cardFilter === "stnk") return r.blank;
+    return r.b === cardFilter;
+  }
 
   function filtered() {
     var q = el("q").value.trim().toLowerCase();
-    var list = data[active];
-    if (q) list = list.filter(function (r) { return (r.c.join(" ") + " " + active).toLowerCase().indexOf(q) !== -1; });
+    var list = data[active].filter(matchesCard);
+    if (q) list = list.filter(function (r) { return (r.c.join(" ") + " " + active + " " + (r.bast || "")).toLowerCase().indexOf(q) !== -1; });
     if (sortCol >= 0) {
       var k = sortDir === "asc" ? 1 : -1;
       list = list.slice().sort(function (a, b) {
+        if (sortCol === 8) { var x = dkey(a.bast), y = dkey(b.bast); return k * (x < y ? -1 : x > y ? 1 : 0); }
         return k * String(cellOf(a, sortCol)).localeCompare(String(cellOf(b, sortCol)), "id", { numeric: true, sensitivity: "base" });
       });
     }
@@ -446,8 +486,20 @@
       var c = r.c;
       return "<tr><td class='r'>" + (i + 1) + "</td><td>" + esc(c[0]) + "</td><td>" + esc(c[1]) +
         "</td><td class='mono'>" + esc(c[2]) + "</td><td>" + esc(c[3]) + "</td><td>" + esc(c[4]) +
-        "</td><td>" + esc(c[5]) + "</td><td>" + esc(c[6]) + "</td><td>" + esc(active) + "</td></tr>";
+        "</td><td>" + esc(c[5]) + "</td><td>" + esc(c[6]) + "</td><td>" + esc(active) + "</td><td>" + esc(r.bast || "") + "</td></tr>";
     }).join("");
+    Array.prototype.forEach.call(document.querySelectorAll(".card[data-filter]"), function (c) {
+      var on = cardFilter !== "" && c.dataset.filter === cardFilter;
+      c.classList.toggle("active", on);
+      c.setAttribute("aria-pressed", on ? "true" : "false");
+    });
+    var chip = el("chip");
+    if (cardFilter) {
+      chip.hidden = false;
+      chip.innerHTML = "Menampilkan: <b>" + esc(FILTER_NAMES[cardFilter]) + "</b> &middot; " + nf.format(list.length) +
+        ' unit di ' + esc(active) + ' <button type="button" class="btn plain" id="chipClear">Tampilkan semua</button>';
+      el("chipClear").onclick = function () { cardFilter = ""; renderAll(); };
+    } else { chip.hidden = true; chip.innerHTML = ""; }
     el("empty").hidden = list.length > 0;
     el("count").textContent = list.length === all.length
       ? nf.format(all.length) + " baris"
@@ -460,10 +512,10 @@
   el("btnPrint").addEventListener("click", function () { window.print(); });
 
   // ---------- Export (tab yang sedang dibuka, sesuai pencarian dan urutan) ----------
-  var HEAD = ["No","Customer Nama","STNK a/n","No Rangka","No Polisi","Leasing","Salesman","Supervisor","Divisi"];
+  var HEAD = ["No","Customer Nama","STNK a/n","No Rangka","No Polisi","Leasing","Salesman","Supervisor","Divisi","Tanggal BAST"];
 
   function exportRows() {
-    return filtered().map(function (r, i) { return [i + 1].concat(r.c, [active]); });
+    return filtered().map(function (r, i) { return [i + 1].concat(r.c, [active, r.bast || ""]); });
   }
 
   function fileBase() {
@@ -483,7 +535,7 @@
     var rows = exportRows();
     if (window.XLSX) {
       var ws = XLSX.utils.aoa_to_sheet([HEAD].concat(rows));
-      ws["!cols"] = [{ wch: 5 }, { wch: 32 }, { wch: 32 }, { wch: 20 }, { wch: 14 }, { wch: 8 }, { wch: 28 }, { wch: 18 }, { wch: 14 }];
+      ws["!cols"] = [{ wch: 5 }, { wch: 32 }, { wch: 32 }, { wch: 20 }, { wch: 14 }, { wch: 8 }, { wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 14 }];
       var wb = XLSX.utils.book_new();
       XLSX.utils.book_append_sheet(wb, ws, active);
       XLSX.writeFile(wb, fileBase() + ".xlsx");
@@ -517,6 +569,18 @@
   });
 
   document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
+
+  function pickCard(f) {
+    cardFilter = (f === "" || f === cardFilter) ? "" : f;
+    renderAll();
+    if (cardFilter) el("chip").scrollIntoView({ behavior: "smooth", block: "start" });
+  }
+  Array.prototype.forEach.call(document.querySelectorAll(".card[data-filter]"), function (c) {
+    c.addEventListener("click", function () { pickCard(c.dataset.filter); });
+    c.addEventListener("keydown", function (e) {
+      if (e.key === "Enter" || e.key === " ") { e.preventDefault(); pickCard(c.dataset.filter); }
+    });
+  });
 
   buildTabs();
   buildHead();
