@@ -279,9 +279,24 @@
     m = /^(\d{4})-(\d{2})-(\d{2})/.exec(v);
     return m ? m[3] + "/" + m[2] + "/" + m[1] : v;
   }
+  // Kunci urut tanggal: "dd/mm/yyyy[ hh:mm]" -> "yyyymmddhhmm"
   function dkey(v) {
-    var m = /^(\d{2})\/(\d{2})\/(\d{4})$/.exec(v || "");
-    return m ? m[3] + m[2] + m[1] : "00000000";
+    var m = /^(\d{2})\/(\d{2})\/(\d{4})(?: (\d{2}):(\d{2}))?/.exec(v || "");
+    return m ? m[3] + m[2] + m[1] + (m[4] || "00") + (m[5] || "00") : "000000000000";
+  }
+  // Serah Tanggal: kosong tetap kosong; bila ada isi dipertahankan (tanggal diseragamkan dd/mm/yyyy, jam ikut bila bukan 00:00)
+  function normStamp(v) {
+    v = String(v == null ? "" : v).trim();
+    if (!v || v === "-") return "";
+    var m = /^(\d{1,2})[\/.\-](\d{1,2})[\/.\-](\d{4})(?:[ T]+(\d{1,2}):(\d{2}))?/.exec(v), d, t = "";
+    if (m) { d = ("0" + m[1]).slice(-2) + "/" + ("0" + m[2]).slice(-2) + "/" + m[3]; }
+    else {
+      m = /^(\d{4})-(\d{2})-(\d{2})(?:[ T]+(\d{1,2}):(\d{2}))?/.exec(v);
+      if (!m) return v;
+      d = m[3] + "/" + m[2] + "/" + m[1];
+    }
+    if (m[4] !== undefined && !(parseInt(m[4], 10) === 0 && parseInt(m[5], 10) === 0)) t = " " + ("0" + m[4]).slice(-2) + ":" + m[5];
+    return d + t;
   }
 
   // Umur dari kolom "Hari" (Y): angka desimal, mis. 35.33 -> 35. Bila sudah angka (jalur xlsx) dipakai langsung;
@@ -293,9 +308,9 @@
 
   // Kolom sheet cabang: B=1 Customer, C=2 STNK a/n, D=3 NoRangka, G=6 No Polisi, I=8 Serah STNK,
   // J=9 Nomor BPKB, K=10 Terima Tanggal (BPKB), L=11 <60Hr, M=12 >60Hr, N=13 >90Hr, O=14 Leasing,
-  // U=20 Salesman, V=21 Supervisor, Y=24 Hari
+  // U=20 Salesman, V=21 Supervisor, X=23 Serah Tanggal, Y=24 Hari
   // raw = isi sheet yang sama dalam bentuk angka asli (opsional), dipakai untuk membaca kolom Hari
-  function extract(table, raw) {
+  function extract(table, raw, ambilFn) {
     var res = [];
     table.forEach(function (c, ix) {
       if (!c || c.length < 15) return;
@@ -313,6 +328,7 @@
         c: [c[1], c[2], c[3], c[6], "Cash", cleanName(c[20]), c[21]].map(function (x) { return String(x == null ? "" : x).trim(); }),
         days: days, b: b, blank: String(c[8] == null ? "" : c[8]).trim() === "",
         terima: normDate(c[10]),
+        ambil: ambilFn ? ambilFn(ix) : normStamp(c[23]),
         bpkb: String(c[9] == null ? "" : c[9]).trim()
       });
     });
@@ -397,6 +413,21 @@
   }
 
   /* ---------- baca workbook (xlsx) dari Google Drive ---------- */
+  // Kolom X "Serah Tanggal": sel tanggal dibaca dari angka aslinya (tidak tergantung format tampilan), sel teks apa adanya
+  function ambilCell(ws, r) {
+    var cell = ws[XLSX.utils.encode_cell({ r: r, c: 23 })];
+    if (!cell || cell.v === undefined || cell.v === null || cell.v === "") return "";
+    var looksDate = /^\s*\d{1,4}[\/.\-]\d{1,2}[\/.\-]\d{1,4}/.test(String(cell.w || ""));
+    if (cell.t === "n" && ((cell.z && XLSX.SSF && XLSX.SSF.is_date(cell.z)) || looksDate) && XLSX.SSF && XLSX.SSF.parse_date_code) {
+      var q = XLSX.SSF.parse_date_code(cell.v);
+      return normStamp(pad(q.d) + "/" + pad(q.m) + "/" + q.y + ((q.H || q.M) ? " " + pad(q.H) + ":" + pad(q.M) : ""));
+    }
+    if (cell.v instanceof Date) {
+      return normStamp(pad(cell.v.getDate()) + "/" + pad(cell.v.getMonth() + 1) + "/" + cell.v.getFullYear());
+    }
+    return normStamp(cell.w != null ? cell.w : cell.v);
+  }
+
   function handleWB(wb, ts) {
     var got = {}, marks = {};
     DIVISIONS.forEach(function (d) {
@@ -404,7 +435,8 @@
       if (!ws) throw { code: "struktur", message: 'Sheet "' + d + '" tidak ditemukan di Google Sheet.' };
       var rows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: false, defval: "", dateNF: "dd/mm/yyyy" });
       var rawRows = XLSX.utils.sheet_to_json(ws, { header: 1, raw: true, defval: "" });
-      got[d] = extract(rows, rawRows).map(function (r) { r.div = d; return r; }); marks[d] = findMarker(rows);
+      var r0 = XLSX.utils.decode_range(ws["!ref"] || "A1").s.r;
+      got[d] = extract(rows, rawRows, function (ix) { return ambilCell(ws, r0 + ix); }).map(function (r) { r.div = d; return r; }); marks[d] = findMarker(rows);
     });
     var prev = perFor(active);
     DIVISIONS.forEach(function (d) { data[d] = got[d]; per[d] = marks[d]; perISO[d] = markerISO(marks[d]); });
@@ -545,7 +577,7 @@
 
   /* ---------- tampilan ---------- */
   var COLS = [
-    { t: "Customer Nama", i: 0 }, { t: "STNK a/n", i: 1 }, { t: "Nomor BPKB", i: 10 }, { t: "Terima Tanggal", i: 11 },
+    { t: "Customer Nama", i: 0 }, { t: "STNK a/n", i: 1 }, { t: "Nomor BPKB", i: 10 }, { t: "Terima Tanggal", i: 11 }, { t: "Serah Tanggal", i: 12 },
     { t: "No Polisi", i: 3 }, { t: "Leasing", i: 4 }, { t: "Salesman", i: 5 },
     { t: "Supervisor", i: 6 }, { t: "Divisi", i: 7 }, { t: "Umur (hari)", i: 9 }, { t: "No Rangka", i: 2 }
   ];
@@ -665,7 +697,7 @@
     });
   }
 
-  function cellOf(r, col) { return col === 7 ? r.div : col === 10 ? (r.bpkb || "") : col === 11 ? (r.terima || "") : col === 9 ? (r.days == null ? "" : r.days) : r.c[col]; }
+  function cellOf(r, col) { return col === 7 ? r.div : col === 10 ? (r.bpkb || "") : col === 11 ? (r.terima || "") : col === 12 ? (r.ambil || "") : col === 9 ? (r.days == null ? "" : r.days) : r.c[col]; }
 
   function supLabel(r) {
     var s = String(r.c[6] || "").trim();
@@ -716,11 +748,15 @@
   function filtered() {
     var q = el("q").value.trim().toLowerCase();
     var list = rowsOf(active).filter(matchesCard);
-    if (q) list = list.filter(function (r) { return (r.c.join(" ") + " " + r.div + " " + (r.bpkb || "") + " " + (r.terima || "")).toLowerCase().indexOf(q) !== -1; });
+    if (q) list = list.filter(function (r) { return (r.c.join(" ") + " " + r.div + " " + (r.bpkb || "") + " " + (r.terima || "") + " " + (r.ambil || "")).toLowerCase().indexOf(q) !== -1; });
     if (sortCol >= 0) {
       var k = sortDir === "asc" ? 1 : -1;
       list = list.slice().sort(function (a, b) {
-        if (sortCol === 11) { var x = dkey(a.terima), y = dkey(b.terima); return k * (x < y ? -1 : x > y ? 1 : 0); }
+        if (sortCol === 11 || sortCol === 12) {
+          var va = cellOf(a, sortCol), vb = cellOf(b, sortCol);
+          if (!va || !vb) return !va && !vb ? 0 : (!va ? 1 : -1);      // yang kosong selalu di bawah
+          var x = dkey(va), y = dkey(vb); return k * (x < y ? -1 : x > y ? 1 : 0);
+        }
         if (sortCol === 9) { var u = a.days == null ? -1 : a.days, v = b.days == null ? -1 : b.days; return k * (u - v); }
         return k * String(cellOf(a, sortCol)).localeCompare(String(cellOf(b, sortCol)), "id", { numeric: true, sensitivity: "base" });
       });
@@ -784,7 +820,7 @@
     el("tbody").innerHTML = list.map(function (r, i) {
       var c = r.c;
       return "<tr><td class='r'>" + (i + 1) + "</td><td class='clip' title=\"" + esc(c[0]) + "\">" + esc(c[0]) + "</td><td class='clip' title=\"" + esc(c[1]) + "\">" + esc(c[1]) +
-        "</td><td>" + esc(r.bpkb || "-") + "</td><td>" + esc(r.terima || "-") + "</td><td>" + esc(c[3]) +
+        "</td><td>" + esc(r.bpkb || "-") + "</td><td>" + esc(r.terima || "-") + "</td><td>" + esc(r.ambil || "") + "</td><td>" + esc(c[3]) +
         "</td><td>" + esc(c[4]) + "</td><td class='clip' title=\"" + esc(c[5]) + "\">" + esc(c[5]) + "</td><td>" + esc(c[6]) + "</td><td>" + esc(r.div) +
         "</td><td class='num'>" + (r.days == null ? "-" : nf.format(r.days)) + "</td><td>" + esc(c[2]) + "</td></tr>";
     }).join("");
@@ -833,7 +869,7 @@
   el("btnPrint").addEventListener("click", function () { window.print(); });
 
   /* ---------- export (tab yang sedang dibuka, sesuai pencarian dan urutan) ---------- */
-  var HEAD = ["No","Customer Nama","STNK a/n","Nomor BPKB","Terima Tanggal","No Polisi","Leasing","Salesman","Supervisor","Divisi","Umur (hari)","No Rangka"];
+  var HEAD = ["No","Customer Nama","STNK a/n","Nomor BPKB","Terima Tanggal","Serah Tanggal","No Polisi","Leasing","Salesman","Supervisor","Divisi","Umur (hari)","No Rangka"];
   var SUPHEAD = ["No","Supervisor","Total Unit","< 60 hari","> 60 hari","> 90 hari","STNK belum diserahkan"];
   var dlCap = null;
   if (window.claude && typeof claude.use === "function") {
@@ -853,7 +889,7 @@
     }
     return {
       head: HEAD, title: "BPKB Belum Diserahkan (Cash) - " + active + (curSup() ? " - Supervisor " + curSup() : ""), prefix: curSup() ? "bpkb-cash-" + curSup().toLowerCase().replace(/\s+/g, "-") + "-" : "bpkb-cash-",
-      rows: filtered().map(function (r, i) { return [i + 1, r.c[0], r.c[1], r.bpkb || "", r.terima || "", r.c[3], r.c[4], r.c[5], r.c[6], r.div, r.days == null ? "" : r.days, r.c[2]]; })
+      rows: filtered().map(function (r, i) { return [i + 1, r.c[0], r.c[1], r.bpkb || "", r.terima || "", r.ambil || "", r.c[3], r.c[4], r.c[5], r.c[6], r.div, r.days == null ? "" : r.days, r.c[2]]; })
     };
   }
   function fileBase(prefix) {
@@ -882,7 +918,7 @@
     var ws = XLSX.utils.aoa_to_sheet([sp.head].concat(sp.rows));
     ws["!cols"] = sp.numeric
       ? [{ wch: 5 }, { wch: 30 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 12 }, { wch: 22 }]
-      : [{ wch: 5 }, { wch: 32 }, { wch: 32 }, { wch: 18 }, { wch: 14 }, { wch: 14 }, { wch: 8 }, { wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 20 }];
+      : [{ wch: 5 }, { wch: 32 }, { wch: 32 }, { wch: 18 }, { wch: 14 }, { wch: 16 }, { wch: 14 }, { wch: 8 }, { wch: 28 }, { wch: 18 }, { wch: 14 }, { wch: 12 }, { wch: 20 }];
     var wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, active);
     var buf = XLSX.write(wb, { bookType: "xlsx", type: "array" });
