@@ -2,348 +2,461 @@
 <html lang="id">
 <head>
 <meta charset="utf-8">
-<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>Daftar BPKB Belum Diserahkan - Cash</title>
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>BPKB Belum Diserahkan (Cash) - PT Perintis Perkasa</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600&family=Inter:wght@400;500;600&display=swap" rel="stylesheet">
 <style>
   :root {
-    --bg: #f6f7f9;
-    --panel: #ffffff;
-    --ink: #1c2430;
-    --muted: #5d6b7c;
-    --line: #d9dee5;
-    --accent: #1f4e79;
-    --accent-ink: #ffffff;
-    --head: #1f4e79;
-    --row-alt: #f0f4f8;
-    --notice: #fff6dd;
-    --notice-line: #e5c96b;
-    box-sizing: border-box;
-    padding-top: env(safe-area-inset-top, 0px);
-    padding-bottom: env(safe-area-inset-bottom, 0px);
+    --bg: #ffffff;
+    --ink: #151a22;
+    --muted: #6b7684;
+    --line: #e4e8ee;
+    --card: #ffffff;
+    --soft: #f5f6f8;
+    --blue: #2563eb;
+    --blue-soft: #eaf1ff;
+    --green: #15a34a;
+    --green-soft: #e8f8ee;
+    --orange: #c2570c;
+    --amber: #b45309;
+    --red: #dc2626;
+    --red-soft: #fdf0f0;
+    --red-line: #f3c9c9;
+    --serif: "Fraunces", Georgia, "Times New Roman", serif;
+    --sans: "Inter", "Segoe UI", system-ui, -apple-system, Roboto, Arial, sans-serif;
   }
-  @media (prefers-color-scheme: dark) {
-    :root:not([data-theme="light"]) {
-      --bg: #12161c; --panel: #1b2129; --ink: #e6ebf1; --muted: #9aa8b8;
-      --line: #2d3743; --accent: #5aa0d6; --accent-ink: #0d1218; --head: #2a4a68;
-      --row-alt: #202833; --notice: #332c14; --notice-line: #6b5a1f;
-    }
+  *, *::before, *::after { box-sizing: border-box; }
+  body { margin: 0; background: var(--bg); color: var(--ink); font-family: var(--sans); font-size: 15px; line-height: 1.5; }
+  main { max-width: 1240px; margin: 0 auto; padding: 36px 24px 56px; }
+
+  .top { display: flex; flex-wrap: wrap; justify-content: space-between; align-items: flex-end; gap: 16px; padding-bottom: 18px; border-bottom: 1px solid var(--line); }
+  .company { color: var(--muted); margin: 0 0 6px; }
+  h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(1.9rem, 4vw, 2.7rem); line-height: 1.1; margin: 0 0 6px; letter-spacing: -0.01em; }
+  .asof { color: var(--muted); margin: 0; }
+  .sync { text-align: right; }
+  .sync-row { display: flex; align-items: center; gap: 10px; justify-content: flex-end; flex-wrap: wrap; }
+  .sync-text { color: var(--muted); }
+  .sync-text b { color: var(--ink); font-weight: 600; }
+  .source { color: var(--muted); margin: 8px 0 0; }
+  .btn {
+    font: inherit; font-weight: 600; color: var(--ink); background: var(--blue-soft);
+    border: 1px solid var(--line); border-radius: 12px; padding: 10px 18px; cursor: pointer;
+    display: inline-flex; align-items: center; gap: 10px;
   }
-  :root[data-theme="dark"] {
-    --bg: #12161c; --panel: #1b2129; --ink: #e6ebf1; --muted: #9aa8b8;
-    --line: #2d3743; --accent: #5aa0d6; --accent-ink: #0d1218; --head: #2a4a68;
-    --row-alt: #202833; --notice: #332c14; --notice-line: #6b5a1f;
+  .btn:hover { filter: brightness(0.97); }
+  .btn.plain { background: #fff; font-weight: 500; padding: 8px 14px; border-radius: 10px; }
+  .ico { width: 28px; height: 28px; border-radius: 8px; background: var(--blue); color: #fff; display: inline-grid; place-items: center; font-size: 15px; }
+  .btn.spin .ico { animation: rot 0.9s linear infinite; }
+  @keyframes rot { to { transform: rotate(360deg); } }
+  @media (prefers-reduced-motion: reduce) { .btn.spin .ico { animation: none; } }
+  :focus-visible { outline: 2px solid var(--blue); outline-offset: 2px; }
+
+  .bar { margin: 22px 0 18px; padding: 14px 20px; border-radius: 10px; background: var(--green-soft); color: var(--green); }
+  .bar.warn { background: #fff6e0; color: var(--amber); }
+  .bar.err { background: var(--red-soft); color: var(--red); }
+
+  .tabs { display: flex; flex-wrap: wrap; gap: 8px; margin-bottom: 18px; }
+  .tab {
+    font: inherit; font-weight: 500; color: var(--muted); background: #fff; cursor: pointer;
+    border: 1px solid var(--line); border-radius: 999px; padding: 8px 18px;
   }
-  *, *::before, *::after { box-sizing: inherit; }
-  html { scroll-padding-top: env(safe-area-inset-top, 0px); }
-  body {
-    margin: 0; background: var(--bg); color: var(--ink);
-    font-family: "Segoe UI", system-ui, -apple-system, Roboto, "Helvetica Neue", Arial, sans-serif;
-    font-size: 15px; line-height: 1.5;
+  .tab[aria-selected="true"] { color: #fff; background: var(--ink); border-color: var(--ink); }
+  .tab .n { font-variant-numeric: tabular-nums; opacity: 0.75; margin-left: 6px; }
+
+  .cards { display: grid; grid-template-columns: 1.15fr 1fr 1fr; gap: 18px; margin-bottom: 26px; }
+  .card { border: 1px solid var(--line); border-radius: 16px; padding: 22px 26px; background: var(--card); }
+  .card.big { grid-row: span 2; background: linear-gradient(180deg, #fff, var(--soft)); padding: 34px 40px; display: flex; flex-direction: column; justify-content: center; }
+  .card.alert { background: var(--red-soft); border-color: var(--red-line); }
+  .lbl { display: flex; align-items: center; gap: 10px; color: var(--muted); margin-bottom: 12px; }
+  .dot { width: 10px; height: 10px; border-radius: 50%; flex: none; }
+  .val { font-weight: 600; font-size: 1.55rem; font-variant-numeric: tabular-nums; }
+  .unit { color: var(--muted); margin-top: 6px; }
+  .bigval { font-family: var(--serif); font-weight: 600; font-size: clamp(3rem, 7vw, 4.6rem); line-height: 1; margin: 14px 0 18px; font-variant-numeric: lining-nums; }
+  .alert .val { color: var(--red); }
+
+  .tools { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; margin-bottom: 12px; }
+  .tools input[type="search"] { flex: 1 1 260px; font: inherit; padding: 9px 14px; border: 1px solid var(--line); border-radius: 10px; }
+  .tools input[type="file"] { display: none; }
+  .count { color: var(--muted); }
+
+  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 14px; }
+  table { border-collapse: collapse; width: 100%; min-width: 920px; }
+  thead th { background: var(--soft); color: var(--ink); text-align: left; font-weight: 600; padding: 12px 14px; white-space: nowrap; border-bottom: 1px solid var(--line); }
+  tbody td { padding: 10px 14px; border-top: 1px solid var(--line); vertical-align: top; }
+  tbody tr:first-child td { border-top: none; }
+  tbody tr:hover { background: #fafbfc; }
+  .r { text-align: right; width: 56px; font-variant-numeric: tabular-nums; }
+  .mono { font-family: ui-monospace, Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.88em; }
+  .empty { padding: 34px; text-align: center; color: var(--muted); }
+  .foot { color: var(--muted); font-size: 0.88rem; margin-top: 14px; }
+
+  @media (max-width: 900px) {
+    main { padding: 24px 14px 40px; }
+    .cards { grid-template-columns: 1fr 1fr; }
+    .card.big { grid-column: 1 / -1; grid-row: auto; padding: 26px; }
+    .sync, .sync-row { text-align: left; justify-content: flex-start; }
   }
-  main { max-width: 1240px; margin: 0 auto; padding: 20px 16px 40px; }
-  h1 { font-size: 1.35rem; margin: 0 0 2px; }
-  .sub { color: var(--muted); margin: 0 0 16px; }
-  .panel {
-    background: var(--panel); border: 1px solid var(--line); border-radius: 6px;
-    padding: 14px 16px; margin-bottom: 14px;
-  }
-  .notice {
-    background: var(--notice); border: 1px solid var(--notice-line);
-    border-radius: 6px; padding: 10px 14px; margin-bottom: 14px;
-  }
-  .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
-  .grow { flex: 1 1 220px; }
-  button, .btn, select, input[type="search"] {
-    font: inherit; color: var(--ink); background: var(--panel);
-    border: 1px solid var(--line); border-radius: 5px; padding: 7px 12px;
-  }
-  input[type="search"] { width: 100%; }
-  button, .btn { cursor: pointer; }
-  button.primary, .btn.primary { background: var(--accent); color: var(--accent-ink); border-color: var(--accent); }
-  button:hover, .btn:hover { filter: brightness(0.96); }
-  :focus-visible { outline: 2px solid var(--accent); outline-offset: 2px; }
-  input[type="file"] { display: none; }
-  details summary { cursor: pointer; color: var(--accent); }
-  details ol { margin: 8px 0 0 18px; padding: 0; }
-  #status { color: var(--muted); }
-  .table-wrap { overflow-x: auto; border: 1px solid var(--line); border-radius: 6px; background: var(--panel); }
-  table { border-collapse: collapse; width: 100%; min-width: 900px; }
-  thead th {
-    background: var(--head); color: #fff; text-align: left; font-weight: 600;
-    padding: 9px 10px; white-space: nowrap; position: sticky; top: 0;
-  }
-  tbody td { padding: 7px 10px; border-top: 1px solid var(--line); vertical-align: top; }
-  tbody tr:nth-child(even) { background: var(--row-alt); }
-  td.no, th.no { text-align: right; width: 52px; }
-  td.mono { font-family: Consolas, "Liberation Mono", Menlo, monospace; font-size: 0.9em; }
-  .empty { padding: 28px; text-align: center; color: var(--muted); }
+  @media (max-width: 520px) { .cards { grid-template-columns: 1fr; } }
   @media print {
-    body { background: #fff; color: #000; }
     .noprint { display: none !important; }
-    .table-wrap { border: none; overflow: visible; }
+    main { padding: 0; }
+    .table-wrap { overflow: visible; border: none; }
     table { min-width: 0; font-size: 11px; }
-    thead th { background: #ddd !important; color: #000; position: static; }
-    tbody tr:nth-child(even) { background: #f3f3f3 !important; }
+    .cards { grid-template-columns: 1fr 1fr 1fr; }
   }
 </style>
 </head>
 <body>
 <main>
-  <h1>Daftar BPKB Belum Diserahkan ke Customer (Cash)</h1>
-  <p class="sub">Gabungan sheet Gatsu, Gagak Hitam, dan Flamboyan. Hanya baris dengan Leasing = Cash.</p>
-
-  <div class="notice noprint" id="sampleNotice">
-    Tabel di bawah masih berisi <strong>data contoh</strong>. Halaman mencoba mengambil data dari Google Sheets saat dibuka. Kalau gagal, buka file ini langsung di browser atau unggah CSV tiap sheet cabang dengan tombol <em>Unggah CSV</em>.
-  </div>
-
-  <div class="panel noprint">
-    <div class="row">
-      <label class="btn primary" for="fileInput">Unggah CSV</label>
-      <input id="fileInput" type="file" accept=".csv,text/csv" multiple>
-      <button type="button" id="btnReload">Muat ulang dari Google Sheets</button>
-      <button type="button" id="btnSample">Pakai data contoh</button>
-      <button type="button" id="btnDownload">Unduh CSV</button>
-      <button type="button" id="btnPrint">Cetak</button>
-      <span id="status" role="status" aria-live="polite"></span>
+  <header class="top">
+    <div>
+      <p class="company">PT Perintis Perkasa, Medan</p>
+      <h1>BPKB Belum Diserahkan</h1>
+      <p class="asof" id="asof">Leasing: Cash saja</p>
     </div>
-    <div class="row" style="margin-top:12px">
-      <div class="grow"><input type="search" id="q" placeholder="Cari customer, no rangka, no polisi, salesman, supervisor" aria-label="Cari"></div>
-      <select id="divisi" aria-label="Filter divisi"><option value="">Semua divisi</option></select>
+    <div class="sync noprint">
+      <div class="sync-row">
+        <span class="sync-text" id="syncText">Menghubungkan ke Google Sheets...</span>
+        <button class="btn" id="btnRefresh" type="button"><span class="ico" aria-hidden="true">&#8635;</span>Refresh</button>
+      </div>
+      <p class="source" id="source">Sumber: Daftar BPKB Yang Belum Diserahkan Ke Customer</p>
     </div>
-    <details style="margin-top:12px">
-      <summary>Cara mengambil CSV dari Google Sheets</summary>
-      <ol>
-        <li>Buka file Google Sheets, pilih tab <em>Gatsu</em>.</li>
-        <li>Klik <em>File</em>, <em>Download</em>, <em>Comma Separated Values (.csv)</em>.</li>
-        <li>Ulangi untuk tab <em>Gagak Hitam</em> dan <em>Flamboyan</em>.</li>
-        <li>Klik <em>Unggah CSV</em> di halaman ini, lalu pilih ketiga file sekaligus.</li>
-      </ol>
-    </details>
+  </header>
+
+  <div class="bar" id="bar" role="status" aria-live="polite">Memuat data...</div>
+
+  <div class="tabs noprint" role="tablist" aria-label="Divisi" id="tabs"></div>
+
+  <section class="cards" aria-label="Ringkasan">
+    <div class="card big">
+      <div class="lbl" id="bigLabel">Total BPKB Cash belum diserahkan</div>
+      <div class="bigval" id="bigVal">0</div>
+      <div class="unit" id="bigSub"></div>
+    </div>
+    <div class="card">
+      <div class="lbl"><span class="dot" style="background:var(--green)"></span>&lt; 60 hari</div>
+      <div class="val" id="c60">0</div>
+      <div class="unit">unit</div>
+    </div>
+    <div class="card">
+      <div class="lbl"><span class="dot" style="background:var(--orange)"></span>&gt; 60 hari</div>
+      <div class="val" id="c90">0</div>
+      <div class="unit">unit</div>
+    </div>
+    <div class="card">
+      <div class="lbl"><span class="dot" style="background:var(--blue)"></span>STNK belum diserahkan</div>
+      <div class="val" id="cStnk">0</div>
+      <div class="unit">unit, tanggal serah STNK masih kosong</div>
+    </div>
+    <div class="card alert">
+      <div class="lbl"><span class="dot" style="background:var(--red)"></span>&gt; 90 hari</div>
+      <div class="val" id="c91">0</div>
+      <div class="unit">unit &middot; prioritas serah</div>
+    </div>
+  </section>
+
+  <div class="tools noprint">
+    <input type="search" id="q" placeholder="Cari customer, no rangka, no polisi, salesman, supervisor" aria-label="Cari">
+    <span class="count" id="count"></span>
+    <label class="btn plain" for="fileInput" style="cursor:pointer">Unggah CSV</label>
+    <input id="fileInput" type="file" accept=".csv,text/csv" multiple>
+    <button class="btn plain" id="btnDownload" type="button">Unduh CSV</button>
+    <button class="btn plain" id="btnPrint" type="button">Cetak</button>
   </div>
 
   <div class="table-wrap">
     <table>
       <thead>
         <tr>
-          <th class="no">No</th><th>Customer Nama</th><th>STNK a/n</th><th>No Rangka</th>
+          <th class="r">No</th><th>Customer Nama</th><th>STNK a/n</th><th>No Rangka</th>
           <th>No Polisi</th><th>Leasing</th><th>Salesman</th><th>Supervisor</th><th>Divisi</th>
         </tr>
       </thead>
       <tbody id="tbody"></tbody>
     </table>
-    <div id="empty" class="empty" hidden>Tidak ada data yang cocok dengan pencarian atau filter.</div>
+    <div class="empty" id="empty" hidden>Tidak ada data yang cocok dengan pencarian.</div>
   </div>
+  <p class="foot">Umur BPKB mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr di sheet, yang dihitung dari tanggal faktur asli. Data diperbarui otomatis tiap 2 menit.</p>
 </main>
 
 <script>
 (function () {
-  // Urutan: Customer, STNK a/n, No Rangka, No Polisi, Leasing, Salesman, Supervisor, Divisi
-  var SAMPLE = [
-    ["MUHAMMAD RUSLY","MUHAMMAD RUSLY","MHKAB1BA9TJ164667","BK 1953 AMR","Cash","ADEK=ROSNI","COUNTER","Gatsu"],
-    ["SUN LENG","SUN LENG","JTNACAAH2T8016854","BK 1440 MAK","Cash","AGUT=AGUSTONO SUSANTO","ERWIN LIE","Gatsu"],
-    ["GEK YU","GEK YU","MHFAA8GS6P0794797","BK 63 KYU","Cash","AHM=AHMAD RONI NASUTION","TENGKU HARIS","Gatsu"],
-    ["JUSRI SE","JUSRI SE","MHKE8FA3JTK143126","BL 1546 HB","Cash","AMRI-F=AMRIN HAKIM L...","WARIMIN","Gatsu"],
-    ["PT.ANEKA SARANA LEST...","PT.ANEKA SARANA LEST...","MHFABAAA0T0052863","BK 1301 AGV","Cash","AMRI-F=AMRIN HAKIM L...","WARIMIN","Gatsu"],
-    ["BASRAH PARDOMUAN DRS","BASRAH PARDOMUAN DRS","MHFXW42G0E2285569","BK 1938 PI","Cash","BASTAN=BASTANTA SEMB...","-","Gatsu"],
-    ["POLMAN PANGARIBUAN","JONGGA PANGARIBUAN","MHFJB8EM4T1188257","BK 1697 WAI","Cash","BOY=BOY RICHARD MARTUA","HENDRA","Gatsu"],
-    ["YAYASAN PENDIDIKAN B...","YAY PEND BUDDHIS CAH...","JTFST22P6T0054596","BK 7904 DQ","Cash","DEDY=DEDY KURNIAWAN","WARIMIN","Gatsu"],
-    ["TOMMY HERYANTO","HERYANTO","MHFJB8EM6S1173922","BK 1312 XAG","Cash","ANDARS=ANDAR SIHALOHO","TOTOK","Gagak Hitam"],
-    ["ANGGA ADIPRIMA SEMBI...","NAHANKEN SINUHAJI A MD","JTF2A9CP3T6012347","BK 7521 AJI","Cash","ANDARS=ANDAR SIHALOHO","TOTOK","Gagak Hitam"],
-    ["ANGGA ADIPRIMA SEMBI...","UDIN SEMBIRING","MHFJB8EM2T1188354","BK 1623 SAD","Cash","ANDARS=ANDAR SIHALOHO","TOTOK","Gagak Hitam"],
-    ["GEREJA BATAK KARO PR...","GEREJA BATAK KARO PR...","MHKE8FA2JTK026028","BK 1630 SAD","Cash","ARZA-F=ARZA ADHA SIR...","ASHADI SAPUTRA","Gagak Hitam"],
-    ["WARDI","WARDI","MHKAB1BC0SJ058155","BK 1087 AGC","Cash","ALIFIA=ALIFIA RAMADHANI","COUNTER","Flamboyan"],
-    ["ELIZABETH MARGARETHA...","ELIZABETH MARGARETHA...","MHFJB8EM6T1190088","BK 1335 VAJ","Cash","BRNA-F=BERNARDUS RAN...","PRODIPA","Flamboyan"],
-    ["SUBANDANG","SUBANDANG","MHKE8FB3JTK118659","BB 1303 KD","Cash","OSEP-F=OSEP MARIO PA...","PRODIPA","Flamboyan"],
-    ["SU THIAM","SU THIAM","MHFABBAA4T0467349","BK 1424 AGS","Cash","ALXA-F=ALEXANDRO SIT...","ZAIN","Flamboyan"],
-    ["SABAR LT SIMATUPANG SE","SABAR LT SIMATUPANG SE","MHKE8FB3JTK118667","BK 1431 AGS","Cash","EDI-F=EDISMAN MANIK","LIK SIONG","Flamboyan"],
-    ["PT ARONTA CITRA PERSADA","PT ARONTA CITRA PERSADA","JTFST22PXT0054813","BK 7954 DQ","Cash","TPIN-F=TOPIN NAPITUPULU","PRODIPA","Flamboyan"]
-  ];
+  var SHEET_ID = "1qPXn1eOM3J5ygKKSa7Ld5qmf4GCSsyS60CojPguaZ_c";
+  var DIVISIONS = ["Gatsu", "Gagak Hitam", "Flamboyan"];
+  var REFRESH_MS = 120000;
 
-  // Tautan CSV hasil "Publish to web", satu per tab cabang.
-  // Tambahkan tautan tab lain (Gatsu, Gagak Hitam, Flamboyan) ke daftar ini.
-  var SOURCES = [
-    { label: "Tab 1", url: "https://docs.google.com/spreadsheets/d/e/2PACX-1vRB-rCWg0xbS4KjpDq9sZZWFPy57H66zA95KlHGIRXgzUDJCowZ8Rv-fNbGmRxSIV2CVZe9SWWR13nX/pub?gid=1061655272&single=true&output=csv" }
-    // { label: "Tab 2", url: "..." },
-    // { label: "Tab 3", url: "..." }
-  ];
+  function sheetUrl(name) {
+    return "https://docs.google.com/spreadsheets/d/" + SHEET_ID +
+      "/gviz/tq?tqx=out:csv&headers=0&sheet=" + encodeURIComponent(name);
+  }
 
-  var rows = SAMPLE.slice();
-  var isSample = true;
+  // Data contoh (dipakai bila Google Sheets belum bisa dibaca)
+  // [customer, stnk a/n, no rangka, no polisi, leasing, salesman, supervisor], umur hari, bucket, stnkKosong
+  function S(c, days, b, blank) { return { c: c, days: days, b: b, blank: !!blank }; }
+  var SAMPLE = {
+    "Gatsu": [
+      S(["MUHAMMAD RUSLY","MUHAMMAD RUSLY","MHKAB1BA9TJ164667","BK 1953 AMR","Cash","ADEK=ROSNI","COUNTER"],35,"lt60"),
+      S(["SUN LENG","SUN LENG","JTNACAAH2T8016854","BK 1440 MAK","Cash","AGUT=AGUSTONO SUSANTO","ERWIN LIE"],3,"lt60"),
+      S(["GEK YU","GEK YU","MHFAA8GS6P0794797","BK 63 KYU","Cash","AHM=AHMAD RONI NASUTION","TENGKU HARIS"],1179,"gt90"),
+      S(["JUSRI SE","JUSRI SE","MHKE8FA3JTK143126","BL 1546 HB","Cash","AMRI-F=AMRIN HAKIM L...","WARIMIN"],3,"lt60"),
+      S(["PT.ANEKA SARANA LEST...","PT.ANEKA SARANA LEST...","MHFABAAA0T0052863","BK 1301 AGV","Cash","AMRI-F=AMRIN HAKIM L...","WARIMIN"],35,"lt60"),
+      S(["BASRAH PARDOMUAN DRS","BASRAH PARDOMUAN DRS","MHFXW42G0E2285569","BK 1938 PI","Cash","BASTAN=BASTANTA SEMB...","-"],4484,"gt90"),
+      S(["POLMAN PANGARIBUAN","JONGGA PANGARIBUAN","MHFJB8EM4T1188257","BK 1697 WAI","Cash","BOY=BOY RICHARD MARTUA","HENDRA"],67,"gt60"),
+      S(["YAYASAN PENDIDIKAN B...","YAY PEND BUDDHIS CAH...","JTFST22P6T0054596","BK 7904 DQ","Cash","DEDY=DEDY KURNIAWAN","WARIMIN"],67,"gt60")
+    ],
+    "Gagak Hitam": [
+      S(["TOMMY HERYANTO","HERYANTO","MHFJB8EM6S1173922","BK 1312 XAG","Cash","ANDARS=ANDAR SIHALOHO","TOTOK"],231,"gt90"),
+      S(["ANGGA ADIPRIMA SEMBI...","NAHANKEN SINUHAJI A MD","JTF2A9CP3T6012347","BK 7521 AJI","Cash","ANDARS=ANDAR SIHALOHO","TOTOK"],98,"gt90"),
+      S(["ANGGA ADIPRIMA SEMBI...","UDIN SEMBIRING","MHFJB8EM2T1188354","BK 1623 SAD","Cash","ANDARS=ANDAR SIHALOHO","TOTOK"],98,"gt90"),
+      S(["GEREJA BATAK KARO PR...","GEREJA BATAK KARO PR...","MHKE8FA2JTK026028","BK 1630 SAD","Cash","ARZA-F=ARZA ADHA SIR...","ASHADI SAPUTRA"],98,"gt90")
+    ],
+    "Flamboyan": [
+      S(["WARDI","WARDI","MHKAB1BC0SJ058155","BK 1087 AGC","Cash","ALIFIA=ALIFIA RAMADHANI","COUNTER"],401,"gt90"),
+      S(["ELIZABETH MARGARETHA...","ELIZABETH MARGARETHA...","MHFJB8EM6T1190088","BK 1335 VAJ","Cash","BRNA-F=BERNARDUS RAN...","PRODIPA"],91,"gt90",true),
+      S(["SUBANDANG","SUBANDANG","MHKE8FB3JTK118659","BB 1303 KD","Cash","OSEP-F=OSEP MARIO PA...","PRODIPA"],18,"lt60",true),
+      S(["SU THIAM","SU THIAM","MHFABBAA4T0467349","BK 1424 AGS","Cash","ALXA-F=ALEXANDRO SIT...","ZAIN"],91,"gt90"),
+      S(["SABAR LT SIMATUPANG SE","SABAR LT SIMATUPANG SE","MHKE8FB3JTK118667","BK 1431 AGS","Cash","EDI-F=EDISMAN MANIK","LIK SIONG"],91,"gt90"),
+      S(["PT ARONTA CITRA PERSADA","PT ARONTA CITRA PERSADA","JTFST22PXT0054813","BK 7954 DQ","Cash","TPIN-F=TOPIN NAPITUPULU","PRODIPA"],51,"lt60")
+    ]
+  };
 
-  var tbody = document.getElementById("tbody");
-  var empty = document.getElementById("empty");
-  var statusEl = document.getElementById("status");
-  var qEl = document.getElementById("q");
-  var divEl = document.getElementById("divisi");
-  var notice = document.getElementById("sampleNotice");
+  var data = {};            // data[divisi] = array of rows
+  var ok = {};              // ok[divisi] = true bila sukses diambil dari Google Sheets
+  var usingSample = true;
+  var active = DIVISIONS[0];
+  var lastSync = null;
+  var timer = null;
+
+  DIVISIONS.forEach(function (d) { data[d] = SAMPLE[d].slice(); ok[d] = false; });
+
+  var el = function (id) { return document.getElementById(id); };
+  var nf = new Intl.NumberFormat("id-ID");
 
   function esc(s) {
     return String(s).replace(/&/g, "&amp;").replace(/</g, "&lt;").replace(/>/g, "&gt;").replace(/"/g, "&quot;");
   }
 
-  function currentList() {
-    var q = qEl.value.trim().toLowerCase();
-    var d = divEl.value;
-    return rows.filter(function (r) {
-      if (d && r[7] !== d) return false;
-      if (!q) return true;
-      return r.join(" ").toLowerCase().indexOf(q) !== -1;
-    });
-  }
-
-  function fillDivisi() {
-    var keep = divEl.value;
-    var set = {};
-    rows.forEach(function (r) { if (r[7]) set[r[7]] = true; });
-    divEl.innerHTML = '<option value="">Semua divisi</option>' +
-      Object.keys(set).sort().map(function (k) { return '<option>' + esc(k) + '</option>'; }).join("");
-    if (set[keep]) divEl.value = keep;
-  }
-
-  function render() {
-    var list = currentList();
-    tbody.innerHTML = list.map(function (r, i) {
-      return "<tr><td class='no'>" + (i + 1) + "</td>" +
-        "<td>" + esc(r[0]) + "</td><td>" + esc(r[1]) + "</td>" +
-        "<td class='mono'>" + esc(r[2]) + "</td><td>" + esc(r[3]) + "</td>" +
-        "<td>" + esc(r[4]) + "</td><td>" + esc(r[5]) + "</td>" +
-        "<td>" + esc(r[6]) + "</td><td>" + esc(r[7]) + "</td></tr>";
-    }).join("");
-    empty.hidden = list.length > 0;
-    statusEl.textContent = list.length + " dari " + rows.length + " baris Cash";
-    notice.hidden = !isSample;
-  }
-
-  // Parser CSV sederhana yang mendukung tanda kutip dan koma/baris baru di dalam sel
+  // ---------- CSV ----------
   function parseCSV(text) {
     var out = [], row = [], cell = "", inQ = false;
     for (var i = 0; i < text.length; i++) {
       var c = text[i];
       if (inQ) {
-        if (c === '"') {
-          if (text[i + 1] === '"') { cell += '"'; i++; } else { inQ = false; }
-        } else { cell += c; }
+        if (c === '"') { if (text[i + 1] === '"') { cell += '"'; i++; } else { inQ = false; } }
+        else { cell += c; }
       } else if (c === '"') { inQ = true; }
       else if (c === ",") { row.push(cell); cell = ""; }
       else if (c === "\n") { row.push(cell); out.push(row); row = []; cell = ""; }
-      else if (c === "\r") { /* abaikan */ }
+      else if (c === "\r") { }
       else { cell += c; }
     }
     if (cell.length || row.length) { row.push(cell); out.push(row); }
     return out;
   }
 
-  // Kolom sheet cabang: B=1 Customer, C=2 STNK a/n, D=3 NoRangka, G=6 No Polisi,
-  // O=14 Leasing, U=20 Salesman, V=21 Supervisor, W=22 Divisi
-  function extract(table, fallbackDivisi) {
+  function num(s) {
+    s = String(s == null ? "" : s).trim();
+    if (!s || s === "-") return null;
+    var n = parseInt(s.replace(/[.,\s]/g, ""), 10);
+    return isNaN(n) ? null : n;
+  }
+
+  // Kolom sheet cabang: B=1 Customer, C=2 STNK a/n, D=3 NoRangka, G=6 No Polisi, I=8 Serah STNK,
+  // L=11 <60Hr, M=12 >60Hr, N=13 >90Hr, O=14 Leasing, U=20 Salesman, V=21 Supervisor, W=22 Divisi
+  function extract(table) {
     var res = [];
     table.forEach(function (c) {
       if (!c || c.length < 15) return;
-      if (!/^\s*\d+\s*$/.test(c[0])) return;           // hanya baris data bernomor
+      if (!/^\s*\d+\s*$/.test(c[0])) return;
       if (String(c[14]).trim().toLowerCase() !== "cash") return;
-      var div = (c[22] || "").trim() || fallbackDivisi || "";
-      res.push([c[1], c[2], c[3], c[6], "Cash", c[20] || "", c[21] || "", div].map(function (x) { return String(x || "").trim(); }));
+      var b = "", days = null, n;
+      if ((n = num(c[13])) != null) { b = "gt90"; days = n; }
+      else if ((n = num(c[12])) != null) { b = "gt60"; days = n; }
+      else if ((n = num(c[11])) != null) { b = "lt60"; days = n; }
+      res.push({
+        c: [c[1], c[2], c[3], c[6], "Cash", c[20], c[21]].map(function (x) { return String(x || "").trim(); }),
+        days: days, b: b, blank: String(c[8] || "").trim() === "",
+        div: String(c[22] || "").trim()
+      });
     });
     return res;
   }
 
-  function readFile(file) {
-    return new Promise(function (resolve, reject) {
-      var fr = new FileReader();
-      fr.onload = function () { resolve(String(fr.result).replace(/^\uFEFF/, "")); };
-      fr.onerror = reject;
-      fr.readAsText(file);
+  // ---------- Ambil data ----------
+  function fetchDivision(name) {
+    return fetch(sheetUrl(name), { cache: "no-store" })
+      .then(function (r) { if (!r.ok) throw new Error("HTTP " + r.status); return r.text(); })
+      .then(function (t) {
+        if (/^\s*</.test(t)) throw new Error("bukan CSV");
+        return extract(parseCSV(t.replace(/^\uFEFF/, "")));
+      });
+  }
+
+  function load() {
+    var btn = el("btnRefresh");
+    btn.classList.add("spin");
+    el("syncText").textContent = "Mengambil data dari Google Sheets...";
+    return Promise.all(DIVISIONS.map(function (d) {
+      return fetchDivision(d).then(function (rows) { return { d: d, rows: rows, ok: true }; })
+        .catch(function () { return { d: d, rows: null, ok: false }; });
+    })).then(function (results) {
+      var any = false, fail = [];
+      results.forEach(function (r) {
+        if (r.ok) {
+          data[r.d] = r.rows; ok[r.d] = true; any = true;
+        } else { ok[r.d] = false; fail.push(r.d); }
+      });
+      if (any) { usingSample = false; lastSync = new Date(); }
+      // Bila belum pernah berhasil, divisi yang gagal tetap memakai data contoh
+      setBar(fail, any);
+      renderAll();
+    }).then(function () { btn.classList.remove("spin"); });
+  }
+
+  function fmtTime(d) {
+    return d.toLocaleString("id-ID", { day: "numeric", month: "long", year: "numeric", hour: "2-digit", minute: "2-digit" })
+      .replace(".", ":").replace(/(\d{2})\.(\d{2})$/, "$1:$2");
+  }
+
+  function setBar(fail, any) {
+    var bar = el("bar"), st = el("syncText");
+    var total = DIVISIONS.reduce(function (a, d) { return a + (ok[d] ? data[d].length : 0); }, 0);
+    if (fail.length === 0) {
+      bar.className = "bar";
+      bar.textContent = "\u2713 Semua data diperbarui \u2014 " + nf.format(total) + " unit Cash dari 3 divisi, " + fmtTime(lastSync);
+      st.innerHTML = "Live &middot; tersinkron <b>" + esc(fmtTime(lastSync)) + "</b> &middot; otomatis tiap 2 menit";
+    } else if (any) {
+      bar.className = "bar warn";
+      bar.textContent = "Sebagian data belum bisa dibaca: " + fail.join(", ") + ". Divisi lain sudah diperbarui.";
+      st.innerHTML = "Sinkron sebagian &middot; otomatis tiap 2 menit";
+    } else {
+      bar.className = "bar err";
+      bar.textContent = usingSample
+        ? "Google Sheets belum bisa dibaca. Yang tampil adalah data contoh. Buka file ini langsung di browser, pastikan sheet dibagikan \"Siapa saja yang memiliki link\", atau pakai Unggah CSV."
+        : "Google Sheets belum bisa dibaca. Data terakhir tetap ditampilkan.";
+      st.innerHTML = "Tidak tersinkron &middot; mencoba lagi tiap 2 menit";
+    }
+  }
+
+  // ---------- Tampilan ----------
+  function buildTabs() {
+    var box = el("tabs");
+    box.innerHTML = "";
+    DIVISIONS.forEach(function (d) {
+      var b = document.createElement("button");
+      b.type = "button"; b.className = "tab"; b.setAttribute("role", "tab");
+      b.dataset.div = d;
+      b.addEventListener("click", function () { active = d; renderAll(); });
+      box.appendChild(b);
     });
   }
 
-  document.getElementById("fileInput").addEventListener("change", function (e) {
+  function filtered() {
+    var q = el("q").value.trim().toLowerCase();
+    var list = data[active];
+    if (!q) return list;
+    return list.filter(function (r) { return (r.c.join(" ") + " " + active).toLowerCase().indexOf(q) !== -1; });
+  }
+
+  function renderAll() {
+    Array.prototype.forEach.call(el("tabs").children, function (b) {
+      var d = b.dataset.div;
+      b.setAttribute("aria-selected", d === active ? "true" : "false");
+      b.innerHTML = esc(d) + '<span class="n">' + nf.format(data[d].length) + "</span>";
+    });
+
+    var all = data[active];
+    var n60 = 0, n90 = 0, n91 = 0, nStnk = 0;
+    all.forEach(function (r) {
+      if (r.b === "lt60") n60++; else if (r.b === "gt60") n90++; else if (r.b === "gt90") n91++;
+      if (r.blank) nStnk++;
+    });
+    el("bigLabel").textContent = "Total BPKB Cash belum diserahkan \u2014 " + active;
+    el("bigVal").textContent = nf.format(all.length);
+    el("bigSub").innerHTML = "dari <b>" + nf.format(all.length) + "</b> unit &middot; hanya Leasing Cash";
+    el("c60").textContent = nf.format(n60);
+    el("c90").textContent = nf.format(n90);
+    el("c91").textContent = nf.format(n91);
+    el("cStnk").textContent = nf.format(nStnk);
+
+    var list = filtered();
+    el("tbody").innerHTML = list.map(function (r, i) {
+      var c = r.c;
+      return "<tr><td class='r'>" + (i + 1) + "</td><td>" + esc(c[0]) + "</td><td>" + esc(c[1]) +
+        "</td><td class='mono'>" + esc(c[2]) + "</td><td>" + esc(c[3]) + "</td><td>" + esc(c[4]) +
+        "</td><td>" + esc(c[5]) + "</td><td>" + esc(c[6]) + "</td><td>" + esc(active) + "</td></tr>";
+    }).join("");
+    el("empty").hidden = list.length > 0;
+    el("count").textContent = list.length === all.length
+      ? nf.format(all.length) + " baris"
+      : nf.format(list.length) + " dari " + nf.format(all.length) + " baris";
+  }
+
+  // ---------- Aksi ----------
+  el("btnRefresh").addEventListener("click", load);
+  el("q").addEventListener("input", renderAll);
+  el("btnPrint").addEventListener("click", function () { window.print(); });
+
+  el("btnDownload").addEventListener("click", function () {
+    var head = ["No","Customer Nama","STNK a/n","No Rangka","No Polisi","Leasing","Salesman","Supervisor","Divisi"];
+    var lines = [head].concat(filtered().map(function (r, i) { return [i + 1].concat(r.c, [active]); }));
+    var csv = lines.map(function (r) {
+      return r.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(",");
+    }).join("\r\n");
+    var a = document.createElement("a");
+    a.href = URL.createObjectURL(new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" }));
+    a.download = "bpkb-cash-" + active.toLowerCase().replace(/\s+/g, "-") + ".csv";
+    document.body.appendChild(a); a.click(); a.remove();
+  });
+
+  function matchDiv(s) {
+    s = String(s || "").toLowerCase();
+    for (var i = 0; i < DIVISIONS.length; i++) if (s.indexOf(DIVISIONS[i].toLowerCase()) !== -1) return DIVISIONS[i];
+    return "";
+  }
+
+  // Cadangan manual: unggah CSV tab cabang
+  el("fileInput").addEventListener("change", function (e) {
     var files = Array.prototype.slice.call(e.target.files || []);
     if (!files.length) return;
-    Promise.all(files.map(readFile)).then(function (texts) {
-      var all = [];
-      texts.forEach(function (t, i) {
-        var base = files[i].name.replace(/\.csv$/i, "");
-        all = all.concat(extract(parseCSV(t), ""));
+    Promise.all(files.map(function (f) {
+      return new Promise(function (res, rej) {
+        var fr = new FileReader();
+        fr.onload = function () { res({ name: f.name, text: String(fr.result).replace(/^\uFEFF/, "") }); };
+        fr.onerror = rej; fr.readAsText(f);
       });
-      if (!all.length) {
-        statusEl.textContent = "Tidak ada baris Cash yang terbaca. Pastikan CSV berasal dari sheet cabang (Gatsu, Gagak Hitam, Flamboyan).";
+    })).then(function (list) {
+      var got = {};
+      list.forEach(function (f) {
+        extract(parseCSV(f.text)).forEach(function (r) {
+          var d = matchDiv(r.div) || matchDiv(f.name);
+          if (!d) return;
+          (got[d] = got[d] || []).push(r);
+        });
+      });
+      var keys = Object.keys(got);
+      if (!keys.length) {
+        el("bar").className = "bar err";
+        el("bar").textContent = "Tidak ada baris Cash yang terbaca dari file. Pastikan CSV berasal dari tab Gatsu, Gagak Hitam, atau Flamboyan.";
         return;
       }
-      rows = all; isSample = false;
-      qEl.value = ""; divEl.value = "";
-      fillDivisi(); render();
-    }).catch(function () {
-      statusEl.textContent = "File tidak bisa dibaca. Coba unggah ulang.";
+      keys.forEach(function (d) { data[d] = got[d]; });
+      usingSample = false;
+      el("bar").className = "bar warn";
+      el("bar").textContent = "Data dari file yang diunggah: " + keys.join(", ") + ". Klik Refresh untuk kembali membaca dari Google Sheets.";
+      renderAll();
     });
     e.target.value = "";
   });
 
-  document.getElementById("btnSample").addEventListener("click", function () {
-    rows = SAMPLE.slice(); isSample = true; fillDivisi(); render();
-  });
+  document.addEventListener("visibilitychange", function () { if (!document.hidden) load(); });
 
-  document.getElementById("btnPrint").addEventListener("click", function () { window.print(); });
-
-  document.getElementById("btnDownload").addEventListener("click", function () {
-    var head = ["No","Customer Nama","STNK a/n","No Rangka","No Polisi","Leasing","Salesman","Supervisor","Divisi"];
-    var lines = [head].concat(currentList().map(function (r, i) { return [i + 1].concat(r); }));
-    var csv = lines.map(function (r) {
-      return r.map(function (x) { return '"' + String(x).replace(/"/g, '""') + '"'; }).join(",");
-    }).join("\r\n");
-    var blob = new Blob(["\uFEFF" + csv], { type: "text/csv;charset=utf-8" });
-    var a = document.createElement("a");
-    a.href = URL.createObjectURL(blob);
-    a.download = "daftar-bpkb-cash.csv";
-    document.body.appendChild(a); a.click(); a.remove();
-  });
-
-  qEl.addEventListener("input", render);
-  divEl.addEventListener("change", render);
-
-  function loadFromSheets() {
-    statusEl.textContent = "Mengambil data dari Google Sheets...";
-    var report = [];
-    Promise.all(SOURCES.map(function (s) {
-      return fetch(s.url, { cache: "no-store" })
-        .then(function (r) {
-          if (!r.ok) throw new Error("HTTP " + r.status);
-          return r.text();
-        })
-        .then(function (t) {
-          var got = extract(parseCSV(t.replace(/^\uFEFF/, "")), "");
-          report.push(s.label + ": " + got.length + " baris Cash");
-          return got;
-        })
-        .catch(function () {
-          report.push(s.label + ": gagal diambil");
-          return [];
-        });
-    })).then(function (parts) {
-      var all = [].concat.apply([], parts);
-      if (!all.length) {
-        statusEl.textContent = "Data belum bisa dimuat dari Google Sheets (" + report.join("; ") + ")." +
-          (isSample ? " Menampilkan data contoh. Buka file ini langsung di browser atau unggah CSV manual."
-                    : " Data sebelumnya tetap ditampilkan.");
-        return;
-      }
-      rows = all; isSample = false;
-      fillDivisi(); render();
-      var t = new Date().toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" });
-      statusEl.textContent = statusEl.textContent + " | diperbarui " + t + " (" + report.join("; ") + ")";
-    });
-  }
-
-  // Perbarui otomatis tiap 60 detik, dan saat tab browser dibuka kembali
-  setInterval(function () { if (!document.hidden) loadFromSheets(); }, 60000);
-  document.addEventListener("visibilitychange", function () {
-    if (!document.hidden) loadFromSheets();
-  });
-
-  document.getElementById("btnReload").addEventListener("click", loadFromSheets);
-
-  fillDivisi();
-  render();
-  loadFromSheets();
+  buildTabs();
+  renderAll();
+  load();
+  timer = setInterval(function () { if (!document.hidden) load(); }, REFRESH_MS);
 })();
 </script>
 </body>
