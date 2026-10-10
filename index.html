@@ -3,7 +3,15 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
-<title>BPKB Cash &amp; Followup Leasing - Gatsu - PT Perintis Perkasa</title>
+<title>BPKB Cash &amp; Followup Leasing - Flamboyan - PT Perintis Perkasa</title>
+<meta name="description" content="Dashboard BPKB Cash &amp; Followup Leasing cabang Flamboyan - PT Perintis Perkasa">
+<meta property="og:title" content="BPKB Cash &amp; Followup Leasing - Flamboyan - PT Perintis Perkasa">
+<meta property="og:description" content="Dashboard BPKB Cash &amp; Followup Leasing cabang Flamboyan">
+<meta property="og:type" content="website">
+<meta property="og:url" content="https://bpkb-piutang-flamboyan.vercel.app/">
+<meta property="og:site_name" content="PT Perintis Perkasa">
+<meta name="twitter:card" content="summary">
+<meta name="twitter:title" content="BPKB Cash &amp; Followup Leasing - Flamboyan - PT Perintis Perkasa">
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
 <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,400;9..144,500;9..144,600&family=Inter:wght@400;500;600;700&family=IBM+Plex+Mono:wght@400;500;600&display=swap" rel="stylesheet">
@@ -232,7 +240,7 @@
 <div class="lock" id="lock">
   <div class="lock-card">
     <p class="co">PT Perintis Perkasa, Medan</p>
-    <h2>Gatsu</h2>
+    <h2>Flamboyan</h2>
     <div class="lock-field">
       <input type="password" id="lockPw" placeholder="Password" autocomplete="off" aria-label="Password">
       <button class="lock-eye" id="lockEye" type="button" aria-label="Tampilkan password">
@@ -252,7 +260,7 @@
   <div id="paneBpkb">
   <header class="top">
     <div>
-      <p class="company">PT Perintis Perkasa, Medan &middot; Cabang Gatsu</p>
+      <p class="company">PT Perintis Perkasa, Medan &middot; Cabang Flamboyan</p>
       <h1>BPKB Belum Diserahkan</h1>
       <div class="per"><span id="per">Per : -</span><span class="stale" id="stale" hidden>belum hari ini</span></div>
     </div>
@@ -297,7 +305,7 @@
 
   <div class="sechead">
     <h2>BPKB Cash</h2>
-    <span class="cap">cabang Gatsu &middot; per supervisor</span>
+    <span class="cap">cabang Flamboyan &middot; per supervisor</span>
   </div>
 
   <div class="tabs noprint" role="tablist" aria-label="Divisi" id="tabs" hidden></div>
@@ -332,11 +340,11 @@
   </div>
   <p class="foot">Umur (hari) dibaca dari kolom Hari di sheet (dibulatkan). Kategori &lt; 60, &gt; 60, dan &gt; 90 hari mengikuti kolom &lt;60Hr, &gt;60Hr, dan &gt;90Hr. Klik kartu ringkasan untuk menampilkan daftar unitnya. Tab Detail Per Supervisor menampilkan unit milik satu supervisor. Data diperbarui otomatis tiap 2 menit.</p>
   </div>
-  <div id="paneFu" hidden style="--dvcolor: var(--gatsu)">
+  <div id="paneFu" hidden style="--dvcolor: var(--flamboyan)">
     <header class="top masthead">
       <div>
-        <p class="company co">PT Perintis Perkasa, Medan &middot; Cabang Gatsu</p>
-        <h1>Followup Penagihan ke Leasing &mdash; <span class="dv">Gatsu</span></h1>
+        <p class="company co">PT Perintis Perkasa, Medan &middot; Cabang Flamboyan</p>
+        <h1>Followup Penagihan ke Leasing &mdash; <span class="dv">Flamboyan</span></h1>
         <div class="per"><span id="perDateLabel"></span></div>
       </div>
       <div class="sync fu-sync noprint">
@@ -348,7 +356,7 @@
     <div id="syncMessage" style="display:none; margin:0 0 20px; padding:10px 14px; border-radius:8px; font-size:12.5px;"></div>
 
     <div class="sumrow">
-      <div class="sumchip" data-fusum="all" role="button" tabindex="0" title="Tampilkan semua faktur"><div class="k">Total piutang Gatsu</div><div class="v" id="sumTotal">&ndash;</div></div>
+      <div class="sumchip" data-fusum="all" role="button" tabindex="0" title="Tampilkan semua faktur"><div class="k">Total piutang Flamboyan</div><div class="v" id="sumTotal">&ndash;</div></div>
       <div class="sumchip" data-fusum="all" role="button" tabindex="0" title="Tampilkan semua faktur"><div class="k">Jumlah faktur</div><div class="v" id="sumFaktur">&ndash;</div></div>
       <div class="sumchip" data-fusum="belum" role="button" tabindex="0" title="Klik untuk menampilkan faktur yang belum ditagih"><div class="k">Belum ditagih</div><div class="v" id="sumBelum">&ndash;</div></div>
       <div class="sumchip crit" data-fusum="crit" role="button" tabindex="0" title="Klik untuk menampilkan faktur umur lebih dari 26 hari"><div class="k">Umur &gt; 26 hari</div><div class="v" id="sumCrit">&ndash;</div></div>
@@ -361,6 +369,7 @@
     <div class="fu-toolbar noprint">
       <input type="text" id="fuSearch" placeholder="Cari nama customer, faktur, atau salesman&hellip;">
       <select id="fuLeasingFilter"><option value="">Semua leasing</option></select>
+      <select id="fuSupFilter"><option value="">Semua supervisor</option></select>
       <div class="fu-status-tabs" id="fuStatusTabs">
         <button type="button" class="active" data-status="all">Semua</button>
         <button type="button" data-status="belum">Belum tagih</button>
@@ -408,7 +417,7 @@
   var FILE_ID = "1qPXn1eOM3J5ygKKSa7Ld5qmf4GCSsyS60CojPguaZ_c";
   var SERVER = "Google Drive", TOOL = "download_file_content";
   var XLSX_MIME = "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet";
-  var DIVISIONS = ["Gatsu"];
+  var DIVISIONS = ["Flamboyan"];
   var ALL = "Semua Cabang", TABS = DIVISIONS;
   var REFRESH_MS = 120000, REFRESH_TXT = "2 menit";
   var MONTHS = ["Januari","Februari","Maret","April","Mei","Juni","Juli","Agustus","September","Oktober","November","Desember"];
@@ -1149,7 +1158,7 @@
 </script>
 <script>
 (function(){
-  const DIVISI = 'Gatsu';
+  const DIVISI = 'Flamboyan';
   const PUBLISHED_CSV_URL = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vQ8rWnYng7TGqvAMl7aryX7yZE7hQnzwF3Urqwu1t8bPq9AFJBXPfqaGmUzTk08Nw91e6mQGV6kbc2J/pub?gid=860325626&single=true&output=csv';
 
   /* dibuka oleh gate password dashboard */
@@ -1395,18 +1404,20 @@
   const fmtTglLong = d => `${d.getDate()} ${MONTHS_ID_LONG[d.getMonth()]} ${d.getFullYear()}`;
   const fmtTimeShort = d => `${String(d.getHours()).padStart(2,'0')}:${String(d.getMinutes()).padStart(2,'0')}`;
   const leasingOf = r => (r.cara === 'Tunai' || !r.leasing) ? 'Cash' : r.leasing;
+  const supOf = r => (r.supervisor && r.supervisor !== '-') ? r.supervisor : 'Tanpa supervisor';
   const parseDMY = s => {
     const m = String(s || '').match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})/);
     return m ? new Date(+m[3], +m[2] - 1, +m[1]).getTime() : 0;
   };
 
   let fuAllRows = [];
-  let fuState = { search: '', leasing: '', status: 'all', crit: false, sortKey: 'leasing', sortDir: 'asc' };
+  let fuState = { search: '', leasing: '', sup: '', status: 'all', crit: false, sortKey: 'leasing', sortDir: 'asc' };
 
   function filteredList() {
     const q = fuState.search.trim().toLowerCase();
     return fuAllRows.filter(r => {
       if (fuState.leasing && leasingOf(r) !== fuState.leasing) return false;
+      if (fuState.sup && supOf(r) !== fuState.sup) return false;
       if (fuState.status === 'belum' && !isBelumTagih(r)) return false;
       if (fuState.status === 'sudah' && isBelumTagih(r)) return false;
       if (fuState.crit && !(r.hari > 26)) return false;
@@ -1457,6 +1468,14 @@
     const cur = sel.value;
     sel.innerHTML = '<option value="">Semua leasing</option>' + names.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
     if (names.includes(cur)) sel.value = cur;
+  }
+
+  function populateSupFilter() {
+    const sel = document.getElementById('fuSupFilter');
+    const names = Array.from(new Set(fuAllRows.map(supOf))).sort((a, b) => a.localeCompare(b, 'id'));
+    const cur = fuState.sup;
+    sel.innerHTML = '<option value="">Semua supervisor</option>' + names.map(l => `<option value="${esc(l)}">${esc(l)}</option>`).join('');
+    if (names.includes(cur)) sel.value = cur; else fuState.sup = '';
   }
 
   function renderSummary() {
@@ -1517,6 +1536,7 @@
   function wireFollowupTab() {
     document.getElementById('fuSearch').addEventListener('input', e => { fuState.search = e.target.value; applyFollowupFilters(); });
     document.getElementById('fuLeasingFilter').addEventListener('change', e => { fuState.leasing = e.target.value; applyFollowupFilters(); });
+    document.getElementById('fuSupFilter').addEventListener('change', e => { fuState.sup = e.target.value; applyFollowupFilters(); });
     document.querySelectorAll('#fuStatusTabs button').forEach(btn => btn.addEventListener('click', () => {
       document.querySelectorAll('#fuStatusTabs button').forEach(b => b.classList.toggle('active', b === btn));
       fuState.status = btn.dataset.status; fuState.crit = false; applyFollowupFilters();
@@ -1561,7 +1581,7 @@
       const perDate = extractPerDate(rows);
       if (perDate) document.getElementById('perDateLabel').textContent = perDate;
       fuAllRows = parseAgingRows(rows).filter(r => r.divisi === DIVISI);
-      populateLeasingFilter(); renderSummary(); applyFollowupFilters();
+      populateLeasingFilter(); populateSupFilter(); renderSummary(); applyFollowupFilters();
       const now = new Date();
       syncStatusEl.innerHTML = `🔄 Live · tersinkron <b>${fmtTglLong(now)}, ${fmtTimeShort(now)}</b> · otomatis tiap 2 menit`;
       if (!isAuto) showSyncMessage('success', `✓ Data ${DIVISI} diperbarui — ${fuAllRows.length} faktur`);
@@ -1602,7 +1622,7 @@
 </script>
 <script>
 (function () {
-  var HASH_VIEW = "21d825447ec592bf770f5f011d0ec64c3d505a2e156ab489d52d733049f66c7b", HASH_EXPORT = "ee2f2000b535d31ef0b071038b22ee1d9f3cc4fb56f4b46bd831bf7827dcb4b8";
+  var HASH_VIEW = "f81623615ef672aee405079d8068e2740b54fd988aa0eb5b55127e9e73fe5532", HASH_EXPORT = "3524f2666794b6bcb48a4dbf5d5479ca087a30e7841f09b0c68b2bcad74fe93b";
 
 function sha256hex(str) {
   var b = new TextEncoder().encode(str), l = b.length, K = [], H = [], p = [], c = 2, i, j;
