@@ -1033,11 +1033,7 @@ function catDLines(cab, rpt, k) {
   return out;
 }
 const catDRows = (cab, rpt, k) => { const l = catDLines(cab, rpt, k); return [...l, { no: '', uraian: 'Total', jumlah: sumOf(l, 'jumlah'), tot: true }]; };
-const catRowClick = (cab) => (r) => {
-  if (!r.pso) return;
-  if (S.rows.some((x) => x.cabang === cab.n && x.nomor_pso === r.pso)) { openPso(cab, r.pso); return; }
-  pushModal('Detail PSO · ' + r.pso, (box) => { box.append(el('p', 'muted', 'Nomor PSO ini tidak ada di sheet ' + cab.n + ' (kemungkinan sudah di luar data yang dibaca dashboard), jadi detail barangnya tidak tersedia.'), el('p', '', r.uraian)); }, null, cab);
-};
+const catRowClick = (cab) => (r) => { if (r.pso) openPso(cab, r.pso); };
 function openCatD(cab) {
   const rpt = compute(cab.n), data = catDRows(cab, rpt, 'D'), title = 'Catatan D · Penjelasan angka · ' + cab.n;
   pushModal(title, (box) => {
@@ -1414,10 +1410,10 @@ function openPso(cab, pso) {
   const rpt = compute(cab.n), o = rpt.list.find((x) => x.pso === pso);
   const items = o ? rpt.rows.filter((r) => r.nomor_pso === pso) : S.rows.filter((r) => r.cabang === cab.n && r.nomor_pso === pso);
   const f = items[0] || {};
-  const kel = (S.D.pso.find((x) => x.kunci === cab.n + '|' + pso) || {}).kelompok || 'TWC (tidak masuk laporan panjar)';
+  const kel = (S.D.pso.find((x) => x.kunci === cab.n + '|' + pso) || {}).kelompok || (items.length ? 'TWC (tidak masuk laporan panjar)' : 'PSO tidak ditemukan di sheet ' + cab.n);
   const kv = [
     ['NomorPSO', pso], ['Cabang', cab.n], ['NamaCustomer', f.nama_customer], ['NoPolisi', f.no_polisi], ['Status', f.status], ['TglOrder', fmtDate(f.tgl_order)], ['SA', f.sa], ['Divisi', f.divisi],
-    ['Kelompok (data spreadsheet)', kel], ['Bagian laporan', o && o.sec ? SECN[o.sec] : '—'], ['Catatan', o && o.cat ? o.cat + ' · ' + money(o.amt) : '—'], ...['D', 'E'].flatMap((k) => { const l = catDOf(cab).filter((x) => (x.cat || 'D') === k && x.pso === pso); return l.length ? [['Penjelasan (Catatan ' + k + ')', l.map((x) => x.uraian + (x.ket ? ' · ' + x.ket : '') + ' · ' + money(x.jumlah)).join(' | ')]] : []; }),
+    ['Kelompok (data spreadsheet)', kel], ['Bagian laporan', o && o.sec ? SECN[o.sec] : '—'], ['Catatan', [o && o.cat ? o.cat + ' · ' + money(o.amt) : '', ...['D', 'E'].map((k) => { const l = catDOf(cab).filter((x) => (x.cat || 'D') === k && x.pso === pso); return l.length ? k + ' · ' + money(sumOf(l, 'jumlah')) : ''; })].filter(Boolean).join(' | ') || '—'], ...['D', 'E'].flatMap((k) => { const l = catDOf(cab).filter((x) => (x.cat || 'D') === k && x.pso === pso); return l.length ? [['Penjelasan (Catatan ' + k + ')', l.map((x) => x.uraian + (x.ket ? ' · ' + x.ket : '') + ' · ' + money(x.jumlah)).join(' | ')]] : []; }),
     ['No_Penitipan', f.no_penitipan], ['TglPjr', fmtDate(f.tgl_pjr)], ['Tgl Dibukukan', fmtDate(f.tgl_dibukukan)], ['WONo (Dibukukan)', f.wo],
     ['Setoran Bank', o && o.hasSet ? money(o.set) : '—'], ['Selisih', o && o.hasSet ? money(o.set - o.panjar) : '—'],
     ['Keterangan', o ? o.ket : ''], ['Pelunasan LPK', o ? fmtDate(o.lpk) : ''], ['Keterangan 2', o ? o.ket2 : ''],
