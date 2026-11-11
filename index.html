@@ -576,18 +576,31 @@ async function gviz(n) {
 const looksBranch = (tb) => tb.slice(0, 4).some((r) => (r || []).some((x) => x != null && /nomorpso|^\s*per\s*:/i.test(String(x))));
 // ---------- Catatan D: penjelasan angka dibaca dari sheet Data (kolom Cabang, No PSO, Penjelasan, Nominal); baris dengan Penjelasan sama dijumlahkan, Catatan B ikut sebagai baris pertama
 const CATD_HDR = { cabang: ['cabang', 'divisi'], uraian: ['uraian', 'penjelasan', 'judulpenjelasan', 'kelompok', 'judul'], jumlah: ['jumlah', 'nominal', 'amount', 'rp'], pso: ['nomorpso', 'nopso', 'pso'], sumber: ['sumber', 'sumberdata', 'asal'], ket: ['keterangan', 'ket'], cat: ['catatan', 'jenis', 'untuk'] };
+// sheet Data boleh berisi dua blok penjelasan: "Penjelasan" (Catatan D) dan "Penjelasan Lebih Setoran" (Catatan E). Kolom Cabang / No PSO / Nominal dipilih yang paling dekat dengan kolom penjelasannya (yang berakhiran "Lebih Setoran" didahulukan untuk E).
 function parseCatD(tb) {
   if (!tb) return null;
   for (let i = 0; i < Math.min(tb.length, 4); i++) {
-    const hs = (tb[i] || []).map(normH), m = {};
-    for (const f in CATD_HDR) { const j = hs.findIndex((h) => h && CATD_HDR[f].includes(h)); if (j >= 0) m[f] = j; }
-    if (m.uraian == null || m.jumlah == null) continue;
-    const g = (c, f) => (m[f] == null ? null : txt(c[m[f]])), out = [];
+    const hs = (tb[i] || []).map(normH), cols = hs.map((h, j) => ({ j, h, le: h.indexOf('lebihsetoran') >= 0, hb: h.replace('lebihsetoran', '') }));
+    const pick = (f, at, le) => {
+      const c = cols.filter((x) => x.hb && CATD_HDR[f].includes(x.hb) && x.j !== at);
+      const pref = c.filter((x) => x.le === le); const pool = pref.length ? pref : c.filter((x) => !x.le || le);
+      return pool.sort((p, q) => Math.abs(p.j - at) - Math.abs(q.j - at) || p.j - q.j)[0];
+    };
+    const blocks = [];
+    for (const u of cols.filter((x) => x.hb && CATD_HDR.uraian.includes(x.hb))) {
+      const m = { uraian: u.j }, le = u.le;
+      for (const f of ['jumlah', 'cabang', 'pso', 'sumber', 'ket', 'cat']) { const p = pick(f, u.j, le); if (p) m[f] = p.j; }
+      if (m.jumlah != null) blocks.push({ m, k: le ? 'E' : 'D' });
+    }
+    if (!blocks.length) continue;
+    const out = [];
     for (const c of tb.slice(i + 1)) {
       if (!c) continue;
-      const uraian = g(c, 'uraian'), jumlah = num(c[m.jumlah]);
-      if ((!uraian && !jumlah) || /^total/i.test(uraian || '')) continue;
-      out.push({ cabang: g(c, 'cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g(c, 'pso') || ((uraian || '').match(/\d+\/PSO\/[A-Za-z0-9]+\/\d+\/\d+/i) || [null])[0], sumber: g(c, 'sumber'), ket: g(c, 'ket'), cat: /^\s*e/i.test(g(c, 'cat') || '') ? 'E' : 'D' });
+      for (const { m, k } of blocks) {
+        const g = (f) => (m[f] == null ? null : txt(c[m[f]])), uraian = g('uraian'), jumlah = num(c[m.jumlah]);
+        if ((!uraian && !jumlah) || /^total/i.test(uraian || '')) continue;
+        out.push({ cabang: g('cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g('pso') || ((uraian || '').match(/\d+\/PSO\/[A-Za-z0-9]+\/\d+\/\d+/i) || [null])[0], sumber: g('sumber'), ket: g('ket'), cat: k === 'E' || /^\s*e/i.test(g('cat') || '') ? 'E' : 'D' });
+      }
     }
     return out;
   }
@@ -1046,7 +1059,7 @@ function openLebih(cab) {
   pushModal('Lebih setoran · ' + cab.n, (box) => {
     box.append(el('p', 'muted', 'Lebih setoran ' + (rpt.lebih == null ? '—' : 'Rp ' + idf.format(rpt.lebih)) + ' · dijelaskan Catatan C Rp ' + idf.format(rpt.sum.C) + ' dan Catatan E Rp ' + idf.format(tE) + '.'),
       el('h3', '', tC), table(CAT_COLS, cRows, (r) => (r.tot ? 'tot' : ''), (r) => { if (r.pso) openPso(cab, r.pso); }).wrap,
-      el('h3', '', tEt), eL.length ? table(CAT_COLS, eRows, (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap : el('p', 'muted', 'Belum ada baris Catatan E untuk cabang ini. Di sheet Data, isi kolom Catatan dengan huruf E pada baris penjelasan lebih setoran.'));
+      el('h3', '', tEt), eL.length ? table(CAT_COLS, eRows, (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap : el('p', 'muted', 'Belum ada penjelasan lebih setoran untuk cabang ini di sheet Data (kolom Penjelasan Lebih Setoran).'));
   }, () => [{ name: 'Lebih setoran', blocks: [{ t: tC, cols: CAT_COLS, rows: cRows }, { t: tEt, cols: CAT_COLS, rows: eRows }] }], cab);
 }
 const openBerj = (cab) => (catDOf(cab).some((x) => x.cat !== 'E') ? openCatD(cab) : openCat(cab, 'B', 'Catatan B · Panjar masih berjalan · ' + cab.n, 'PSO yang Keterangan-nya masih berjalan.'));
@@ -1064,8 +1077,8 @@ function viewCatatan(box, cab, rpt) {
   grid.appendChild(dc);
   const eL = catDLines(cab, rpt, 'E'), ec = el('div', 'card wide');
   ec.append(el('h3', '', 'E. Penjelasan lebih setoran (Penjelasan Data)'));
-  if (eL.length) ec.append(el('p', 'muted', 'Dari sheet Data (baris yang kolom Catatan-nya E). Klik baris untuk melihat detail PSO.'), table(CAT_COLS, catDRows(cab, rpt, 'E'), (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap);
-  else ec.append(el('p', 'muted', 'Belum ada baris Catatan E untuk cabang ini. Di sheet Data, isi kolom Catatan dengan huruf E pada baris penjelasan lebih setoran.'));
+  if (eL.length) ec.append(el('p', 'muted', 'Dari sheet Data, kolom Penjelasan Lebih Setoran. Klik baris untuk melihat detail PSO.'), table(CAT_COLS, catDRows(cab, rpt, 'E'), (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap);
+  else ec.append(el('p', 'muted', 'Belum ada penjelasan lebih setoran untuk cabang ini di sheet Data (kolom Penjelasan Lebih Setoran).'));
   grid.appendChild(ec);
   box.appendChild(grid);
 }
