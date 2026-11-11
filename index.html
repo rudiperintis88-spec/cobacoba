@@ -1527,7 +1527,7 @@ function openYear(cab) {
   const cols = [['tahun', 'Tahun'], ['pso', 'Nomor PSO', 'num'], ['baris', 'Baris', 'num'], ['jlh', 'Jlh (Rp)', 'num'], ['panjar', 'Panjar (Rp)', 'num'], ['setoran_bank', 'Setoran Bank (Rp)', 'num']];
   const title = 'Rincian per tahun · ' + cab.n;
   pushModal(title, (box) => {
-    box.append(el('p', 'muted', 'Dikelompokkan menurut tahun TglOrder, PSO non TWC.'), table(cols, data, (r) => (r.tot ? 'tot' : ''), (r) => { if (!r.tot) openList(cab, 'PSO tahun ' + r.tahun + ' · ' + cab.n, S.D.pso.filter((x) => x.cabang === cab.n && (x.tgl_order || '').startsWith(r.tahun))); }).wrap);
+    box.append(el('p', 'muted', 'Dikelompokkan menurut tahun TglOrder, PSO non TWC.'), table(cols, data, (r) => (r.tot ? 'tot' : ''), (r) => { if (!r.tot) openList(cab, 'PSO tahun ' + r.tahun + ' · ' + cab.n, S.D.pso.filter((x) => x.cabang === cab.n && (r.tahun === '—' ? !x.tgl_order : (x.tgl_order || '').startsWith(r.tahun)))); }).wrap);
   }, () => [{ name: 'Rincian per tahun', blocks: [{ t: title, cols, rows: data }] }], cab);
 }
 function openGrand(cab) {
