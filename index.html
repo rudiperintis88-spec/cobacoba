@@ -973,7 +973,7 @@ function viewRingkasan(box, cab, rpt) {
   const rk = S.D.rekap.filter((r) => r.cabang === cab.n);
   box.appendChild(el('p', 'take', cab.n + ': grand total panjar Rp ' + idf.format(rpt.grand) + ' setelah pembatalan Rp ' + idf.format(rpt.pemb) + ' dan panjar masih berjalan Rp ' + idf.format(rpt.berj) + '. ' + (rpt.selisih == null ? 'Selisih terhadap catatan A, B dan C belum bisa dihitung sebelum slip setoran diisi.' : 'Selisih terhadap catatan A, B dan C: Rp ' + idf.format(rpt.selisih) + '.')));
   const k = el('div', 'kpis');
-  k.append(kpi('Total panjar', rpt.tot.panjar, 'Jumlah kolom Panjar, semua PSO non TWC', () => openYear(cab)), kpi('Pembatalan panjar PSO', rpt.pemb, rpt.A.length + ' PSO di catatan A', () => openCat(cab, 'A', 'Catatan A · Pembatalan · ' + cab.n, 'PSO yang dibatalkan beserta panjarnya.')), kpi('Panjar masih berjalan', rpt.berj, rpt.B.length + ' PSO di catatan B', () => openBerj(cab)), kpi('Grand total', rpt.grand, 'Total panjar dikurangi pembatalan dan yang masih berjalan', () => openGrand(cab)), kpi('Lebih setoran', rpt.lebih, rpt.lebih == null ? 'Isi slip setoran di tabel rekonsiliasi' : 'Grand total dikurangi slip setoran', () => openLebih(cab)));
+  k.append(kpi('Total panjar', rpt.tot.panjar, 'Jumlah kolom Panjar, semua PSO non TWC', () => openBukti(cab, ['1'], 'Bukti Total panjar')), kpi('Pembatalan panjar PSO', rpt.pemb, rpt.A.length + ' PSO di catatan A', () => openBukti(cab, ['2'], 'Bukti Pembatalan')), kpi('Panjar masih berjalan', rpt.berj, rpt.B.length + ' PSO di catatan B', () => openBerj(cab)), kpi('Grand total', rpt.grand, 'Total panjar dikurangi pembatalan dan yang masih berjalan', () => openGrand(cab)), kpi('Lebih setoran', rpt.lebih, rpt.lebih == null ? 'Isi slip setoran di tabel rekonsiliasi' : 'Grand total dikurangi slip setoran', () => openLebih(cab)));
   box.appendChild(k);
   const grid = el('div', 'grid');
   const c2 = el('div', 'card'), b2 = el('div', 'chart short');
@@ -1068,7 +1068,56 @@ function openLebih(cab) {
       el('h3', 'mh3', tC), table(CAT_COLS, cRows, (r) => (r.tot ? 'tot' : ''), (r) => { if (r.pso) openPso(cab, r.pso); }).wrap);
   }, () => [{ name: 'Lebih setoran', blocks: [{ t: tH, cols: REK2, rows: hRows }, { t: tEt, cols: CAT_COLS, rows: eRows }, { t: tC, cols: CAT_COLS, rows: cRows }] }], cab);
 }
-const openBerj = (cab) => (catDOf(cab).some((x) => (x.cat || 'D') === 'D') ? openCatD(cab) : openCat(cab, 'B', 'Catatan B · Panjar masih berjalan · ' + cab.n, 'PSO yang Keterangan-nya masih berjalan.'));
+const openBerj = (cab) => openBukti(cab, ['3'], 'Bukti Panjar masih berjalan');
+const openBerjOld = (cab) => (catDOf(cab).some((x) => (x.cat || 'D') === 'D') ? openCatD(cab) : openCat(cab, 'B', 'Catatan B · Panjar masih berjalan · ' + cab.n, 'PSO yang Keterangan-nya masih berjalan.'));
+// ---------- Bukti Ringkasan: tiap angka kartu Ringkasan dipecah jadi rincian yang jumlahnya sama dengan kartu, dicocokkan dengan Catatan A/B/C dan kolom Penjelasan di sheet Data
+function buktiBlocks(cab, rpt) {
+  const out = [], cust = new Map(rpt.list.map((o) => [o.pso, o.cust]));
+  const cekTxt = (nm, a, b) => (a == null || b == null ? '' : a === b ? '✔ ' + nm + ' cocok: ' + money(a) + '.' : '⚠ ' + nm + ' berbeda: ' + money(a) + ' vs ' + money(b) + ', selisih ' + money(a - b) + '.');
+  const cmp = (cat, dat, la, lb) => {
+    const m = new Map(); let tanpa = 0;
+    const add = (arr, s) => { for (const r of arr) { if (!r.pso) { tanpa++; continue; } const o = m.get(r.pso) || { pso: r.pso, a: 0, b: 0, ia: false, ib: false }; o[s] += r.jumlah || 0; o['i' + s] = true; m.set(r.pso, o); } };
+    add(cat, 'a'); add(dat, 'b');
+    const rows = [...m.values()].map((o) => ({ pso: o.pso, u: o.pso + (cust.get(o.pso) ? ' (' + cust.get(o.pso) + ')' : ''), a: o.ia ? o.a : null, b: o.ib ? o.b : null, d: (o.ia ? o.a : 0) - (o.ib ? o.b : 0), st: o.ia && !o.ib ? '⚠ Tidak ada di ' + lb : !o.ia ? '⚠ Tidak ada di ' + la : o.a === o.b ? 'Cocok' : '⚠ Nominal beda' }));
+    rows.sort((p, q) => (p.st === 'Cocok') - (q.st === 'Cocok') || p.pso.localeCompare(q.pso));
+    const beda = rows.filter((r) => r.st !== 'Cocok').length;
+    return { rows: [...rows, { u: 'Total', a: sumOf(cat, 'jumlah'), b: sumOf(dat, 'jumlah'), d: sumOf(cat, 'jumlah') - sumOf(dat, 'jumlah'), st: beda + ' PSO tidak sama, ' + (rows.length - beda) + ' cocok', tot: true }], beda, tanpa };
+  };
+  const CMPC = (la, lb) => [['u', 'No PSO (Customer)'], ['a', la + ' (Rp)', 'num'], ['b', lb + ' (Rp)', 'num'], ['d', 'Selisih', 'num'], ['st', 'Status']];
+  const VC = [['u', 'Uraian'], ['n', 'Jumlah PSO', 'num'], ['v', 'Jumlah (Rp)', 'num']];
+  const dA = catDOf(cab).filter((x) => x.cat === 'A'), dD = catDLines(cab, rpt, 'D').slice(rpt.B.length), dE = catDLines(cab, rpt, 'E');
+  // 1 Total panjar
+  const grp = [['clear', 'Clear (Keterangan terisi)'], ['tanpa', 'Tanpa panjar'], ['jalan', 'Masih berjalan'], ['', 'Lainnya (PSO normal: panjar sudah dititipkan, tanpa keterangan)']];
+  const r1 = grp.map(([k, l]) => { const z = rpt.list.filter((o) => (o.sec || '') === k); return { u: l, n: z.length, v: sumOf(z, 'panjar'), sub: k || 'panjar' }; });
+  const t1 = sumOf(r1, 'v');
+  out.push({ t: '1. Total panjar', note: 'Jumlah kolom Panjar semua PSO non TWC, dipecah menurut bagian. Klik baris untuk membuka daftar PSO-nya. ' + cekTxt('Total panjar', t1, rpt.tot.panjar), cols: VC, rows: [...r1, { u: 'Total panjar', n: rpt.list.length, v: t1, tot: true }] });
+  // 2 Pembatalan
+  const c2 = cmp(rpt.A, dA, 'Catatan A', 'Penjelasan Pembatalan');
+  out.push({ t: '2. Pembatalan panjar PSO', note: 'Kartu ' + money(rpt.pemb) + (rpt.pemb !== rpt.sum.A ? ' (diisi manual di Rekonsiliasi; Catatan A otomatis ' + money(rpt.sum.A) + ')' : ' = Catatan A') + '. ' + (dA.length ? cekTxt('Kartu vs Penjelasan Pembatalan', rpt.pemb, sumOf(dA, 'jumlah')) : 'Belum ada Penjelasan Pembatalan untuk cabang ini di sheet Data.') + (c2.tanpa ? ' ' + c2.tanpa + ' baris di sheet Data tidak punya No PSO dan tidak ikut dicocokkan.' : ''), cols: CMPC('Catatan A', 'Penjelasan Pembatalan'), rows: c2.rows });
+  // 3 Panjar masih berjalan
+  const tD = rpt.sum.B + sumOf(dD, 'jumlah');
+  out.push({ t: '3. Panjar masih berjalan', note: 'Kartu ' + money(rpt.berj) + '. Terdiri dari Catatan B (otomatis) ditambah Penjelasan Catatan B dari sheet Data. ' + cekTxt('Kartu vs Catatan B + Penjelasan', rpt.berj, tD), cols: CAT_COLS, rows: catDRows(cab, rpt, 'D') });
+  // 4 Grand total
+  out.push({ t: '4. Grand total', note: 'Total panjar dikurangi pembatalan dan panjar masih berjalan.', cols: REK2, rows: [{ u: 'Total panjar', v: rpt.tot.panjar }, { u: 'Dikurangi Pembatalan panjar PSO', v: rpt.pemb }, { u: 'Dikurangi Panjar masih berjalan', v: rpt.berj }, { u: 'Grand total', v: rpt.grand, tot: true }] });
+  // 5 Lebih setoran
+  const tE = sumOf(dE, 'jumlah'), hit = rpt.rek.filter((r) => /^Grand total slip|^Laporan Penitipan/.test(r.u) && r.v);
+  const rE = rpt.lebih == null ? [{ u: 'Slip setoran belum diisi di tabel Rekonsiliasi, jadi Lebih setoran belum bisa dihitung.', v: null }] : [{ u: 'Grand total', v: rpt.grand }, ...hit.map((r) => ({ u: 'Dikurangi ' + r.u, v: r.v })), { u: 'Lebih setoran (kartu)', v: rpt.lebih, tot: true }];
+  out.push({ t: '5. Lebih setoran', note: rpt.lebih == null ? 'Belum bisa dihitung.' : 'Kartu ' + money(rpt.lebih) + '. ' + (dE.length ? cekTxt('Kartu vs Catatan E', rpt.lebih, tE) + (rpt.lebih !== tE && rpt.lebih + tE === 0 ? ' Nilainya sama tetapi tandanya terbalik.' : '') : 'Belum ada Penjelasan Lebih Setoran untuk cabang ini di sheet Data.'), cols: REK2, rows: rE });
+  if (dE.length) out.push({ t: '5a. Catatan E · Penjelasan Lebih Setoran', note: 'Dari sheet Data. Klik baris untuk melihat detail PSO.', cols: CAT_COLS, rows: catDRows(cab, rpt, 'E') });
+  // 6 Selisih
+  out.push({ t: '6. Selisih terhadap Catatan A, B dan C', note: 'Pembatalan + masih berjalan + lebih setoran + disc sparepart, dikurangi Catatan A, B dan C.', cols: REK2, rows: rpt.selisih == null ? [{ u: 'Belum bisa dihitung (slip setoran belum diisi).', v: null }] : [{ u: 'Pembatalan + Masih berjalan + Lebih setoran + Disc', v: rpt.pemb + rpt.berj + rpt.lebih + (rpt.rek.find((r) => /^Disc/.test(r.u)) || {}).v }, { u: 'Dikurangi Catatan A', v: rpt.sum.A }, { u: 'Dikurangi Catatan B', v: rpt.sum.B }, { u: 'Dikurangi Catatan C', v: rpt.sum.C }, { u: 'Selisih', v: rpt.selisih, tot: true }] });
+  return out;
+}
+// klik kartu Ringkasan -> popup bukti: angka kartu dipecah jadi rincian yang jumlahnya sama, lalu dicocokkan dengan Catatan dan kolom Penjelasan di sheet Data
+function openBukti(cab, nos, title) {
+  const rpt = compute(cab.n), pick = () => buktiBlocks(cab, rpt).filter((b) => nos.some((n) => b.t.indexOf(n + '. ') === 0));
+  pushModal(title + ' · ' + cab.n, (box) => {
+    for (const b of pick()) {
+      box.append(el('h3', 'mh3', b.t), el('p', 'muted', b.note), table(b.cols, b.rows, (r) => (r.tot ? 'tot' : ''), (r) => { if (r.pso) openPso(cab, r.pso); }).wrap);
+    }
+    if (nos.indexOf('1') >= 0) { const bt = el('button', 'rbtn', 'Lihat per tahun'); bt.type = 'button'; bt.addEventListener('click', () => openYear(cab)); box.append(bt); }
+  }, () => [{ name: 'Bukti', blocks: pick().map((b) => ({ t: b.t + ' — ' + b.note, cols: b.cols, rows: b.rows })) }], cab);
+}
 function viewCatatan(box, cab, rpt) {
   const grid = el('div', 'grid');
   [['A', 'A. Pembatalan', 'PSO yang dibatalkan beserta panjarnya.', true], ['B', 'B. Panjar masih berjalan', 'PSO yang panjarnya masih berjalan.', false], ['C', 'C. Kekurangan panjar dan sudah lunas tanpa panjar', 'Penyebab lebih setoran.', false]].forEach(([k, t, n, wide]) => {
