@@ -325,7 +325,17 @@ const toIso = (v) => {
   m = /^(\d{1,2})\/(\d{1,2})\/(\d{2})(?!\d)/.exec(s);
   if (m) return '20' + m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
   m = /^(\d{4})-(\d{2})-(\d{2})/.exec(s);
-  return m ? m[0] : null;
+  if (m) return m[0];
+  m = /^(\d{4})[\/.](\d{1,2})[\/.](\d{1,2})(?!\d)/.exec(s);            // 2026/11/03
+  if (m) return m[1] + '-' + m[2].padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  m = /^(\d{1,2})[-.](\d{1,2})[-.](\d{4})(?!\d)/.exec(s);              // 03-11-2026, 03.11.2026
+  if (m) return m[3] + '-' + m[2].padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  m = /^Date\((\d{4}),\s*(\d{1,2}),\s*(\d{1,2})/.exec(s);              // format gviz Date(2026,10,3): bulan mulai 0
+  if (m) return m[1] + '-' + String(+m[2] + 1).padStart(2, '0') + '-' + m[3].padStart(2, '0');
+  const MN = { jan: 1, feb: 2, mar: 3, apr: 4, mei: 5, may: 5, jun: 6, jul: 7, agu: 8, aug: 8, ags: 8, sep: 9, okt: 10, oct: 10, nov: 11, des: 12, dec: 12 };
+  m = /^(\d{1,2})[\s\-\/]+([A-Za-z]{3,})[a-z]*[\s\-\/,]+(\d{2,4})(?!\d)/.exec(s);   // 3 Nov 2026, 03-Okt-26
+  if (m && MN[m[2].slice(0, 3).toLowerCase()]) return (m[3].length === 2 ? '20' + m[3] : m[3]) + '-' + String(MN[m[2].slice(0, 3).toLowerCase()]).padStart(2, '0') + '-' + m[1].padStart(2, '0');
+  return null;
 };
 const num = (v) => {
   if (typeof v === 'number') return v;
@@ -396,7 +406,7 @@ function buildRows(tables) {
       const pso = txt(c[K.nomor_pso]);
       if (!pso || pso.indexOf('/PSO/') < 0) continue;
       rows.push({
-        no: 0, cabang: CAB_OF_SHEET[name], nomor_pso: pso, nama_customer: txt(g(c, 'nama_customer')), kode_brg: txt(g(c, 'kode_brg')), nama_barang: txt(g(c, 'nama_barang')), tgl_order: toIso(g(c, 'tgl_order')),
+        no: 0, cabang: CAB_OF_SHEET[name], nomor_pso: pso, nama_customer: txt(g(c, 'nama_customer')), kode_brg: txt(g(c, 'kode_brg')), nama_barang: txt(g(c, 'nama_barang')), tgl_order: toIso(g(c, 'tgl_order')), tgl_order_raw: txt(g(c, 'tgl_order')),
         no_polisi: txt(g(c, 'no_polisi')), status: txt(g(c, 'status')), qty: num(g(c, 'qty')), jlh: num(g(c, 'jlh')), panjar: num(g(c, 'panjar')), tgl_pjr: toIso(g(c, 'tgl_pjr')),
         ket: txt(g(c, 'ket')), wo_pso: txt(g(c, 'wo_pso')), no_penitipan: txt(g(c, 'no_penitipan')), tgl_dibukukan: null, wo: null, sa: txt(g(c, 'sa')), divisi: txt(g(c, 'divisi')),
         tgl_pjr0: toIso(g(c, 'tgl_pjr')), wo_pso0: txt(g(c, 'wo_pso')), no_penitipan0: txt(g(c, 'no_penitipan')),
@@ -1527,7 +1537,8 @@ function openYear(cab) {
   const cols = [['tahun', 'Tahun'], ['pso', 'Nomor PSO', 'num'], ['baris', 'Baris', 'num'], ['jlh', 'Jlh (Rp)', 'num'], ['panjar', 'Panjar (Rp)', 'num'], ['setoran_bank', 'Setoran Bank (Rp)', 'num']];
   const title = 'Rincian per tahun · ' + cab.n;
   pushModal(title, (box) => {
-    box.append(el('p', 'muted', 'Dikelompokkan menurut tahun TglOrder, PSO non TWC.'), table(cols, data, (r) => (r.tot ? 'tot' : ''), (r) => { if (!r.tot) openList(cab, 'PSO tahun ' + r.tahun + ' · ' + cab.n, S.D.pso.filter((x) => x.cabang === cab.n && (r.tahun === '—' ? !x.tgl_order : (x.tgl_order || '').startsWith(r.tahun)))); }).wrap);
+    const nod = [...new Map(rpt.rows.filter((x) => !x.tgl_order).map((x) => [x.nomor_pso, x])).values()];
+    box.append(el('p', 'muted', 'Dikelompokkan menurut tahun TglOrder, PSO non TWC.' + (nod.length ? ' Baris "—" = TglOrder tidak terbaca sebagai tanggal: ' + nod.map((x) => x.nomor_pso + ' (isi sel: ' + (x.tgl_order_raw ? '"' + x.tgl_order_raw + '"' : x.tgl_order_raw === undefined ? 'muat ulang data online dulu' : 'kosong') + ')').join('; ') + '.' : '')), table(cols, data, (r) => (r.tot ? 'tot' : ''), (r) => { if (!r.tot) openList(cab, 'PSO tahun ' + r.tahun + ' · ' + cab.n, S.D.pso.filter((x) => x.cabang === cab.n && (r.tahun === '—' ? !x.tgl_order : (x.tgl_order || '').startsWith(r.tahun)))); }).wrap);
   }, () => [{ name: 'Rincian per tahun', blocks: [{ t: title, cols, rows: data }] }], cab);
 }
 function openGrand(cab) {
