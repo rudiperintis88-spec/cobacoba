@@ -579,18 +579,19 @@ const CATD_HDR = { cabang: ['cabang', 'divisi'], uraian: ['uraian', 'penjelasan'
 // sheet Data boleh berisi dua blok penjelasan: "Penjelasan" (Catatan D) dan "Penjelasan Lebih Setoran" (Catatan E). Kolom Cabang / No PSO / Nominal dipilih yang paling dekat dengan kolom penjelasannya (yang berakhiran "Lebih Setoran" didahulukan untuk E).
 function parseCatD(tb) {
   if (!tb) return null;
+  const tagOf = (h) => (h.indexOf('lebihsetoran') >= 0 ? 'E' : h.indexOf('pembatalan') >= 0 ? 'A' : h.indexOf('catatanb') >= 0 ? 'D' : '');
   for (let i = 0; i < Math.min(tb.length, 4); i++) {
-    const hs = (tb[i] || []).map(normH), cols = hs.map((h, j) => ({ j, h, le: h.indexOf('lebihsetoran') >= 0, hb: h.replace('lebihsetoran', '') }));
-    const pick = (f, at, le) => {
+    const hs = (tb[i] || []).map(normH), cols = hs.map((h, j) => ({ j, h, tag: tagOf(h), hb: h.replace(/lebihsetoran|pembatalan|catatanb/, '') }));
+    const pick = (f, at, tag) => {
       const c = cols.filter((x) => x.hb && CATD_HDR[f].includes(x.hb) && x.j !== at);
-      const pref = c.filter((x) => x.le === le); const pool = pref.length ? pref : c.filter((x) => !x.le || le);
-      return pool.sort((p, q) => Math.abs(p.j - at) - Math.abs(q.j - at) || p.j - q.j)[0];
+      const same = tag ? c.filter((x) => x.tag === tag) : [];
+      return (same.length ? same : c.filter((x) => !x.tag)).sort((p, q) => Math.abs(p.j - at) - Math.abs(q.j - at) || p.j - q.j)[0];
     };
     const blocks = [];
     for (const u of cols.filter((x) => x.hb && CATD_HDR.uraian.includes(x.hb))) {
-      const m = { uraian: u.j }, le = u.le;
-      for (const f of ['jumlah', 'cabang', 'pso', 'sumber', 'ket', 'cat']) { const p = pick(f, u.j, le); if (p) m[f] = p.j; }
-      if (m.jumlah != null) blocks.push({ m, k: le ? 'E' : 'D' });
+      const m = { uraian: u.j };
+      for (const f of ['jumlah', 'cabang', 'pso', 'sumber', 'ket', 'cat']) { const p = pick(f, u.j, u.tag); if (p) m[f] = p.j; }
+      if (m.jumlah != null) blocks.push({ m, k: u.tag === 'E' ? 'E' : u.tag === 'A' ? 'A' : 'D' });
     }
     if (!blocks.length) continue;
     const out = [];
@@ -599,7 +600,7 @@ function parseCatD(tb) {
       for (const { m, k } of blocks) {
         const g = (f) => (m[f] == null ? null : txt(c[m[f]])), uraian = g('uraian'), jumlah = num(c[m.jumlah]);
         if ((!uraian && !jumlah) || /^total/i.test(uraian || '')) continue;
-        out.push({ cabang: g('cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g('pso') || ((uraian || '').match(/\d+\/PSO\/[A-Za-z0-9]+\/\d+\/\d+/i) || [null])[0], sumber: g('sumber'), ket: g('ket'), cat: k === 'E' || /^\s*e/i.test(g('cat') || '') ? 'E' : 'D' });
+        out.push({ cabang: g('cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g('pso') || ((uraian || '').match(/\d+\/PSO\/[A-Za-z0-9]+\/\d+\/\d+/i) || [null])[0], sumber: g('sumber'), ket: g('ket'), cat: k !== 'D' ? k : /^\s*e/i.test(g('cat') || '') ? 'E' : 'D' });
       }
     }
     return out;
@@ -1055,14 +1056,19 @@ function openCatD(cab) {
 }
 function openLebih(cab) {
   const rpt = compute(cab.n), cRows = [...rpt.C, { no: '', uraian: 'Total', jumlah: rpt.sum.C, tot: true }], eL = catDLines(cab, rpt, 'E'), eRows = catDRows(cab, rpt, 'E'), tE = sumOf(eL, 'jumlah');
-  const tC = 'C. Kekurangan panjar dan sudah lunas tanpa panjar', tEt = 'E. Penjelasan lebih setoran (Penjelasan Data)';
+  const tC = 'C. Kekurangan panjar dan sudah lunas tanpa panjar (pendukung)', tEt = 'E. Penjelasan lebih setoran (Penjelasan Data)', tH = 'Dari mana angka Lebih setoran';
+  const hit = rpt.rek.filter((r) => /^Grand total slip|^Laporan Penitipan/.test(r.u) && r.v);
+  const hRows = rpt.lebih == null ? [{ u: 'Slip setoran belum diisi di tabel Rekonsiliasi, jadi Lebih setoran belum bisa dihitung.', v: null }]
+    : [{ u: 'Grand total (Total panjar − Pembatalan A − Panjar masih berjalan B)', v: rpt.grand }, ...hit.map((r) => ({ u: 'Dikurangi ' + r.u, v: r.v })), { u: 'Lebih setoran', v: rpt.lebih, gt: true }];
+  const beda = rpt.lebih == null ? null : rpt.lebih - tE, kebalik = rpt.lebih != null && rpt.lebih !== 0 && rpt.lebih + tE === 0;
   pushModal('Lebih setoran · ' + cab.n, (box) => {
-    box.append(el('p', 'muted', 'Lebih setoran ' + (rpt.lebih == null ? '—' : 'Rp ' + idf.format(rpt.lebih)) + ' · dijelaskan Catatan C Rp ' + idf.format(rpt.sum.C) + ' dan Catatan E Rp ' + idf.format(tE) + '.'),
-      el('h3', '', tC), table(CAT_COLS, cRows, (r) => (r.tot ? 'tot' : ''), (r) => { if (r.pso) openPso(cab, r.pso); }).wrap,
-      el('h3', '', tEt), eL.length ? table(CAT_COLS, eRows, (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap : el('p', 'muted', 'Belum ada penjelasan lebih setoran untuk cabang ini di sheet Data (kolom Penjelasan Lebih Setoran).'));
-  }, () => [{ name: 'Lebih setoran', blocks: [{ t: tC, cols: CAT_COLS, rows: cRows }, { t: tEt, cols: CAT_COLS, rows: eRows }] }], cab);
+    box.append(el('h3', 'mh3', tH), table(REK2, hRows, (r) => (r.gt ? 'gt' : '')).wrap,
+      el('h3', 'mh3', tEt), el('p', 'muted', 'Dari sheet Data, kolom Penjelasan Lebih Setoran. Klik baris untuk melihat detail PSO.' + (beda == null ? '' : ' Lebih setoran ' + money(rpt.lebih) + ' dikurangi Catatan E ' + money(tE) + ' = selisih ' + money(beda) + (kebalik ? ' (angkanya sama tetapi tandanya berlawanan).' : '.'))),
+      eL.length ? table(CAT_COLS, eRows, (r) => (r.tot ? 'tot' : ''), catRowClick(cab)).wrap : el('p', 'muted', 'Belum ada penjelasan lebih setoran untuk cabang ini di sheet Data (kolom Penjelasan Lebih Setoran).'),
+      el('h3', 'mh3', tC), table(CAT_COLS, cRows, (r) => (r.tot ? 'tot' : ''), (r) => { if (r.pso) openPso(cab, r.pso); }).wrap);
+  }, () => [{ name: 'Lebih setoran', blocks: [{ t: tH, cols: REK2, rows: hRows }, { t: tEt, cols: CAT_COLS, rows: eRows }, { t: tC, cols: CAT_COLS, rows: cRows }] }], cab);
 }
-const openBerj = (cab) => (catDOf(cab).some((x) => x.cat !== 'E') ? openCatD(cab) : openCat(cab, 'B', 'Catatan B · Panjar masih berjalan · ' + cab.n, 'PSO yang Keterangan-nya masih berjalan.'));
+const openBerj = (cab) => (catDOf(cab).some((x) => (x.cat || 'D') === 'D') ? openCatD(cab) : openCat(cab, 'B', 'Catatan B · Panjar masih berjalan · ' + cab.n, 'PSO yang Keterangan-nya masih berjalan.'));
 function viewCatatan(box, cab, rpt) {
   const grid = el('div', 'grid');
   [['A', 'A. Pembatalan', 'PSO yang dibatalkan beserta panjarnya.', true], ['B', 'B. Panjar masih berjalan', 'PSO yang panjarnya masih berjalan.', false], ['C', 'C. Kekurangan panjar dan sudah lunas tanpa panjar', 'Penyebab lebih setoran.', false]].forEach(([k, t, n, wide]) => {
@@ -1493,7 +1499,7 @@ function openMonth(cab, bulan) {
   openList(cab, 'PSO bulan ' + MONTHS[+m - 1] + ' ' + y + ' · ' + cab.n, S.D.pso.filter((x) => x.cabang === cab.n && (x.tgl_order || '').startsWith(bulan)), 'Nomor PSO dengan TglOrder pada bulan ini.');
 }
 
-window.PSO_DEBUG = { compute, S, parseCatD, render };
+window.PSO_DEBUG = { compute, S, parseCatD, render, stored };
 const start = async () => {
   const sn0 = await snapshotRows();
   S.snapAt = sn0.at; setRows(sn0.rows, sn0.per);
