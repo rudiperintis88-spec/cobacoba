@@ -587,7 +587,7 @@ function parseCatD(tb) {
       if (!c) continue;
       const uraian = g(c, 'uraian'), jumlah = num(c[m.jumlah]);
       if ((!uraian && !jumlah) || /^total/i.test(uraian || '')) continue;
-      out.push({ cabang: g(c, 'cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g(c, 'pso'), sumber: g(c, 'sumber'), ket: g(c, 'ket'), cat: /^\s*e/i.test(g(c, 'cat') || '') ? 'E' : 'D' });
+      out.push({ cabang: g(c, 'cabang'), uraian: uraian || '(tanpa uraian)', jumlah, pso: g(c, 'pso') || ((uraian || '').match(/\d+\/PSO\/[A-Za-z0-9]+\/\d+\/\d+/i) || [null])[0], sumber: g(c, 'sumber'), ket: g(c, 'ket'), cat: /^\s*e/i.test(g(c, 'cat') || '') ? 'E' : 'D' });
     }
     return out;
   }
@@ -1024,14 +1024,20 @@ function catDLines(cab, rpt, k) {
   const out = (k === 'D' && rpt ? rpt.B : []).map((x) => ({ pso: x.pso, uraian: x.uraian, jumlah: x.jumlah }));
   for (const r of catDOf(cab).filter((x) => (x.cat || 'D') === k)) {
     const f = r.pso ? S.rows.find((x) => x.cabang === cab.n && x.nomor_pso === r.pso) : null;
-    const base = r.pso ? r.pso + ' (' + (f ? f.nama_customer : 'PSO tidak ditemukan di cabang ini') + ') ' : '';
-    out.push({ pso: r.pso, uraian: base + r.uraian + (r.ket ? ' · ' + r.ket : '') + ' Rp ' + idf.format(r.jumlah), jumlah: r.jumlah });
+    const own = r.pso && r.uraian.toUpperCase().indexOf(r.pso.toUpperCase()) >= 0; // penjelasan sudah memuat nomor PSO (dan biasanya nama customer): jangan diulang
+    const base = r.pso && !own ? r.pso + ' (' + (f ? f.nama_customer : 'PSO tidak ditemukan di cabang ini') + ') ' : '';
+    const nom = r.uraian.indexOf('Rp ' + idf.format(r.jumlah)) >= 0 ? '' : ' Rp ' + idf.format(r.jumlah);
+    out.push({ pso: r.pso, uraian: base + r.uraian + (r.ket ? ' · ' + r.ket : '') + nom, jumlah: r.jumlah });
   }
   out.forEach((x, i) => { x.no = String(i + 1); });
   return out;
 }
 const catDRows = (cab, rpt, k) => { const l = catDLines(cab, rpt, k); return [...l, { no: '', uraian: 'Total', jumlah: sumOf(l, 'jumlah'), tot: true }]; };
-const catRowClick = (cab) => (r) => { if (r.pso && S.rows.some((x) => x.cabang === cab.n && x.nomor_pso === r.pso)) openPso(cab, r.pso); };
+const catRowClick = (cab) => (r) => {
+  if (!r.pso) return;
+  if (S.rows.some((x) => x.cabang === cab.n && x.nomor_pso === r.pso)) { openPso(cab, r.pso); return; }
+  pushModal('Detail PSO · ' + r.pso, (box) => { box.append(el('p', 'muted', 'Nomor PSO ini tidak ada di sheet ' + cab.n + ' (kemungkinan sudah di luar data yang dibaca dashboard), jadi detail barangnya tidak tersedia.'), el('p', '', r.uraian)); }, null, cab);
+};
 function openCatD(cab) {
   const rpt = compute(cab.n), data = catDRows(cab, rpt, 'D'), title = 'Catatan D · Penjelasan angka · ' + cab.n;
   pushModal(title, (box) => {
