@@ -90,7 +90,8 @@
   .arr{display:inline-block;font-size:12px;color:#c3c8d3;vertical-align:middle}
   th.sortable:hover .arr{color:#98a2b3}
   th.sorted .arr{color:#6d28d9}
-  .modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:grid;place-items:center;z-index:50;padding:16px}
+  .modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;overflow:hidden}
+  .modal .mbox{min-width:0;max-width:100%}
   .modal[hidden]{display:none}
   .mbox{background:#fff;border-radius:20px;padding:28px 30px;width:min(540px,100%);box-shadow:0 24px 70px rgba(0,0,0,.28)}
   .mbox h3{margin:0 0 4px;font:400 32px var(--serif)}
@@ -112,7 +113,8 @@
   .k .chev{margin-left:auto;font-size:26px;line-height:1;color:#98a2b3}
   .k.clk:hover .chev{color:var(--navy)}
   .pbox{width:min(1300px,100%);max-height:92vh;display:flex;flex-direction:column}
-  .pbox .tbl{flex:1;max-height:none;min-height:180px}
+  .pbox{overflow:hidden}
+  .pbox .tbl{flex:1 1 auto;max-height:none;min-height:180px;min-width:0;max-width:100%;overflow:auto}
   .pbox .tools{margin:4px 0 10px}
   .phead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
   .phead .x{border:0;background:transparent;font-size:34px;line-height:1;cursor:pointer;color:#667085;padding:0 6px}
@@ -222,9 +224,9 @@ const FILE_ID = '1D9Hu8RNqkWMa6uJ9EZ0OT4K8eTfh46O32_ttXh3u2to';
 const SHEET_SA = 'Data SA';
 const BR = [
   { key: 'AM', name: 'GR Adam Malik', sb: 'SB AM', am: 'AM' },
+  { key: 'PF', name: 'GR Flamboyan',  sb: 'SB PF', am: 'PF' },
   { key: 'BP', name: 'Body Repair',   sb: 'SB BP', am: 'BP' },
-  { key: 'OX', name: 'Otoxpert',      sb: 'SB OX', am: 'OX' },
-  { key: 'PF', name: 'GR Flamboyan',  sb: 'SB PF', am: 'PF' }
+  { key: 'OX', name: 'Otoxpert',      sb: 'SB OX', am: 'OX' }
 ];
 const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 const REFRESH_MS = 2 * 60 * 1000;
@@ -240,7 +242,7 @@ const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g,
 const pad = n => String(n).padStart(2, '0');
 
 const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {}, sort: {}, memo: null };
-const OUTLIKE = ['out', 'nosikk', 'noket'];     // tab yang memakai susunan kolom Data Terbaru
+const OUTLIKE = ['out', 'nosikk', 'noket', 'both'];     // tab yang memakai susunan kolom Data Terbaru
 
 /* ---------- CSV & Sheet ---------- */
 function parseCSV(text) {
@@ -405,6 +407,7 @@ function build(d, br, sb, am, sa) {
   d.db = { head: head.slice(0, 12), rows: out.map(r => r.slice(0, 12)) };
   d.nosikk = out.filter(r => !r[8]);     // belum ada No SIKK
   d.noket = out.filter(r => !r[12]);     // belum ada Keterangan
+  d.both = out.filter(r => !r[8] && !r[12]);   // belum ada No SIKK dan belum ada Keterangan
   d.sb = sb; d.am = am; d.sa = sa; d.out = out; d.head = head; d.stat = stat;
 }
 
@@ -433,6 +436,7 @@ function curView() {
   if (S.tab === 'out') return { head: d.head, rows: d.out };
   if (S.tab === 'nosikk') return { head: d.head, rows: d.nosikk };
   if (S.tab === 'noket') return { head: d.head, rows: d.noket };
+  if (S.tab === 'both') return { head: d.head, rows: d.both };
   if (S.tab === 'db') return d.db;
   const src = S.tab === 'prev' ? d.sb : d.sa;
   return { head: src[0].map(val), rows: src.slice(1).filter(r => r.some(x => val(x) !== '')) };
@@ -597,6 +601,7 @@ function render() {
       ['out', 'Data Terbaru (' + fnum(d.out.length) + ')'],
       ['nosikk', 'Belum Ada No SIKK (' + fnum(d.nosikk.length) + ')'],
       ['noket', 'Belum Ada Keterangan (' + fnum(d.noket.length) + ')'],
+      ['both', 'Tanpa No SIKK & Keterangan (' + fnum(d.both.length) + ')'],
       ['sa', SHEET_SA + ' (' + cnt(d.sa) + ')']
     ];
     pl.innerHTML = tabs.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + esc(t[1]) + '</button>').join('');
@@ -643,6 +648,7 @@ function render() {
       : S.tab === 'db' ? 'Database: isi sheet "' + br.am + '" ditambah kolom Nama Advisor yang dibaca dari sheet "' + SHEET_SA + '" berdasarkan kode Advisor.'
       : S.tab === 'out' ? 'Data Terbaru: isi sheet "' + br.am + '" + Nama Advisor, ditambah kolom Keterangan, Fisik SIKK, Tgl Keluar Mobil dan kolom P yang dibaca dari "' + br.sb + '" hanya untuk melengkapi. Jika SIKK No terisi dicocokkan lewat SIKK No; jika kosong (atau tidak cocok) lewat No WO. Bila nomor yang sama berulang, pencocokan memakai tanggalnya juga.'
       : S.tab === 'nosikk' ? 'Belum Ada No SIKK: baris Data Terbaru yang kolom SIKK No-nya masih kosong (dibaca dari sheet "' + br.am + '"). Kolom M sampai P terisi bila ketemu lewat No WO.'
+      : S.tab === 'both' ? 'Tanpa No SIKK & Keterangan: baris Data Terbaru yang kolom SIKK No dan kolom Keterangan-nya sama-sama masih kosong.'
       : S.tab === 'noket' ? 'Belum Ada Keterangan: baris Data Terbaru yang kolom Keterangan-nya masih kosong, yaitu tidak ketemu di "' + br.sb + '" atau Keterangan di sana memang kosong.'
       : 'Menampilkan isi sheet "' + SHEET_SA + '" apa adanya.';
   } else {
@@ -713,8 +719,8 @@ function popToTab() {            // tutup popup dan tampilkan daftar yang sama d
 }
 
 /* ---------- Export PDF & Excel (langsung unduh, tanpa dialog cetak) ---------- */
-const TAB_LABEL = { prev: 'Data Sebelumnya', db: 'Database', out: 'Data Terbaru', nosikk: 'Belum Ada No SIKK', noket: 'Belum Ada Keterangan', sa: SHEET_SA };
-const TAB_ORDER = ['prev', 'db', 'out', 'nosikk', 'noket', 'sa'];
+const TAB_LABEL = { prev: 'Data Sebelumnya', db: 'Database', out: 'Data Terbaru', nosikk: 'Belum Ada No SIKK', noket: 'Belum Ada Keterangan', both: 'Tanpa No SIKK & Keterangan', sa: SHEET_SA };
+const TAB_ORDER = ['prev', 'db', 'out', 'nosikk', 'noket', 'both', 'sa'];
 const SRC_TXT = { SIKK: 'SIKK No', WO: 'No WO', NONE: 'Tidak ketemu' };
 const PDF_MAX = 5000;
 
@@ -786,7 +792,7 @@ function openExport(kind) {
   $('mTitle').textContent = kind === 'pdf' ? 'Export PDF' : 'Export Excel';
   $('mCurT').textContent = 'Tab ini saja: ' + TAB_LABEL[S.tab];
   $('mCur').textContent = fnum(filtered().rows.length) + ' baris, sesuai pencarian, filter dan urutan yang sedang tampil';
-  const cnt = { prev: d.sb.length - 1, db: d.db.rows.length, out: d.out.length, nosikk: d.nosikk.length, noket: d.noket.length, sa: d.sa.length - 1 };
+  const cnt = { prev: d.sb.length - 1, db: d.db.rows.length, out: d.out.length, nosikk: d.nosikk.length, noket: d.noket.length, both: d.both.length, sa: d.sa.length - 1 };
   $('mAll').textContent = TAB_ORDER.map(t => TAB_LABEL[t] + ' (' + fnum(cnt[t]) + ')').join(', ') + '. Seluruh data tanpa filter.';
   const big = kind === 'pdf' && TAB_ORDER.some(t => cnt[t] > PDF_MAX);
   $('mNote').className = 'mnote';
