@@ -107,6 +107,11 @@
   .mbtn button{font:inherit;padding:11px 22px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:600}
   .mbtn button.go{background:var(--navy);border-color:var(--navy);color:#fff}
   .mbtn button:disabled{opacity:.6;cursor:default}
+  .period{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 20px}
+  .period .pl{font-weight:600;color:#344054;margin-right:2px}
+  .period select{font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);min-width:150px}
+  .period button{font:inherit;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-weight:600}
+  .period .pi{color:var(--muted);font-size:14px}
   .k.clk{cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;position:relative}
   .k.clk:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,24,40,.10);border-color:#b8c2d4}
   .k.clk:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
@@ -153,6 +158,14 @@
     </div>
   </div>
   <hr class="sep">
+
+  <div class="period" id="period" hidden>
+    <span class="pl">Periode</span>
+    <select id="selYear"><option value="">Semua tahun</option></select>
+    <select id="selMonth"><option value="">Semua bulan</option></select>
+    <button id="periodReset" hidden>Reset</button>
+    <span class="pi" id="periodInfo"></span>
+  </div>
 
   <div class="alert" id="alert" hidden></div>
   <section class="kpis" id="kpis" hidden></section>
@@ -241,7 +254,7 @@ const fnum = n => Number(n).toLocaleString('id-ID');
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const pad = n => String(n).padStart(2, '0');
 
-const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {}, sort: {}, memo: null };
+const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {}, sort: {}, memo: null, year: '', month: '' };
 const OUTLIKE = ['out', 'nosikk', 'noket', 'both'];     // tab yang memakai susunan kolom Data Terbaru
 
 /* ---------- CSV & Sheet ---------- */
@@ -405,6 +418,7 @@ function build(d, br, sb, am, sa) {
   }
   // Database = sheet AM + Nama Advisor (12 kolom pertama); Data Terbaru = Database + kolom M-P dari SB AM
   d.db = { head: head.slice(0, 12), rows: out.map(r => r.slice(0, 12)) };
+  d.sbTgl = T.tglWO;                      // posisi kolom TglWO di sheet SB (untuk pilihan periode)
   d.nosikk = out.filter(r => !r[8]);     // belum ada No SIKK
   d.noket = out.filter(r => !r[12]);     // belum ada Keterangan
   d.both = out.filter(r => !r[8] && !r[12]);   // belum ada No SIKK dan belum ada Keterangan
@@ -430,8 +444,47 @@ async function loadBranch(key) {
 }
 
 /* ---------- Tampilan ---------- */
-function curView() {
+/* ---------- Pilihan periode (tahun / bulan, berdasarkan kolom TglWO) ---------- */
+function periodLabel() { return [S.month ? MONTHS[+S.month - 1] : '', S.year].filter(Boolean).join(' '); }
+function inPeriod(tgl) {
+  if (!S.year && !S.month) return true;
+  const m = dmy(tgl); if (!m) return false;
+  if (S.year && String(m.y) !== S.year) return false;
+  if (S.month && String(m.m) !== S.month) return false;
+  return true;
+}
+function statOf(rows) {
+  const s = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0, years: {}, latest: null };
+  for (const r of rows) {
+    s.total++;
+    if (r[16] === 'SIKK') s.sikk++; else if (r[16] === 'WO') s.wo++; else s.none++;
+    if (!r[5]) s.advMiss++;
+    if (r[15]) s.pFill++;
+    const dt = dmy(r[1]); if (dt) s.years[dt.y] = (s.years[dt.y] || 0) + 1;
+    const ds = dmy(r[7]) || dt;
+    if (ds) { const t = Date.UTC(ds.y, ds.m - 1, ds.d); if (!s.latest || t > s.latest.t) s.latest = { t, d: ds.d, m: ds.m, y: ds.y }; }
+  }
+  return s;
+}
+const SC = { sig: '', v: null };
+function scoped() {           // data cabang yang sedang dibuka, sudah dipersempit sesuai periode terpilih
   const d = S.data[S.cur];
+  if (!d || !d.out) return d || {};
+  if (!S.year && !S.month) return d;
+  const sig = [S.cur, d.at && d.at.getTime(), S.year, S.month].join('|');
+  if (SC.sig === sig && SC.v) return SC.v;
+  const out = d.out.filter(r => inPeriod(r[1]));
+  const v = Object.assign({}, d, {
+    out, nosikk: out.filter(r => !r[8]), noket: out.filter(r => !r[12]), both: out.filter(r => !r[8] && !r[12]),
+    db: { head: d.db.head, rows: d.db.rows.filter(r => inPeriod(r[1])) },
+    sb: [d.sb[0]].concat(d.sb.slice(1).filter(r => inPeriod(r[d.sbTgl]))),
+    stat: statOf(out)
+  });
+  SC.sig = sig; SC.v = v; return v;
+}
+
+function curView(full) {
+  const d = full ? S.data[S.cur] : scoped();
   if (!d || !d.out) return { head: [], rows: [] };
   if (S.tab === 'out') return { head: d.head, rows: d.out };
   if (S.tab === 'nosikk') return { head: d.head, rows: d.nosikk };
@@ -462,7 +515,7 @@ function filteredRaw() {
 function filtered() {            // hasil disimpan sementara agar pindah halaman tidak mengurutkan ulang
   const d = S.data[S.cur] || {};
   const sig = [S.cur, S.tab, d.at && d.at.getTime(), JSON.stringify(S.sort[S.tab] || null),
-    $('q').value, $('fSrc').value, $('fAdv').value, $('fP').value].join('§');
+    $('q').value, $('fSrc').value, $('fAdv').value, $('fP').value, S.year, S.month].join('§');
   if (S.memo && S.memo.sig === sig) return S.memo.v;
   const v = filteredRaw(); S.memo = { sig, v }; return v;
 }
@@ -483,7 +536,7 @@ function widthsFor(tab) {
   const key = S.cur + '|' + base + '|' + (d.at ? d.at.getTime() : 0);
   if (WCACHE[key]) return WCACHE[key];
   const keep = S.tab; S.tab = base;
-  let v; try { v = curView(); } finally { S.tab = keep; }
+  let v; try { v = curView(true); } finally { S.tab = keep; }     // lebar kolom dari seluruh data, tidak terpengaruh periode
   const W = v.head.map((h, c) => {
     let mx = String(h).length;
     for (const r of v.rows) { const n = r[c] == null ? 0 : String(r[c]).length; if (n > mx) mx = n; }
@@ -525,8 +578,25 @@ function sortRows(rows, c, dir) {
 
 function render() {
   const br = BR.find(b => b.key === S.cur);
-  const d = S.data[S.cur] || {};
+  const raw = S.data[S.cur] || {};
+  if (raw.stat && S.year && raw.stat.years[S.year] === undefined) S.year = '';
+  const d = scoped();
   const hasData = !!d.out;
+
+  // pilihan tahun dan bulan
+  $('period').hidden = !hasData;
+  if (hasData) {
+    const yrs = Object.keys(raw.stat.years).sort().reverse();
+    const ysig = S.cur + ':' + yrs.join(',');
+    if ($('selYear').dataset.sig !== ysig) {
+      $('selYear').innerHTML = '<option value="">Semua tahun</option>' + yrs.map(y => '<option value="' + y + '">' + y + '</option>').join('');
+      $('selYear').dataset.sig = ysig;
+    }
+    $('selYear').value = S.year; $('selMonth').value = S.month;
+    $('periodReset').hidden = !periodLabel();
+    $('periodInfo').textContent = periodLabel()
+      ? 'Menampilkan ' + fnum(d.out.length) + ' dari ' + fnum(raw.out.length) + ' baris (berdasarkan TglWO)' : '';
+  }
 
   $('nav').innerHTML = BR.map(b => '<button data-k="' + b.key + '" class="' + (b.key === S.cur ? 'on' : '') + '">' + esc(b.name) + '</button>').join('');
   $('title').textContent = 'SIKK ' + br.name;
@@ -549,8 +619,9 @@ function render() {
 
   if (hasData) {
     const s = d.stat;
-    $('per').textContent = s.latest ? 'Data SIKK terakhir : ' + pad(s.latest.d) + '-' + MONTHS[s.latest.m - 1] + '-' + s.latest.y : '';
-    $('src').textContent = 'Sumber: sheet ' + br.sb + ' (' + fnum(d.sb.length - 1) + ' baris), ' + br.am + ' (' + fnum(d.am.length - 1) + ' baris) dan ' + SHEET_SA + ' (' + fnum(d.sa.length - 1) + ' baris)';
+    const lt = s.latest ? 'Data SIKK terakhir : ' + pad(s.latest.d) + '-' + MONTHS[s.latest.m - 1] + '-' + s.latest.y : '';
+    $('per').textContent = lt + (periodLabel() ? (lt ? '  ·  ' : '') + 'Periode : ' + periodLabel() : '');
+    $('src').textContent = 'Sumber: sheet ' + br.sb + ' (' + fnum(raw.sb.length - 1) + ' baris), ' + br.am + ' (' + fnum(raw.am.length - 1) + ' baris) dan ' + SHEET_SA + ' (' + fnum(raw.sa.length - 1) + ' baris)';
   } else { $('per').textContent = ''; $('src').textContent = ''; }
 
   // banner
@@ -558,16 +629,6 @@ function render() {
   if (d.err) {
     al.hidden = false; al.className = 'alert err';
     al.textContent = 'Data belum bisa dibaca: ' + d.err;
-  } else if (hasData) {
-    const s = d.stat; al.hidden = false;
-    if (s.none > 0) {
-      al.className = 'alert';
-      al.innerHTML = 'Hasil cek: ' + fnum(s.none) + ' dari ' + fnum(s.total) + ' baris Data Terbaru tidak ketemu di Data Sebelumnya (' + esc(br.sb) +
-        '), jadi Keterangan, Fisik SIKK dan Tgl Keluar belum terisi. <a href="#" id="alertGo">Lihat baris yang tidak ketemu</a>.';
-    } else {
-      al.className = 'alert ok';
-      al.textContent = 'Hasil cek: semua ' + fnum(s.total) + ' baris Data Terbaru ketemu di Data Sebelumnya (' + br.sb + ').';
-    }
   } else al.hidden = true;
 
   // kartu
@@ -666,8 +727,8 @@ const POP = {
 };
 const P = { kind: null, page: 0, sort: null, memo: null, total: 0 };
 function popRows() {
-  const d = S.data[S.cur];
-  const sig = [S.cur, P.kind, d.at && d.at.getTime(), $('pq').value, JSON.stringify(P.sort)].join('§');
+  const d = scoped();
+  const sig = [S.cur, P.kind, d.at && d.at.getTime(), $('pq').value, JSON.stringify(P.sort), S.year, S.month].join('§');
   if (P.memo && P.memo.sig === sig) return P.memo.rows;
   let rows = d.out.filter(POP[P.kind].f);
   const q = norm($('pq').value);
@@ -676,7 +737,7 @@ function popRows() {
   P.memo = { sig, rows }; return rows;
 }
 function drawPop() {
-  const d = S.data[S.cur], br = BR.find(b => b.key === S.cur), def = POP[P.kind];
+  const d = scoped(), br = BR.find(b => b.key === S.cur), def = POP[P.kind];
   P.total = d.out.filter(def.f).length;
   const rows = popRows();
   $('pTitle').textContent = def.t + ' - ' + br.name;
@@ -738,7 +799,7 @@ function exportItem(tab, active) {        // active = ikut filter, pencarian dan
   } finally { S.tab = keep; }
 }
 function stamp() { const a = new Date(); return a.getFullYear() + pad(a.getMonth() + 1) + pad(a.getDate()) + '_' + pad(a.getHours()) + pad(a.getMinutes()); }
-function fileBase(scope) { const br = BR.find(b => b.key === S.cur); return 'SIKK_' + br.name.replace(/\s+/g, '_') + '_' + (scope === 'all' ? 'Semua_Tab' : TAB_LABEL[S.tab].replace(/\s+/g, '_')) + '_' + stamp(); }
+function fileBase(scope) { const br = BR.find(b => b.key === S.cur); return 'SIKK_' + br.name.replace(/\s+/g, '_') + '_' + (scope === 'all' ? 'Semua_Tab' : TAB_LABEL[S.tab].replace(/\s+/g, '_')) + (periodLabel() ? '_' + periodLabel().replace(/\s+/g, '_') : '') + '_' + stamp(); }
 
 function exportPDF(items, scope) {
   const J = window.jspdf;
@@ -755,7 +816,7 @@ function exportPDF(items, scope) {
     doc.setFontSize(15); doc.setTextColor(22, 32, 46);
     doc.text('SIKK ' + br.name + ' - ' + it.title, 10, 13);
     doc.setFontSize(9); doc.setTextColor(102, 112, 133);
-    doc.text('Dicetak ' + when + '  |  ' + fnum(it.rows.length) + ' baris' +
+    doc.text('Dicetak ' + when + (periodLabel() ? '  |  Periode ' + periodLabel() : '') + '  |  ' + fnum(it.rows.length) + ' baris' +
       (cut ? '  (PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama, gunakan Export Excel untuk data lengkap)' : ''), 10, 18.5);
     doc.autoTable({
       head: [it.head], body, startY: 22,
@@ -787,13 +848,13 @@ function exportXLS(items, scope) {
 
 let pendingKind = null;
 function openExport(kind) {
-  const d = S.data[S.cur]; if (!d || !d.out) return;
+  const d = scoped(); if (!d || !d.out) return;
   pendingKind = kind;
   $('mTitle').textContent = kind === 'pdf' ? 'Export PDF' : 'Export Excel';
   $('mCurT').textContent = 'Tab ini saja: ' + TAB_LABEL[S.tab];
   $('mCur').textContent = fnum(filtered().rows.length) + ' baris, sesuai pencarian, filter dan urutan yang sedang tampil';
   const cnt = { prev: d.sb.length - 1, db: d.db.rows.length, out: d.out.length, nosikk: d.nosikk.length, noket: d.noket.length, both: d.both.length, sa: d.sa.length - 1 };
-  $('mAll').textContent = TAB_ORDER.map(t => TAB_LABEL[t] + ' (' + fnum(cnt[t]) + ')').join(', ') + '. Seluruh data tanpa filter.';
+  $('mAll').textContent = TAB_ORDER.map(t => TAB_LABEL[t] + ' (' + fnum(cnt[t]) + ')').join(', ') + '. Semua baris' + (periodLabel() ? ' periode ' + periodLabel() : '') + ', tanpa filter pencarian.';
   const big = kind === 'pdf' && TAB_ORDER.some(t => cnt[t] > PDF_MAX);
   $('mNote').className = 'mnote';
   $('mNote').textContent = big ? 'PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama per tab. Untuk data lengkap gunakan Export Excel.' : '';
@@ -821,7 +882,7 @@ async function doExport() {
 /* ---------- Event ---------- */
 $('nav').addEventListener('click', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return;
-  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0; S.sort = {};
+  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0; S.sort = {}; S.year = ''; S.month = '';
   $('q').value = ''; $('fSrc').value = ''; $('fAdv').value = ''; $('fP').value = '';
   render();
   if (!S.data[S.cur] || !S.data[S.cur].out) loadBranch(S.cur);
@@ -830,10 +891,10 @@ $('pills').addEventListener('click', e => {
   const b = e.target.closest('button[data-t]'); if (!b) return;
   S.tab = b.dataset.t; S.page = 0; render();
 });
-$('alert').addEventListener('click', e => {
-  if (e.target.id !== 'alertGo') return;
-  e.preventDefault(); S.tab = 'out'; S.page = 0; $('fSrc').value = 'NONE'; render();
-});
+$('selMonth').innerHTML = '<option value="">Semua bulan</option>' + MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + '</option>').join('');
+$('selYear').addEventListener('change', () => { S.year = $('selYear').value; S.page = 0; render(); });
+$('selMonth').addEventListener('change', () => { S.month = $('selMonth').value; S.page = 0; render(); });
+$('periodReset').onclick = () => { S.year = ''; S.month = ''; S.page = 0; render(); };
 $('btnRefresh').onclick = () => loadBranch(S.cur);
 $('btnPdf').onclick = () => openExport('pdf');
 $('btnXls').onclick = () => openExport('xls');
