@@ -84,6 +84,27 @@
   .pager button{font:inherit;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
   .pager button:disabled{opacity:.45;cursor:default}
   .note{color:var(--muted);font-size:13px;margin-top:16px;max-width:980px}
+  th.sortable{cursor:pointer;user-select:none}
+  th .ht{margin-right:7px}
+  .arr{display:inline-block;font-size:12px;color:#c3c8d3;vertical-align:middle}
+  th.sortable:hover .arr{color:#98a2b3}
+  th.sorted .arr{color:#6d28d9}
+  .modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:grid;place-items:center;z-index:50;padding:16px}
+  .modal[hidden]{display:none}
+  .mbox{background:#fff;border-radius:20px;padding:28px 30px;width:min(540px,100%);box-shadow:0 24px 70px rgba(0,0,0,.28)}
+  .mbox h3{margin:0 0 4px;font:400 32px var(--serif)}
+  .mbox .mp{margin:0 0 18px;color:var(--muted);font-size:14px}
+  .opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer}
+  .opt.on{border-color:var(--navy);background:#f3f6fb}
+  .opt input{margin-top:5px}
+  .opt b{display:block;font-weight:600}
+  .opt span{color:var(--muted);font-size:13px}
+  .mnote{color:var(--orange);font-size:13px;min-height:18px;margin-top:6px}
+  .mnote.err{color:var(--red)}
+  .mbtn{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
+  .mbtn button{font:inherit;padding:11px 22px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:600}
+  .mbtn button.go{background:var(--navy);border-color:var(--navy);color:#fff}
+  .mbtn button:disabled{opacity:.6;cursor:default}
   @media (max-width:1000px){
     .kpis{grid-template-columns:1fr 1fr}.k.big{grid-column:1/-1;grid-row:auto}
     h1{font-size:40px}.k.big .num{font-size:92px}.side{text-align:left}.liveRow{justify-content:flex-start}
@@ -93,6 +114,9 @@
     .k .num{font-size:36px}.tools input{min-width:0;width:100%}
   }
 </style>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
 <header class="top">
@@ -137,7 +161,8 @@
       <option value="">Kolom P: semua</option>
       <option value="FILLED">Kolom P terisi</option>
     </select>
-    <button id="btnCsv" disabled>Unduh CSV</button>
+    <button id="btnPdf" disabled>Export PDF</button>
+    <button id="btnXls" disabled>Export Excel</button>
   </div>
 
   <div class="tbl" id="tblWrap"><table id="tbl"></table></div>
@@ -149,6 +174,19 @@
 
   <div class="note" id="note"></div>
 </main>
+
+<div class="modal" id="modal" hidden>
+  <div class="mbox">
+    <h3 id="mTitle">Export</h3>
+    <p class="mp">Mau export tab ini saja atau semua tab? File langsung terunduh.</p>
+    <label class="opt on" id="optCur"><input type="radio" name="scope" value="cur" checked>
+      <div><b id="mCurT">Tab ini saja</b><span id="mCur"></span></div></label>
+    <label class="opt" id="optAll"><input type="radio" name="scope" value="all">
+      <div><b>Semua tab</b><span id="mAll"></span></div></label>
+    <div class="mnote" id="mNote"></div>
+    <div class="mbtn"><button id="mCancel">Batal</button><button id="mGo" class="go">Export</button></div>
+  </div>
+</div>
 
 <script>
 const FILE_ID = '1D9Hu8RNqkWMa6uJ9EZ0OT4K8eTfh46O32_ttXh3u2to';
@@ -172,7 +210,7 @@ const fnum = n => Number(n).toLocaleString('id-ID');
 const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
 const pad = n => String(n).padStart(2, '0');
 
-const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {} };
+const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {}, sort: {}, memo: null };
 
 /* ---------- CSV & Sheet ---------- */
 function parseCSV(text) {
@@ -365,7 +403,7 @@ function curView() {
   const src = S.tab === 'prev' ? d.sb : d.sa;
   return { head: src[0].map(val), rows: src.slice(1).filter(r => r.some(x => val(x) !== '')) };
 }
-function filtered() {
+function filteredRaw() {
   const v = curView();
   const q = norm($('q').value);
   let rows = v.rows;
@@ -379,7 +417,42 @@ function filtered() {
     });
   }
   if (q) rows = rows.filter(r => r.join(' ').toLowerCase().includes(q));
+  const so = S.sort[S.tab];
+  if (so) rows = sortRows(rows, so.c, so.dir);
   return { head: v.head, rows };
+}
+function filtered() {            // hasil disimpan sementara agar pindah halaman tidak mengurutkan ulang
+  const d = S.data[S.cur] || {};
+  const sig = [S.cur, S.tab, d.at && d.at.getTime(), JSON.stringify(S.sort[S.tab] || null),
+    $('q').value, $('fSrc').value, $('fAdv').value, $('fP').value].join('§');
+  if (S.memo && S.memo.sig === sig) return S.memo.v;
+  const v = filteredRaw(); S.memo = { sig, v }; return v;
+}
+
+/* ---------- Pengurutan kolom ---------- */
+const COLL = new Intl.Collator('id', { numeric: true, sensitivity: 'base' });
+const RE_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
+function sortRows(rows, c, dir) {
+  const sample = [];
+  for (const r of rows) { const v = val(r[c]); if (v) { sample.push(v); if (sample.length >= 60) break; } }
+  let type = 's';
+  if (sample.length && sample.every(v => RE_DATE.test(v))) type = 'd';
+  else if (sample.length && sample.every(v => /^-?\d+([.,]\d+)?$/.test(v) && !/^-?0\d/.test(v))) type = 'n';
+  const keyOf = v => {
+    v = val(v);
+    if (type === 'd') { const m = RE_DATE.exec(v); return m ? Date.UTC(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : 0; }
+    if (type === 'n') return parseFloat(v.replace(',', '.'));
+    return v;
+  };
+  const k = rows.map(r => ({ r, k: keyOf(r[c]), b: val(r[c]) === '' }));
+  const sg = dir === 'desc' ? -1 : 1;
+  k.sort((a, b) => {
+    if (a.b !== b.b) return a.b ? 1 : -1;          // sel kosong selalu di bawah
+    if (a.b) return 0;
+    const x = type === 's' ? COLL.compare(a.k, b.k) : a.k - b.k;
+    return sg * x;
+  });
+  return k.map(o => o.r);
 }
 
 function render() {
@@ -466,14 +539,20 @@ function render() {
   $('tools').hidden = !hasData;
   const isOut = S.tab === 'out';
   ['fSrc', 'fAdv', 'fP'].forEach(id => { $(id).style.display = isOut ? '' : 'none'; });
-  $('btnCsv').disabled = !hasData;
+  $('btnPdf').disabled = !hasData; $('btnXls').disabled = !hasData;
 
   if (hasData) {
     const v = filtered();
     const pages = Math.max(1, Math.ceil(v.rows.length / PAGE));
     if (S.page >= pages) S.page = pages - 1;
     const rows = v.rows.slice(S.page * PAGE, S.page * PAGE + PAGE);
-    let h = '<thead><tr>' + v.head.map((t, i) => '<th' + (isOut && i === 15 ? ' class="p"' : '') + '>' + esc(t) + '</th>').join('') + '</tr></thead><tbody>';
+    const so = S.sort[S.tab];
+    let h = '<thead><tr>' + v.head.map((t, i) => {
+      const on = so && so.c === i;
+      return '<th data-c="' + i + '" class="sortable' + (isOut && i === 15 ? ' p' : '') + (on ? ' sorted' : '') +
+        '" title="Klik untuk mengurutkan"><span class="ht">' + esc(t) + '</span><span class="arr">' +
+        (on ? (so.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8597;') + '</span></th>';
+    }).join('') + '</tr></thead><tbody>';
     for (const r of rows) {
       h += '<tr>';
       for (let i = 0; i < v.head.length; i++) {
@@ -501,25 +580,110 @@ function render() {
   }
 }
 
-function downloadCSV() {
-  const v = filtered();
-  const cut = S.tab === 'out' ? v.head.length - 1 : v.head.length;   // kolom Sumber tidak ikut
-  const cell = s => { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const lines = [v.head.slice(0, cut).map(cell).join(',')].concat(v.rows.map(r => {
-    const a = []; for (let i = 0; i < cut; i++) a.push(cell(r[i])); return a.join(',');
-  }));
-  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
-  const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob);
-  a.download = 'SIKK_' + S.cur + '_' + S.tab + '.csv';
-  document.body.appendChild(a); a.click(); a.remove();
-  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+/* ---------- Export PDF & Excel (langsung unduh, tanpa dialog cetak) ---------- */
+const TAB_LABEL = { prev: 'Data Sebelumnya', db: 'Database', out: 'Data Terbaru', sa: SHEET_SA };
+const TAB_ORDER = ['prev', 'db', 'out', 'sa'];
+const SRC_TXT = { SIKK: 'SIKK No', WO: 'No WO', NONE: 'Tidak ketemu' };
+const PDF_MAX = 5000;
+
+function exportItem(tab, active) {        // active = ikut filter, pencarian dan urutan tab yang sedang dibuka
+  const keep = S.tab; S.tab = tab;
+  try {
+    const v = active ? filtered() : curView();
+    const head = v.head.slice();
+    const rows = v.rows.map(r => head.map((_, i) => {
+      const c = r[i] == null ? '' : r[i];
+      return (tab === 'out' && i === 16) ? (SRC_TXT[c] || c) : c;
+    }));
+    if (tab === 'out') head[16] = 'Sumber Data';
+    return { tab, title: TAB_LABEL[tab], head, rows };
+  } finally { S.tab = keep; }
+}
+function stamp() { const a = new Date(); return a.getFullYear() + pad(a.getMonth() + 1) + pad(a.getDate()) + '_' + pad(a.getHours()) + pad(a.getMinutes()); }
+function fileBase(scope) { const br = BR.find(b => b.key === S.cur); return 'SIKK_' + br.name.replace(/\s+/g, '_') + '_' + (scope === 'all' ? 'Semua_Tab' : TAB_LABEL[S.tab].replace(/\s+/g, '_')) + '_' + stamp(); }
+
+function exportPDF(items, scope) {
+  const J = window.jspdf;
+  if (!J || !J.jsPDF) throw new Error('Library PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman.');
+  const br = BR.find(b => b.key === S.cur);
+  const doc = new J.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3', compress: true });
+  if (typeof doc.autoTable !== 'function') throw new Error('Plugin tabel PDF belum termuat. Muat ulang halaman.');
+  const now = new Date();
+  const when = now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
+  items.forEach((it, idx) => {
+    if (idx > 0) doc.addPage();
+    const cut = it.rows.length > PDF_MAX;
+    const body = cut ? it.rows.slice(0, PDF_MAX) : it.rows;
+    doc.setFontSize(15); doc.setTextColor(22, 32, 46);
+    doc.text('SIKK ' + br.name + ' - ' + it.title, 10, 13);
+    doc.setFontSize(9); doc.setTextColor(102, 112, 133);
+    doc.text('Dicetak ' + when + '  |  ' + fnum(it.rows.length) + ' baris' +
+      (cut ? '  (PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama, gunakan Export Excel untuk data lengkap)' : ''), 10, 18.5);
+    doc.autoTable({
+      head: [it.head], body, startY: 22,
+      styles: { fontSize: 6.5, cellPadding: 1.1, overflow: 'ellipsize' },
+      headStyles: { fillColor: [27, 53, 86], textColor: 255, fontSize: 6.8 },
+      alternateRowStyles: { fillColor: [247, 249, 252] },
+      margin: { left: 10, right: 10, top: 14, bottom: 12 }
+    });
+  });
+  const n = doc.getNumberOfPages();
+  for (let i = 1; i <= n; i++) {
+    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(120);
+    doc.text('Halaman ' + i + ' / ' + n, 410, 291, { align: 'right' });
+  }
+  doc.save(fileBase(scope) + '.pdf');
+}
+
+function exportXLS(items, scope) {
+  if (typeof XLSX === 'undefined') throw new Error('Library Excel belum termuat. Periksa koneksi internet lalu muat ulang halaman.');
+  const wb = XLSX.utils.book_new();
+  items.forEach(it => {
+    const ws = XLSX.utils.aoa_to_sheet([it.head].concat(it.rows));
+    ws['!cols'] = it.head.map(h => ({ wch: Math.min(34, Math.max(11, String(h).length + 3)) }));
+    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(1, it.rows.length), c: Math.max(0, it.head.length - 1) } }) };
+    XLSX.utils.book_append_sheet(wb, ws, it.title);
+  });
+  XLSX.writeFile(wb, fileBase(scope) + '.xlsx');
+}
+
+let pendingKind = null;
+function openExport(kind) {
+  const d = S.data[S.cur]; if (!d || !d.out) return;
+  pendingKind = kind;
+  $('mTitle').textContent = kind === 'pdf' ? 'Export PDF' : 'Export Excel';
+  $('mCurT').textContent = 'Tab ini saja: ' + TAB_LABEL[S.tab];
+  $('mCur').textContent = fnum(filtered().rows.length) + ' baris, sesuai pencarian, filter dan urutan yang sedang tampil';
+  const cnt = { prev: d.sb.length - 1, db: d.db.rows.length, out: d.out.length, sa: d.sa.length - 1 };
+  $('mAll').textContent = TAB_ORDER.map(t => TAB_LABEL[t] + ' (' + fnum(cnt[t]) + ')').join(', ') + '. Seluruh data tanpa filter.';
+  const big = kind === 'pdf' && TAB_ORDER.some(t => cnt[t] > PDF_MAX);
+  $('mNote').className = 'mnote';
+  $('mNote').textContent = big ? 'PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama per tab. Untuk data lengkap gunakan Export Excel.' : '';
+  document.querySelector('input[name=scope][value=cur]').checked = true; syncOpt();
+  $('mGo').disabled = false; $('modal').hidden = false;
+}
+function syncOpt() {
+  const all = document.querySelector('input[name=scope][value=all]').checked;
+  $('optAll').className = 'opt' + (all ? ' on' : ''); $('optCur').className = 'opt' + (all ? '' : ' on');
+}
+async function doExport() {
+  const all = document.querySelector('input[name=scope][value=all]').checked;
+  const scope = all ? 'all' : 'cur';
+  $('mGo').disabled = true; $('mNote').className = 'mnote'; $('mNote').textContent = 'Menyiapkan file...';
+  await new Promise(r => setTimeout(r, 40));
+  try {
+    const items = all ? TAB_ORDER.map(t => exportItem(t, false)) : [exportItem(S.tab, true)];
+    if (pendingKind === 'pdf') exportPDF(items, scope); else exportXLS(items, scope);
+    $('modal').hidden = true;
+  } catch (e) {
+    $('mNote').className = 'mnote err'; $('mNote').textContent = 'Gagal export: ' + e.message; $('mGo').disabled = false;
+  }
 }
 
 /* ---------- Event ---------- */
 $('nav').addEventListener('click', e => {
   const b = e.target.closest('button[data-k]'); if (!b) return;
-  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0;
+  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0; S.sort = {};
   $('q').value = ''; $('fSrc').value = ''; $('fAdv').value = ''; $('fP').value = '';
   render();
   if (!S.data[S.cur] || !S.data[S.cur].out) loadBranch(S.cur);
@@ -533,7 +697,21 @@ $('alert').addEventListener('click', e => {
   e.preventDefault(); S.tab = 'out'; S.page = 0; $('fSrc').value = 'NONE'; render();
 });
 $('btnRefresh').onclick = () => loadBranch(S.cur);
-$('btnCsv').onclick = downloadCSV;
+$('btnPdf').onclick = () => openExport('pdf');
+$('btnXls').onclick = () => openExport('xls');
+$('mCancel').onclick = () => { $('modal').hidden = true; };
+$('mGo').onclick = doExport;
+$('modal').addEventListener('click', e => { if (e.target.id === 'modal') $('modal').hidden = true; });
+document.querySelectorAll('input[name=scope]').forEach(i => i.addEventListener('change', syncOpt));
+document.addEventListener('keydown', e => { if (e.key === 'Escape') $('modal').hidden = true; });
+$('tbl').addEventListener('click', e => {      // klik judul kolom: naik, turun, lalu kembali normal
+  const th = e.target.closest('th[data-c]'); if (!th) return;
+  const c = +th.dataset.c, cur = S.sort[S.tab];
+  if (!cur || cur.c !== c) S.sort[S.tab] = { c, dir: 'asc' };
+  else if (cur.dir === 'asc') S.sort[S.tab] = { c, dir: 'desc' };
+  else delete S.sort[S.tab];
+  S.page = 0; render();
+});
 $('prev').onclick = () => { S.page--; render(); };
 $('next').onclick = () => { S.page++; render(); };
 let qt = null;
