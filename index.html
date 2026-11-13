@@ -191,12 +191,42 @@ function parseCSV(text) {
   if (f !== '' || row.length) { row.push(f); rows.push(row); }
   return rows;
 }
-async function readSheet(name) {
-  const r = await fetch(sheetUrl(name));
-  if (!r.ok) throw new Error('Sheet "' + name + '" gagal dibaca (HTTP ' + r.status + ')');
+/* Jalur 1: link-sharing (gviz). Jalur 2: "Publikasikan ke web" (link pubhtml). */
+const PUB_ID = '2PACX-1vRMbMi2Lkoed_DWOxFPNQjcBhiDFRVqammycjZufOmpFfifrMCgbP1i_ORFFari85ZAXfBC4sM_r5_F';
+let pubMap = null;
+async function pubSheets() {
+  if (pubMap) return pubMap;
+  const r = await fetch('https://docs.google.com/spreadsheets/d/e/' + PUB_ID + '/pubhtml');
+  if (!r.ok) throw new Error('pubhtml HTTP ' + r.status);
   const t = await r.text();
-  if (t.trim().startsWith('<')) throw new Error('Sheet "' + name + '" tidak bisa dibaca. Pastikan file dibagikan "Siapa saja yang memiliki link".');
-  return parseCSV(t);
+  const m = new Map(), re = /name:\s*"((?:[^"\\]|\\.)*)"[\s\S]{0,600}?gid:\s*"(\d+)"/g;
+  let x;
+  while ((x = re.exec(t))) m.set(x[1].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), x[2]);
+  if (!m.size) throw new Error('daftar sheet tidak ditemukan di link publikasi');
+  pubMap = m; return m;
+}
+async function readSheet(name) {
+  let why = '';
+  try {                                                   // jalur 1
+    const r = await fetch(sheetUrl(name));
+    if (r.ok) {
+      const t = await r.text();
+      if (!t.trim().startsWith('<')) return parseCSV(t);
+      why = 'file belum dibagikan ke publik';
+    } else why = 'HTTP ' + r.status;
+  } catch (e) { why = 'diblokir browser / file belum dibagikan ke publik'; }
+  try {                                                   // jalur 2
+    const m = await pubSheets();
+    if (!m.has(name)) throw new Error('sheet tidak ada di link publikasi');
+    const r = await fetch('https://docs.google.com/spreadsheets/d/e/' + PUB_ID + '/pub?gid=' + m.get(name) + '&single=true&output=csv');
+    if (!r.ok) throw new Error('HTTP ' + r.status);
+    const t = await r.text();
+    if (t.trim().startsWith('<')) throw new Error('bukan CSV');
+    return parseCSV(t);
+  } catch (e2) {
+    throw new Error('Sheet "' + name + '" tidak bisa dibaca (' + why + '; link publikasi: ' + e2.message + '). ' +
+      'Solusi: di Google Sheet pilih Bagikan > "Siapa saja yang memiliki link" (Pelihat), atau File > Bagikan > Publikasikan ke web (seluruh dokumen).');
+  }
 }
 function colIdx(header, ...names) {
   const h = header.map(norm);
@@ -303,6 +333,8 @@ function build(d, br, sb, am, sa) {
       if (!stat.latest || t > stat.latest.t) stat.latest = { t, d: ds.d, m: ds.m, y: ds.y };
     }
   }
+  // Database = sheet AM + Nama Advisor (12 kolom pertama); Data Terbaru = Database + kolom M-P dari SB AM
+  d.db = { head: head.slice(0, 12), rows: out.map(r => r.slice(0, 12)) };
   d.sb = sb; d.am = am; d.sa = sa; d.out = out; d.head = head; d.stat = stat;
 }
 
@@ -329,7 +361,8 @@ function curView() {
   const d = S.data[S.cur];
   if (!d || !d.out) return { head: [], rows: [] };
   if (S.tab === 'out') return { head: d.head, rows: d.out };
-  const src = S.tab === 'sb' ? d.sb : S.tab === 'am' ? d.am : d.sa;
+  if (S.tab === 'db') return d.db;
+  const src = S.tab === 'prev' ? d.sb : d.sa;
   return { head: src[0].map(val), rows: src.slice(1).filter(r => r.some(x => val(x) !== '')) };
 }
 function filtered() {
@@ -388,11 +421,11 @@ function render() {
     const s = d.stat; al.hidden = false;
     if (s.none > 0) {
       al.className = 'alert';
-      al.innerHTML = 'Hasil cek: ' + fnum(s.none) + ' dari ' + fnum(s.total) + ' baris ' + esc(br.am) + ' tidak ketemu di ' + esc(br.sb) +
-        '. <a href="#" id="alertGo">Lihat baris yang tidak ketemu</a>.';
+      al.innerHTML = 'Hasil cek: ' + fnum(s.none) + ' dari ' + fnum(s.total) + ' baris Data Terbaru tidak ketemu di Data Sebelumnya (' + esc(br.sb) +
+        '), jadi Keterangan, Fisik SIKK dan Tgl Keluar belum terisi. <a href="#" id="alertGo">Lihat baris yang tidak ketemu</a>.';
     } else {
       al.className = 'alert ok';
-      al.textContent = 'Hasil cek: semua ' + fnum(s.total) + ' baris ' + br.am + ' ketemu di ' + br.sb + '.';
+      al.textContent = 'Hasil cek: semua ' + fnum(s.total) + ' baris Data Terbaru ketemu di Data Sebelumnya (' + br.sb + ').';
     }
   } else al.hidden = true;
 
@@ -404,7 +437,7 @@ function render() {
     const yrs = Object.keys(s.years).sort().map(y => '<b>' + y + '</b> <span>' + fnum(s.years[y]) + '</span>').join(' <span>·</span> ');
     kp.hidden = false;
     kp.innerHTML =
-      '<div class="k big"><div class="lab">Total seluruh baris ' + esc(br.am) + '</div>' +
+      '<div class="k big"><div class="lab">Total seluruh baris Data Terbaru</div>' +
         '<div class="num">' + fnum(s.total) + '</div>' +
         '<div class="sub"><b>' + fnum(s.sikk + s.wo) + '</b> ketemu di ' + esc(br.sb) + ', <b>' + fnum(s.none) + '</b> tidak ketemu<br>' + yrs + '</div></div>' +
       '<div class="k"><div class="lab"><i style="background:var(--green)"></i>Cocok via SIKK No</div>' +
@@ -422,9 +455,9 @@ function render() {
   if (hasData) {
     const cnt = a => fnum(a.length - 1);
     const tabs = [
-      ['out', br.am + ' Tersusun (' + fnum(d.out.length) + ')'],
-      ['sb', br.sb + ' (' + cnt(d.sb) + ')'],
-      ['am', br.am + ' (' + cnt(d.am) + ')'],
+      ['prev', 'Data Sebelumnya (' + cnt(d.sb) + ')'],
+      ['db', 'Database (' + fnum(d.db.rows.length) + ')'],
+      ['out', 'Data Terbaru (' + fnum(d.out.length) + ')'],
       ['sa', SHEET_SA + ' (' + cnt(d.sa) + ')']
     ];
     pl.innerHTML = tabs.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + esc(t[1]) + '</button>').join('');
@@ -458,9 +491,11 @@ function render() {
     $('pager').hidden = false;
     $('pinfo').textContent = 'Halaman ' + (S.page + 1) + ' / ' + pages + '  (' + fnum(v.rows.length) + ' baris)';
     $('prev').disabled = S.page === 0; $('next').disabled = S.page >= pages - 1;
-    $('note').textContent = isOut
-      ? 'AM Tersusun: jika SIKK No terisi, kolom Keterangan, Fisik SIKK, Tgl Keluar dan kolom P dibaca dari ' + br.sb + ' dengan SIKK No yang sama. Jika SIKK No kosong atau tidak cocok, dibaca dari ' + br.sb + ' dengan No WO yang sama. Nama Advisor dibaca dari ' + SHEET_SA + '. Bila nomor yang sama berulang, pencocokan memakai tanggalnya juga.'
-      : 'Menampilkan isi sheet "' + (S.tab === 'sb' ? br.sb : S.tab === 'am' ? br.am : SHEET_SA) + '" apa adanya.';
+    $('note').textContent =
+      S.tab === 'prev' ? 'Data Sebelumnya: isi sheet "' + br.sb + '" apa adanya.'
+      : S.tab === 'db' ? 'Database: isi sheet "' + br.am + '" ditambah kolom Nama Advisor yang dibaca dari sheet "' + SHEET_SA + '" berdasarkan kode Advisor.'
+      : S.tab === 'out' ? 'Data Terbaru: isi sheet "' + br.am + '" + Nama Advisor, ditambah kolom Keterangan, Fisik SIKK, Tgl Keluar Mobil dan kolom P yang dibaca dari "' + br.sb + '" hanya untuk melengkapi. Jika SIKK No terisi dicocokkan lewat SIKK No; jika kosong (atau tidak cocok) lewat No WO. Bila nomor yang sama berulang, pencocokan memakai tanggalnya juga.'
+      : 'Menampilkan isi sheet "' + SHEET_SA + '" apa adanya.';
   } else {
     $('tblWrap').hidden = true; $('pager').hidden = true; $('note').textContent = '';
   }
