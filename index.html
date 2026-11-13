@@ -3,64 +3,131 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Susun AM SIKK</title>
+<title>Dashboard SIKK Group</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
 <style>
-  :root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--muted:#6b7686;--line:#dfe4ec;--accent:#1f5fbf;--ok:#177a3c;--warn:#b26a00;--bad:#b3261e}
+  :root{
+    --bg:#ffffff;--ink:#16202e;--muted:#667085;--line:#e3e6ec;--navy:#1b3556;
+    --green:#16a34a;--red:#d8281e;--orange:#b45309;--blue:#2563eb;
+    --serif:"Instrument Serif","Iowan Old Style","Palatino Linotype",Georgia,serif;
+    --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
+    --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  }
   *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
-  header{padding:18px 20px 6px}
-  h1{margin:0;font-size:20px}
-  .sub{color:var(--muted);margin-top:2px;font-size:13px}
-  .wrap{padding:12px 20px 40px}
-  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
-  button,select,input{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
-  button{cursor:pointer}
-  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
-  button:disabled{opacity:.5;cursor:default}
-  input[type=search]{min-width:240px}
-  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
-  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
-  .card .n{font-size:22px;font-weight:650}
-  .card .l{color:var(--muted);font-size:12px}
-  .card.ok .n{color:var(--ok)} .card.warn .n{color:var(--warn)} .card.bad .n{color:var(--bad)}
-  #status{color:var(--muted);font-size:13px}
-  #status.err{color:var(--bad)}
-  .tbl{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:68vh}
+  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans)}
+  .top{display:flex;align-items:center;gap:18px;padding:0 28px;height:62px;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
+  .brand{font-weight:700;font-size:19px;letter-spacing:-.2px}
+  nav{display:flex;gap:8px}
+  nav button{border:0;background:transparent;font:inherit;font-weight:500;color:#344054;padding:9px 22px;border-radius:99px;cursor:pointer}
+  nav button:hover{background:#f2f4f7}
+  nav button.on{background:var(--navy);color:#fff;font-weight:600}
+  main{max-width:1500px;margin:0 auto;padding:34px 28px 60px}
+  .head{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
+  h1{margin:0;font:400 54px/1.02 var(--serif);letter-spacing:-.5px}
+  .per{margin-top:10px;color:#475467;font-size:16px}
+  .side{text-align:right;max-width:100%}
+  .liveRow{display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
+  .live{display:inline-flex;gap:8px;align-items:center;font-size:15px;color:#475467}
+  .live b{color:var(--ink);font-weight:600}
+  .dot{width:11px;height:11px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px #dcf5e4;display:inline-block;flex:none}
+  .dot.bad{background:var(--red);box-shadow:0 0 0 4px #fbdedb}
+  .dot.load{background:#f59e0b;box-shadow:0 0 0 4px #fdeccb}
+  .refresh{display:inline-flex;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 22px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
+  .refresh .ric{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--blue);color:#fff;font-size:19px}
+  .refresh:disabled{opacity:.6;cursor:default}
+  .src{margin-top:12px;color:#667085;font-size:15px}
+  hr.sep{border:0;border-top:1px solid var(--line);margin:22px 0}
+  .alert{margin:0 0 20px;padding:20px 28px;border-radius:14px;font-size:17px;background:#fdf1d6;color:#8a5a00}
+  .alert.ok{background:#e6f6ec;color:#12683a}
+  .alert.err{background:#fdecea;color:#a3231a}
+  .alert a{color:inherit;font-weight:600}
+  .kpis{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:auto auto;gap:18px;margin-bottom:30px}
+  .k{border:1px solid var(--line);border-radius:22px;padding:24px 28px;background:#fff;min-width:0}
+  .k .lab{display:flex;gap:12px;align-items:center;font-size:19px;color:#344054}
+  .k .lab i{width:15px;height:15px;border-radius:50%;flex:none}
+  .k .num{font:500 46px/1.1 var(--mono);margin:18px 0 10px;letter-spacing:-1px}
+  .k .num small{font-size:36px}
+  .k .sub{color:#667085;font-size:17px}
+  .k.big{grid-row:span 2;display:flex;flex-direction:column}
+  .k.big .lab{font:400 19px var(--mono);letter-spacing:.2px}
+  .k.big .num{font:400 128px/1 var(--serif);letter-spacing:-3px;margin:auto 0 18px;padding-top:30px}
+  .k.big .sub{font:400 18px/1.6 var(--mono);color:#1c2430}
+  .k.big .sub span{color:#667085}
+  .k.red{background:#fdecea;border-color:#f5c6c1}
+  .k.red .num{color:var(--red)}
+  .k.org .num{color:var(--orange)}
+  .pills{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 18px;border-top:2px solid #dfe3ea;padding-top:24px}
+  .pills button{border:1px solid #cfd5df;background:#fff;color:#475467;font:inherit;font-weight:500;border-radius:99px;padding:13px 26px;cursor:pointer;font-size:16px}
+  .pills button:hover{background:#f7f8fb}
+  .pills button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
+  .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
+  .tools input,.tools select,.tools button{font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
+  .tools input{min-width:280px}
+  .tools button{cursor:pointer;font-weight:600}
+  .tools button:disabled{opacity:.5;cursor:default}
+  .tbl{border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:70vh}
   table{border-collapse:collapse;width:100%;white-space:nowrap}
-  th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:12.5px}
-  th{position:sticky;top:0;background:#eef2f8;z-index:1}
-  th.p{background:#fff3d6}
-  tr:hover td{background:#f8fafd}
-  .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;border:1px solid}
-  .tag.sikk{color:var(--ok);border-color:#a9d8b8;background:#eaf7ee}
-  .tag.wo{color:var(--accent);border-color:#b4cdf0;background:#edf3fc}
-  .tag.none{color:var(--bad);border-color:#efb5b1;background:#fdeeed}
-  .miss{color:var(--bad)}
-  .pager{display:flex;gap:8px;align-items:center;margin-top:10px}
-  .note{color:var(--muted);font-size:12px;margin-top:10px;max-width:900px}
+  th,td{padding:9px 14px;border-bottom:1px solid #eef0f4;text-align:left;font-size:13.5px}
+  th{position:sticky;top:0;background:#f4f6fa;z-index:1;font-weight:600;color:#344054}
+  th.p{background:#fff1cf}
+  tbody tr:hover td{background:#f9fafc}
+  td.mono{font-family:var(--mono);font-size:13px}
+  .miss{color:var(--red)}
+  .tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;border:1px solid;font-weight:500}
+  .tag.sikk{color:#12683a;border-color:#a9d8b8;background:#eaf7ee}
+  .tag.wo{color:#1d4ed8;border-color:#b9cdf5;background:#edf3fd}
+  .tag.none{color:var(--red);border-color:#f0b7b2;background:#fdeeed}
+  .empty{padding:40px;text-align:center;color:var(--muted)}
+  .pager{display:flex;gap:10px;align-items:center;margin-top:12px}
+  .pager button{font:inherit;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
+  .pager button:disabled{opacity:.45;cursor:default}
+  .note{color:var(--muted);font-size:13px;margin-top:16px;max-width:980px}
+  @media (max-width:1000px){
+    .kpis{grid-template-columns:1fr 1fr}.k.big{grid-column:1/-1;grid-row:auto}
+    h1{font-size:40px}.k.big .num{font-size:92px}.side{text-align:left}.liveRow{justify-content:flex-start}
+  }
+  @media (max-width:600px){
+    main{padding:22px 16px 50px}.top{padding:0 14px}.kpis{grid-template-columns:1fr}
+    .k .num{font-size:36px}.tools input{min-width:0;width:100%}
+  }
 </style>
 </head>
 <body>
-<header>
-  <h1>Susun Sheet AM seperti SB AM</h1>
-  <div class="sub">Sumber: Google Sheet "SIKK Group" (sheet AM, SB AM, Data SA)</div>
+<header class="top">
+  <div class="brand">SIKK Group</div>
+  <nav id="nav"></nav>
 </header>
-<div class="wrap">
-  <div class="bar">
-    <button id="btnLoad" class="primary">Baca &amp; Susun Data</button>
-    <button id="btnCsv" disabled>Unduh CSV</button>
-    <span id="status">Klik "Baca &amp; Susun Data" untuk memulai.</span>
+
+<main>
+  <div class="head">
+    <div>
+      <h1 id="title">SIKK</h1>
+      <div class="per" id="per"></div>
+    </div>
+    <div class="side">
+      <div class="liveRow">
+        <span class="live"><i class="dot load" id="dot"></i><span id="liveTxt">Memuat data dari Google Sheet...</span></span>
+        <button class="refresh" id="btnRefresh"><span class="ric">&#8635;</span>Refresh</button>
+      </div>
+      <div class="src" id="src"></div>
+    </div>
   </div>
+  <hr class="sep">
 
-  <div class="cards" id="cards" hidden></div>
+  <div class="alert" id="alert" hidden></div>
+  <section class="kpis" id="kpis" hidden></section>
 
-  <div class="bar" id="filters" hidden>
+  <div class="pills" id="pills"></div>
+
+  <div class="tools" id="tools" hidden>
     <input type="search" id="q" placeholder="Cari no polisi, nama, no WO, no SIKK...">
     <select id="fSrc">
       <option value="">Semua sumber</option>
       <option value="SIKK">Cocok SIKK No</option>
       <option value="WO">Cocok No WO</option>
-      <option value="NONE">Tidak ketemu di SB AM</option>
+      <option value="NONE">Tidak ketemu</option>
     </select>
     <select id="fAdv">
       <option value="">Semua advisor</option>
@@ -70,32 +137,44 @@
       <option value="">Kolom P: semua</option>
       <option value="FILLED">Kolom P terisi</option>
     </select>
+    <button id="btnCsv" disabled>Unduh CSV</button>
   </div>
 
-  <div class="tbl" id="tblWrap" hidden><table id="tbl"></table></div>
+  <div class="tbl" id="tblWrap"><table id="tbl"></table></div>
   <div class="pager" id="pager" hidden>
     <button id="prev">&laquo; Sebelumnya</button>
     <span id="pinfo"></span>
     <button id="next">Berikutnya &raquo;</button>
   </div>
 
-  <div class="note">
-    Aturan: jika SIKK No terisi, kolom Keterangan, Fisik SIKK, Tgl Keluar dan kolom P dibaca dari baris SB AM dengan SIKK No yang sama.
-    Jika SIKK No kosong (atau tidak ketemu), dibaca dari baris SB AM dengan No WO yang sama. Nama Advisor dibaca dari sheet Data SA berdasarkan kode Advisor.
-    Bila nomor yang sama muncul berulang di SB AM, pencocokan memakai tanggalnya juga (SIKK Tgl atau TglWO). Kolom P ikut diisi bila di SB AM ada isinya.
-    Sheet harus bisa dibuka oleh siapa saja yang punya link agar data dapat dibaca.
-  </div>
-</div>
+  <div class="note" id="note"></div>
+</main>
 
 <script>
 const FILE_ID = '1D9Hu8RNqkWMa6uJ9EZ0OT4K8eTfh46O32_ttXh3u2to';
+const SHEET_SA = 'Data SA';
+const BR = [
+  { key: 'AM', name: 'GR Adam Malik', sb: 'SB AM', am: 'AM' },
+  { key: 'BP', name: 'Body Repair',   sb: 'SB BP', am: 'BP' },
+  { key: 'OX', name: 'Otoxpert',      sb: 'SB OX', am: 'OX' },
+  { key: 'PF', name: 'GR Flamboyan',  sb: 'SB PF', am: 'PF' }
+];
+const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+const REFRESH_MS = 2 * 60 * 1000;
+const PAGE = 100;
+
 const sheetUrl = n => 'https://docs.google.com/spreadsheets/d/' + FILE_ID +
   '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(n);
-
 const $ = id => document.getElementById(id);
 const norm = s => String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
 const val = s => String(s == null ? '' : s).trim();
+const fnum = n => Number(n).toLocaleString('id-ID');
+const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
+const pad = n => String(n).padStart(2, '0');
 
+const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {} };
+
+/* ---------- CSV & Sheet ---------- */
 function parseCSV(text) {
   const rows = []; let row = [], f = '', q = false;
   for (let i = 0; i < text.length; i++) {
@@ -112,7 +191,6 @@ function parseCSV(text) {
   if (f !== '' || row.length) { row.push(f); rows.push(row); }
   return rows;
 }
-
 async function readSheet(name) {
   const r = await fetch(sheetUrl(name));
   if (!r.ok) throw new Error('Sheet "' + name + '" gagal dibaca (HTTP ' + r.status + ')');
@@ -120,188 +198,316 @@ async function readSheet(name) {
   if (t.trim().startsWith('<')) throw new Error('Sheet "' + name + '" tidak bisa dibaca. Pastikan file dibagikan "Siapa saja yang memiliki link".');
   return parseCSV(t);
 }
-
 function colIdx(header, ...names) {
   const h = header.map(norm);
   for (const n of names) { const i = h.indexOf(norm(n)); if (i >= 0) return i; }
   return -1;
 }
-function colStarts(header, prefix) {
-  const h = header.map(norm);
-  return h.findIndex(x => x.startsWith(norm(prefix)));
-}
+function colStarts(header, prefix) { return header.map(norm).findIndex(x => x.startsWith(norm(prefix))); }
 function need(i, nm, sh) { if (i < 0) throw new Error('Kolom "' + nm + '" tidak ditemukan di sheet ' + sh); return i; }
+const dateOf = s => val(s).split(' ')[0];
+const dmy = s => { const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || '')); return m ? { d: +m[1], m: +m[2], y: +m[3] } : null; };
 
-let OUT = [], VIEW = [], HEAD = [], page = 0;
-const PAGE = 100;
-
-async function run() {
-  $('btnLoad').disabled = true; $('btnCsv').disabled = true;
-  const st = $('status'); st.className = '';
-  try {
-    st.textContent = 'Membaca sheet AM, SB AM dan Data SA...';
-    const [am, sb, sa] = await Promise.all([readSheet('AM'), readSheet('SB AM'), readSheet('Data SA')]);
-    st.textContent = 'Menyusun data...';
-    await new Promise(r => setTimeout(r, 30));
-
-    // Data SA (baca berdasarkan judul kolom)
-    const saH = sa[0];
-    const saCode = need(colIdx(saH, 'Advisor'), 'Advisor', 'Data SA');
-    const saName = need(colIdx(saH, 'Nama Advisor'), 'Nama Advisor', 'Data SA');
-    const saMap = new Map();
-    for (let i = 1; i < sa.length; i++) {
-      const k = norm(sa[i][saCode]); if (k && !saMap.has(k)) saMap.set(k, val(sa[i][saName]));
-    }
-
-    // SB AM
-    const sbH = sb[0];
-    const S = {
-      tglWO: need(colIdx(sbH, 'TglWO'), 'TglWO', 'SB AM'),
-      wo: need(colIdx(sbH, 'No WO'), 'No WO', 'SB AM'),
-      sikkTgl: need(colIdx(sbH, 'SIKK Tgl'), 'SIKK Tgl', 'SB AM'),
-      sikkNo: need(colIdx(sbH, 'SIKK No'), 'SIKK No', 'SB AM'),
-      ket: need(colIdx(sbH, 'Keterangan'), 'Keterangan', 'SB AM'),
-      fisik: need(colIdx(sbH, 'Fisik SIKK'), 'Fisik SIKK', 'SB AM'),
-      keluar: need(colStarts(sbH, 'Tgl Keluar'), 'Tgl Keluar', 'SB AM')
-    };
-    S.p = S.keluar + 1;   // kolom P (tanpa judul) = kolom setelah Tgl Keluar
-    const dateOf = s => val(s).split(' ')[0];
-
-    const sikk1 = new Map(), sikk2 = new Map(), wo1 = new Map(), wo2 = new Map();
-    for (let i = 1; i < sb.length; i++) {
-      const r = sb[i];
-      const sn = val(r[S.sikkNo]), wn = val(r[S.wo]);
-      if (sn) {
-        if (!sikk1.has(sn)) sikk1.set(sn, r);
-        const k2 = sn + '|' + dateOf(r[S.sikkTgl]); if (!sikk2.has(k2)) sikk2.set(k2, r);
-      }
-      if (wn) {
-        if (!wo1.has(wn)) wo1.set(wn, r);
-        const k2 = wn + '|' + val(r[S.tglWO]); if (!wo2.has(k2)) wo2.set(k2, r);
-      }
-    }
-
-    // AM (baca berdasarkan judul kolom)
-    const amH = am[0];
-    const A = {
-      no: colIdx(amH, 'No'),
-      tglWO: need(colIdx(amH, 'TglWO'), 'TglWO', 'AM'),
-      pol: need(colIdx(amH, 'NoPolisi'), 'NoPolisi', 'AM'),
-      wo: need(colIdx(amH, 'No WO'), 'No WO', 'AM'),
-      adv: need(colIdx(amH, 'Advisor'), 'Advisor', 'AM'),
-      nama: need(colIdx(amH, 'Nama'), 'Nama', 'AM'),
-      sikkTgl: need(colIdx(amH, 'SIKK Tgl'), 'SIKK Tgl', 'AM'),
-      sikkNo: need(colIdx(amH, 'SIKK No'), 'SIKK No', 'AM'),
-      out: need(colIdx(amH, 'Vhc Out'), 'Vhc Out', 'AM'),
-      sat: need(colIdx(amH, 'Satpam'), 'Satpam', 'AM'),
-      op: need(colIdx(amH, 'Operator'), 'Operator', 'AM')
-    };
-
-    const pHead = val(sbH[S.p]) || 'Kolom P';
-    HEAD = ['No', 'TglWO', 'NoPolisi', 'No WO', 'Advisor', 'Nama Advisor', 'Nama',
-      'SIKK Tgl', 'SIKK No', 'Vhc Out', 'Satpam', 'Operator',
-      val(sbH[S.ket]), val(sbH[S.fisik]), val(sbH[S.keluar]), pHead, 'Sumber'];
-
-    OUT = [];
-    const stat = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0 };
-    for (let i = 1; i < am.length; i++) {
-      const r = am[i];
-      if (r.every(x => val(x) === '')) continue;
-      const sn = val(r[A.sikkNo]), wn = val(r[A.wo]);
-      let m = null, src = 'NONE';
-      if (sn) {
-        m = sikk2.get(sn + '|' + dateOf(r[A.sikkTgl])) || sikk1.get(sn);
-        if (m) src = 'SIKK';
-      }
-      if (!m && wn) {
-        m = wo2.get(wn + '|' + val(r[A.tglWO])) || wo1.get(wn);
-        if (m) src = 'WO';
-      }
-      const adv = val(r[A.adv]);
-      const advName = saMap.get(norm(adv)) || '';
-      const row = [
-        A.no >= 0 ? val(r[A.no]) : String(OUT.length + 1),
-        val(r[A.tglWO]), val(r[A.pol]), wn, adv, advName, val(r[A.nama]),
-        val(r[A.sikkTgl]), sn, val(r[A.out]), val(r[A.sat]), val(r[A.op]),
-        m ? val(m[S.ket]) : '', m ? val(m[S.fisik]) : '', m ? val(m[S.keluar]) : '', m ? val(m[S.p]) : '',
-        src
-      ];
-      OUT.push(row);
-      stat.total++;
-      if (src === 'SIKK') stat.sikk++; else if (src === 'WO') stat.wo++; else stat.none++;
-      if (!advName) stat.advMiss++;
-      if (row[15]) stat.pFill++;
-    }
-    renderCards(stat);
-    $('cards').hidden = false; $('filters').hidden = false;
-    $('tblWrap').hidden = false; $('pager').hidden = false;
-    applyFilter();
-    $('btnCsv').disabled = false;
-    st.textContent = 'Selesai: ' + stat.total.toLocaleString('id-ID') + ' baris disusun.';
-  } catch (e) {
-    st.className = 'err'; st.textContent = 'Gagal: ' + e.message;
-  } finally { $('btnLoad').disabled = false; }
-}
-
-function renderCards(s) {
-  const f = n => n.toLocaleString('id-ID');
-  $('cards').innerHTML =
-    '<div class="card"><div class="n">' + f(s.total) + '</div><div class="l">Total baris AM</div></div>' +
-    '<div class="card ok"><div class="n">' + f(s.sikk) + '</div><div class="l">Cocok via SIKK No</div></div>' +
-    '<div class="card"><div class="n">' + f(s.wo) + '</div><div class="l">Cocok via No WO</div></div>' +
-    '<div class="card bad"><div class="n">' + f(s.none) + '</div><div class="l">Tidak ketemu di SB AM</div></div>' +
-    '<div class="card warn"><div class="n">' + f(s.advMiss) + '</div><div class="l">Advisor tidak ada di Data SA</div></div>' +
-    '<div class="card"><div class="n">' + f(s.pFill) + '</div><div class="l">Kolom P terisi</div></div>';
-}
-
-function applyFilter() {
-  const q = norm($('q').value), fs = $('fSrc').value, fa = $('fAdv').value, fp = $('fP').value;
-  VIEW = OUT.filter(r => {
-    if (fs && r[16] !== fs) return false;
-    if (fa === 'MISS' && r[5]) return false;
-    if (fp === 'FILLED' && !r[15]) return false;
-    if (q && !r.some(x => norm(x).includes(q))) return false;
-    return true;
-  });
-  page = 0; draw();
-}
-
-function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
-
-function draw() {
-  const pages = Math.max(1, Math.ceil(VIEW.length / PAGE));
-  if (page >= pages) page = pages - 1;
-  const rows = VIEW.slice(page * PAGE, page * PAGE + PAGE);
-  let h = '<thead><tr>' + HEAD.map((t, i) => '<th' + (i === 15 ? ' class="p"' : '') + '>' + esc(t) + '</th>').join('') + '</tr></thead><tbody>';
-  for (const r of rows) {
-    h += '<tr>' + r.map((c, i) => {
-      if (i === 16) return '<td><span class="tag ' + (c === 'SIKK' ? 'sikk' : c === 'WO' ? 'wo' : 'none') + '">' +
-        (c === 'SIKK' ? 'SIKK No' : c === 'WO' ? 'No WO' : 'Tidak ketemu') + '</span></td>';
-      if (i === 5 && !c) return '<td class="miss">-</td>';
-      return '<td>' + esc(c) + '</td>';
-    }).join('') + '</tr>';
+/* ---------- Susun AM seperti SB ---------- */
+function build(d, br, sb, am, sa) {
+  const saH = sa[0];
+  const saCode = need(colIdx(saH, 'Advisor'), 'Advisor', SHEET_SA);
+  const saName = need(colIdx(saH, 'Nama Advisor'), 'Nama Advisor', SHEET_SA);
+  const saMap = new Map();
+  for (let i = 1; i < sa.length; i++) {
+    const k = norm(sa[i][saCode]); if (k && !saMap.has(k)) saMap.set(k, val(sa[i][saName]));
   }
-  $('tbl').innerHTML = h + '</tbody>';
-  $('pinfo').textContent = 'Halaman ' + (page + 1) + ' / ' + pages + '  (' + VIEW.length.toLocaleString('id-ID') + ' baris)';
-  $('prev').disabled = page === 0; $('next').disabled = page >= pages - 1;
+
+  const sbH = sb[0];
+  const T = {
+    tglWO: need(colIdx(sbH, 'TglWO'), 'TglWO', br.sb),
+    wo: need(colIdx(sbH, 'No WO'), 'No WO', br.sb),
+    sikkTgl: need(colIdx(sbH, 'SIKK Tgl'), 'SIKK Tgl', br.sb),
+    sikkNo: need(colIdx(sbH, 'SIKK No'), 'SIKK No', br.sb),
+    ket: need(colIdx(sbH, 'Keterangan'), 'Keterangan', br.sb),
+    fisik: need(colIdx(sbH, 'Fisik SIKK'), 'Fisik SIKK', br.sb),
+    keluar: need(colStarts(sbH, 'Tgl Keluar'), 'Tgl Keluar', br.sb),
+    namaAdv: colIdx(sbH, 'Nama Advisor')
+  };
+  T.p = T.keluar + 1;   // kolom P (tanpa judul) = kolom setelah Tgl Keluar
+
+  const sikk1 = new Map(), sikk2 = new Map(), wo1 = new Map(), wo2 = new Map();
+  for (let i = 1; i < sb.length; i++) {
+    const r = sb[i];
+    const sn = val(r[T.sikkNo]), wn = val(r[T.wo]);
+    if (sn) {
+      if (!sikk1.has(sn)) sikk1.set(sn, r);
+      const k2 = sn + '|' + dateOf(r[T.sikkTgl]); if (!sikk2.has(k2)) sikk2.set(k2, r);
+    }
+    if (wn) {
+      if (!wo1.has(wn)) wo1.set(wn, r);
+      const k2 = wn + '|' + val(r[T.tglWO]); if (!wo2.has(k2)) wo2.set(k2, r);
+    }
+  }
+
+  const amH = am[0];
+  const A = {
+    no: colIdx(amH, 'No'),
+    tglWO: need(colIdx(amH, 'TglWO'), 'TglWO', br.am),
+    pol: need(colIdx(amH, 'NoPolisi'), 'NoPolisi', br.am),
+    wo: need(colIdx(amH, 'No WO'), 'No WO', br.am),
+    adv: need(colIdx(amH, 'Advisor'), 'Advisor', br.am),
+    nama: need(colIdx(amH, 'Nama'), 'Nama', br.am),
+    sikkTgl: need(colIdx(amH, 'SIKK Tgl'), 'SIKK Tgl', br.am),
+    sikkNo: need(colIdx(amH, 'SIKK No'), 'SIKK No', br.am),
+    out: need(colIdx(amH, 'Vhc Out'), 'Vhc Out', br.am),
+    sat: need(colIdx(amH, 'Satpam'), 'Satpam', br.am),
+    op: need(colIdx(amH, 'Operator'), 'Operator', br.am)
+  };
+
+  const pHead = val(sbH[T.p]) || 'Kolom P';
+  const head = ['No', 'TglWO', 'NoPolisi', 'No WO', 'Advisor', 'Nama Advisor', 'Nama',
+    'SIKK Tgl', 'SIKK No', 'Vhc Out', 'Satpam', 'Operator',
+    val(sbH[T.ket]), val(sbH[T.fisik]), val(sbH[T.keluar]), pHead, 'Sumber'];
+
+  const out = [];
+  const stat = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0, years: {}, latest: null };
+  for (let i = 1; i < am.length; i++) {
+    const r = am[i];
+    if (r.every(x => val(x) === '')) continue;
+    const sn = val(r[A.sikkNo]), wn = val(r[A.wo]);
+    let m = null, src = 'NONE';
+    if (sn) {
+      m = sikk2.get(sn + '|' + dateOf(r[A.sikkTgl])) || sikk1.get(sn);
+      if (m) src = 'SIKK';
+    }
+    if (!m && wn) {
+      m = wo2.get(wn + '|' + val(r[A.tglWO])) || wo1.get(wn);
+      if (m) src = 'WO';
+    }
+    const adv = val(r[A.adv]);
+    let advName = saMap.get(norm(adv)) || '';
+    if (!advName && m && T.namaAdv >= 0) advName = val(m[T.namaAdv]);   // cadangan: dari SB bila tidak ada di Data SA
+    const row = [
+      A.no >= 0 ? val(r[A.no]) : String(out.length + 1),
+      val(r[A.tglWO]), val(r[A.pol]), wn, adv, advName, val(r[A.nama]),
+      val(r[A.sikkTgl]), sn, val(r[A.out]), val(r[A.sat]), val(r[A.op]),
+      m ? val(m[T.ket]) : '', m ? val(m[T.fisik]) : '', m ? val(m[T.keluar]) : '', m ? val(m[T.p]) : '',
+      src
+    ];
+    out.push(row);
+    stat.total++;
+    if (src === 'SIKK') stat.sikk++; else if (src === 'WO') stat.wo++; else stat.none++;
+    if (!advName) stat.advMiss++;
+    if (row[15]) stat.pFill++;
+    const dt = dmy(r[A.tglWO]);
+    if (dt) stat.years[dt.y] = (stat.years[dt.y] || 0) + 1;
+    const ds = dmy(r[A.sikkTgl]) || dt;
+    if (ds) {
+      const t = Date.UTC(ds.y, ds.m - 1, ds.d);
+      if (!stat.latest || t > stat.latest.t) stat.latest = { t, d: ds.d, m: ds.m, y: ds.y };
+    }
+  }
+  d.sb = sb; d.am = am; d.sa = sa; d.out = out; d.head = head; d.stat = stat;
+}
+
+async function loadBranch(key) {
+  if (S.loading) return;
+  S.loading = true; render();
+  const br = BR.find(b => b.key === key);
+  const d = S.data[key] || (S.data[key] = {});
+  const res = await Promise.allSettled([br.sb, br.am, SHEET_SA].map(readSheet));
+  d.synced = res.filter(r => r.status === 'fulfilled').length; d.n = 3;
+  d.names = [br.sb, br.am, SHEET_SA];
+  if (d.synced < 3) {
+    d.err = res.find(r => r.status === 'rejected').reason.message;
+  } else {
+    await new Promise(r => setTimeout(r, 20));
+    try { build(d, br, res[0].value, res[1].value, res[2].value); d.err = ''; d.at = new Date(); }
+    catch (e) { d.err = e.message; }
+  }
+  S.loading = false; render();
+}
+
+/* ---------- Tampilan ---------- */
+function curView() {
+  const d = S.data[S.cur];
+  if (!d || !d.out) return { head: [], rows: [] };
+  if (S.tab === 'out') return { head: d.head, rows: d.out };
+  const src = S.tab === 'sb' ? d.sb : S.tab === 'am' ? d.am : d.sa;
+  return { head: src[0].map(val), rows: src.slice(1).filter(r => r.some(x => val(x) !== '')) };
+}
+function filtered() {
+  const v = curView();
+  const q = norm($('q').value);
+  let rows = v.rows;
+  if (S.tab === 'out') {
+    const fs = $('fSrc').value, fa = $('fAdv').value, fp = $('fP').value;
+    if (fs || fa || fp) rows = rows.filter(r => {
+      if (fs && r[16] !== fs) return false;
+      if (fa === 'MISS' && r[5]) return false;
+      if (fp === 'FILLED' && !r[15]) return false;
+      return true;
+    });
+  }
+  if (q) rows = rows.filter(r => r.join(' ').toLowerCase().includes(q));
+  return { head: v.head, rows };
+}
+
+function render() {
+  const br = BR.find(b => b.key === S.cur);
+  const d = S.data[S.cur] || {};
+  const hasData = !!d.out;
+
+  $('nav').innerHTML = BR.map(b => '<button data-k="' + b.key + '" class="' + (b.key === S.cur ? 'on' : '') + '">' + esc(b.name) + '</button>').join('');
+  $('title').textContent = 'SIKK ' + br.name;
+  $('btnRefresh').disabled = S.loading;
+
+  // status live
+  const dot = $('dot');
+  if (S.loading) {
+    dot.className = 'dot load'; $('liveTxt').textContent = 'Memuat data dari Google Sheet...';
+  } else if (d.err) {
+    dot.className = 'dot bad';
+    $('liveTxt').innerHTML = '<b>Gagal</b> · ' + fnum(d.synced || 0) + ' dari ' + (d.n || 3) + ' sheet tersinkron';
+  } else if (d.at) {
+    dot.className = 'dot';
+    const a = d.at;
+    $('liveTxt').innerHTML = '<b>Live</b> · <b>' + (d.synced) + ' dari ' + d.n + ' sheet</b> tersinkron <b>' +
+      a.getDate() + ' ' + MONTHS[a.getMonth()] + ' ' + a.getFullYear() + ', ' + pad(a.getHours()) + ':' + pad(a.getMinutes()) +
+      '</b> · otomatis tiap 2 menit';
+  }
+
+  if (hasData) {
+    const s = d.stat;
+    $('per').textContent = s.latest ? 'Data SIKK terakhir : ' + pad(s.latest.d) + '-' + MONTHS[s.latest.m - 1] + '-' + s.latest.y : '';
+    $('src').textContent = 'Sumber: sheet ' + br.sb + ' (' + fnum(d.sb.length - 1) + ' baris), ' + br.am + ' (' + fnum(d.am.length - 1) + ' baris) dan ' + SHEET_SA + ' (' + fnum(d.sa.length - 1) + ' baris)';
+  } else { $('per').textContent = ''; $('src').textContent = ''; }
+
+  // banner
+  const al = $('alert');
+  if (d.err) {
+    al.hidden = false; al.className = 'alert err';
+    al.textContent = 'Data belum bisa dibaca: ' + d.err;
+  } else if (hasData) {
+    const s = d.stat; al.hidden = false;
+    if (s.none > 0) {
+      al.className = 'alert';
+      al.innerHTML = 'Hasil cek: ' + fnum(s.none) + ' dari ' + fnum(s.total) + ' baris ' + esc(br.am) + ' tidak ketemu di ' + esc(br.sb) +
+        '. <a href="#" id="alertGo">Lihat baris yang tidak ketemu</a>.';
+    } else {
+      al.className = 'alert ok';
+      al.textContent = 'Hasil cek: semua ' + fnum(s.total) + ' baris ' + br.am + ' ketemu di ' + br.sb + '.';
+    }
+  } else al.hidden = true;
+
+  // kartu
+  const kp = $('kpis');
+  if (hasData) {
+    const s = d.stat;
+    const pct = n => s.total ? (Math.round(n * 1000 / s.total) / 10).toLocaleString('id-ID') + '% dari total' : '';
+    const yrs = Object.keys(s.years).sort().map(y => '<b>' + y + '</b> <span>' + fnum(s.years[y]) + '</span>').join(' <span>·</span> ');
+    kp.hidden = false;
+    kp.innerHTML =
+      '<div class="k big"><div class="lab">Total seluruh baris ' + esc(br.am) + '</div>' +
+        '<div class="num">' + fnum(s.total) + '</div>' +
+        '<div class="sub"><b>' + fnum(s.sikk + s.wo) + '</b> ketemu di ' + esc(br.sb) + ', <b>' + fnum(s.none) + '</b> tidak ketemu<br>' + yrs + '</div></div>' +
+      '<div class="k"><div class="lab"><i style="background:var(--green)"></i>Cocok via SIKK No</div>' +
+        '<div class="num">' + fnum(s.sikk) + ' <small>baris</small></div><div class="sub">' + pct(s.sikk) + '</div></div>' +
+      '<div class="k"><div class="lab"><i style="background:var(--blue)"></i>Cocok via No WO</div>' +
+        '<div class="num">' + fnum(s.wo) + ' <small>baris</small></div><div class="sub">SIKK No kosong atau tidak cocok</div></div>' +
+      '<div class="k' + (s.none ? ' red' : '') + '"><div class="lab"><i style="background:var(--red)"></i>Tidak ketemu di ' + esc(br.sb) + '</div>' +
+        '<div class="num">' + fnum(s.none) + ' <small>baris</small></div><div class="sub">tidak ada catatan SIKK/WO di ' + esc(br.sb) + '</div></div>' +
+      '<div class="k' + (s.advMiss ? ' org' : '') + '"><div class="lab"><i style="background:#c2410c"></i>Nama Advisor kosong</div>' +
+        '<div class="num">' + fnum(s.advMiss) + ' <small>baris</small></div><div class="sub">kode advisor belum ada di ' + SHEET_SA + '</div></div>';
+  } else kp.hidden = true;
+
+  // tab sheet
+  const pl = $('pills');
+  if (hasData) {
+    const cnt = a => fnum(a.length - 1);
+    const tabs = [
+      ['out', br.am + ' Tersusun (' + fnum(d.out.length) + ')'],
+      ['sb', br.sb + ' (' + cnt(d.sb) + ')'],
+      ['am', br.am + ' (' + cnt(d.am) + ')'],
+      ['sa', SHEET_SA + ' (' + cnt(d.sa) + ')']
+    ];
+    pl.innerHTML = tabs.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + esc(t[1]) + '</button>').join('');
+  } else pl.innerHTML = '';
+
+  $('tools').hidden = !hasData;
+  const isOut = S.tab === 'out';
+  ['fSrc', 'fAdv', 'fP'].forEach(id => { $(id).style.display = isOut ? '' : 'none'; });
+  $('btnCsv').disabled = !hasData;
+
+  if (hasData) {
+    const v = filtered();
+    const pages = Math.max(1, Math.ceil(v.rows.length / PAGE));
+    if (S.page >= pages) S.page = pages - 1;
+    const rows = v.rows.slice(S.page * PAGE, S.page * PAGE + PAGE);
+    let h = '<thead><tr>' + v.head.map((t, i) => '<th' + (isOut && i === 15 ? ' class="p"' : '') + '>' + esc(t) + '</th>').join('') + '</tr></thead><tbody>';
+    for (const r of rows) {
+      h += '<tr>';
+      for (let i = 0; i < v.head.length; i++) {
+        const c = r[i] == null ? '' : r[i];
+        if (isOut && i === 16) h += '<td><span class="tag ' + (c === 'SIKK' ? 'sikk' : c === 'WO' ? 'wo' : 'none') + '">' +
+          (c === 'SIKK' ? 'SIKK No' : c === 'WO' ? 'No WO' : 'Tidak ketemu') + '</span></td>';
+        else if (isOut && i === 5 && !c) h += '<td class="miss">-</td>';
+        else h += '<td>' + esc(c) + '</td>';
+      }
+      h += '</tr>';
+    }
+    h += '</tbody>';
+    $('tbl').innerHTML = h;
+    $('tblWrap').hidden = false;
+    $('pager').hidden = false;
+    $('pinfo').textContent = 'Halaman ' + (S.page + 1) + ' / ' + pages + '  (' + fnum(v.rows.length) + ' baris)';
+    $('prev').disabled = S.page === 0; $('next').disabled = S.page >= pages - 1;
+    $('note').textContent = isOut
+      ? 'AM Tersusun: jika SIKK No terisi, kolom Keterangan, Fisik SIKK, Tgl Keluar dan kolom P dibaca dari ' + br.sb + ' dengan SIKK No yang sama. Jika SIKK No kosong atau tidak cocok, dibaca dari ' + br.sb + ' dengan No WO yang sama. Nama Advisor dibaca dari ' + SHEET_SA + '. Bila nomor yang sama berulang, pencocokan memakai tanggalnya juga.'
+      : 'Menampilkan isi sheet "' + (S.tab === 'sb' ? br.sb : S.tab === 'am' ? br.am : SHEET_SA) + '" apa adanya.';
+  } else {
+    $('tblWrap').hidden = true; $('pager').hidden = true; $('note').textContent = '';
+  }
 }
 
 function downloadCSV() {
+  const v = filtered();
+  const cut = S.tab === 'out' ? v.head.length - 1 : v.head.length;   // kolom Sumber tidak ikut
   const cell = s => { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
-  const head = HEAD.slice(0, 16);
-  const lines = [head.map(cell).join(',')].concat(VIEW.map(r => r.slice(0, 16).map(cell).join(',')));
-  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const lines = [v.head.slice(0, cut).map(cell).join(',')].concat(v.rows.map(r => {
+    const a = []; for (let i = 0; i < cut; i++) a.push(cell(r[i])); return a.join(',');
+  }));
+  const blob = new Blob(['﻿' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
   const a = document.createElement('a');
-  a.href = URL.createObjectURL(blob); a.download = 'AM_tersusun.csv';
+  a.href = URL.createObjectURL(blob);
+  a.download = 'SIKK_' + S.cur + '_' + S.tab + '.csv';
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(() => URL.revokeObjectURL(a.href), 2000);
 }
 
-$('btnLoad').onclick = run;
+/* ---------- Event ---------- */
+$('nav').addEventListener('click', e => {
+  const b = e.target.closest('button[data-k]'); if (!b) return;
+  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0;
+  $('q').value = ''; $('fSrc').value = ''; $('fAdv').value = ''; $('fP').value = '';
+  render();
+  if (!S.data[S.cur] || !S.data[S.cur].out) loadBranch(S.cur);
+});
+$('pills').addEventListener('click', e => {
+  const b = e.target.closest('button[data-t]'); if (!b) return;
+  S.tab = b.dataset.t; S.page = 0; render();
+});
+$('alert').addEventListener('click', e => {
+  if (e.target.id !== 'alertGo') return;
+  e.preventDefault(); S.tab = 'out'; S.page = 0; $('fSrc').value = 'NONE'; render();
+});
+$('btnRefresh').onclick = () => loadBranch(S.cur);
 $('btnCsv').onclick = downloadCSV;
-$('prev').onclick = () => { page--; draw(); };
-$('next').onclick = () => { page++; draw(); };
-['q', 'fSrc', 'fAdv', 'fP'].forEach(id => $(id).addEventListener(id === 'q' ? 'input' : 'change', applyFilter));
+$('prev').onclick = () => { S.page--; render(); };
+$('next').onclick = () => { S.page++; render(); };
+let qt = null;
+$('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() => { S.page = 0; render(); }, 180); });
+['fSrc', 'fAdv', 'fP'].forEach(id => $(id).addEventListener('change', () => { S.page = 0; render(); }));
+
+render();
+loadBranch(S.cur);                                               // baca otomatis saat dibuka
+setInterval(() => { if (!S.loading) loadBranch(S.cur); }, REFRESH_MS);   // perbarui otomatis tiap 2 menit
 </script>
 </body>
 </html>
