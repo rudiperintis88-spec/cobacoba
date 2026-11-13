@@ -1,0 +1,307 @@
+<!doctype html>
+<html lang="id">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Susun AM SIKK</title>
+<style>
+  :root{--bg:#f4f6f9;--card:#fff;--ink:#1c2430;--muted:#6b7686;--line:#dfe4ec;--accent:#1f5fbf;--ok:#177a3c;--warn:#b26a00;--bad:#b3261e}
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
+  header{padding:18px 20px 6px}
+  h1{margin:0;font-size:20px}
+  .sub{color:var(--muted);margin-top:2px;font-size:13px}
+  .wrap{padding:12px 20px 40px}
+  .bar{display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin:10px 0}
+  button,select,input{font:inherit;padding:7px 10px;border:1px solid var(--line);border-radius:8px;background:#fff;color:var(--ink)}
+  button{cursor:pointer}
+  button.primary{background:var(--accent);border-color:var(--accent);color:#fff}
+  button:disabled{opacity:.5;cursor:default}
+  input[type=search]{min-width:240px}
+  .cards{display:grid;grid-template-columns:repeat(auto-fit,minmax(150px,1fr));gap:10px;margin:12px 0}
+  .card{background:var(--card);border:1px solid var(--line);border-radius:10px;padding:10px 12px}
+  .card .n{font-size:22px;font-weight:650}
+  .card .l{color:var(--muted);font-size:12px}
+  .card.ok .n{color:var(--ok)} .card.warn .n{color:var(--warn)} .card.bad .n{color:var(--bad)}
+  #status{color:var(--muted);font-size:13px}
+  #status.err{color:var(--bad)}
+  .tbl{background:var(--card);border:1px solid var(--line);border-radius:10px;overflow:auto;max-height:68vh}
+  table{border-collapse:collapse;width:100%;white-space:nowrap}
+  th,td{padding:6px 10px;border-bottom:1px solid var(--line);text-align:left;font-size:12.5px}
+  th{position:sticky;top:0;background:#eef2f8;z-index:1}
+  th.p{background:#fff3d6}
+  tr:hover td{background:#f8fafd}
+  .tag{display:inline-block;padding:1px 8px;border-radius:99px;font-size:11.5px;border:1px solid}
+  .tag.sikk{color:var(--ok);border-color:#a9d8b8;background:#eaf7ee}
+  .tag.wo{color:var(--accent);border-color:#b4cdf0;background:#edf3fc}
+  .tag.none{color:var(--bad);border-color:#efb5b1;background:#fdeeed}
+  .miss{color:var(--bad)}
+  .pager{display:flex;gap:8px;align-items:center;margin-top:10px}
+  .note{color:var(--muted);font-size:12px;margin-top:10px;max-width:900px}
+</style>
+</head>
+<body>
+<header>
+  <h1>Susun Sheet AM seperti SB AM</h1>
+  <div class="sub">Sumber: Google Sheet "SIKK Group" (sheet AM, SB AM, Data SA)</div>
+</header>
+<div class="wrap">
+  <div class="bar">
+    <button id="btnLoad" class="primary">Baca &amp; Susun Data</button>
+    <button id="btnCsv" disabled>Unduh CSV</button>
+    <span id="status">Klik "Baca &amp; Susun Data" untuk memulai.</span>
+  </div>
+
+  <div class="cards" id="cards" hidden></div>
+
+  <div class="bar" id="filters" hidden>
+    <input type="search" id="q" placeholder="Cari no polisi, nama, no WO, no SIKK...">
+    <select id="fSrc">
+      <option value="">Semua sumber</option>
+      <option value="SIKK">Cocok SIKK No</option>
+      <option value="WO">Cocok No WO</option>
+      <option value="NONE">Tidak ketemu di SB AM</option>
+    </select>
+    <select id="fAdv">
+      <option value="">Semua advisor</option>
+      <option value="MISS">Nama Advisor kosong</option>
+    </select>
+    <select id="fP">
+      <option value="">Kolom P: semua</option>
+      <option value="FILLED">Kolom P terisi</option>
+    </select>
+  </div>
+
+  <div class="tbl" id="tblWrap" hidden><table id="tbl"></table></div>
+  <div class="pager" id="pager" hidden>
+    <button id="prev">&laquo; Sebelumnya</button>
+    <span id="pinfo"></span>
+    <button id="next">Berikutnya &raquo;</button>
+  </div>
+
+  <div class="note">
+    Aturan: jika SIKK No terisi, kolom Keterangan, Fisik SIKK, Tgl Keluar dan kolom P dibaca dari baris SB AM dengan SIKK No yang sama.
+    Jika SIKK No kosong (atau tidak ketemu), dibaca dari baris SB AM dengan No WO yang sama. Nama Advisor dibaca dari sheet Data SA berdasarkan kode Advisor.
+    Bila nomor yang sama muncul berulang di SB AM, pencocokan memakai tanggalnya juga (SIKK Tgl atau TglWO). Kolom P ikut diisi bila di SB AM ada isinya.
+    Sheet harus bisa dibuka oleh siapa saja yang punya link agar data dapat dibaca.
+  </div>
+</div>
+
+<script>
+const FILE_ID = '1D9Hu8RNqkWMa6uJ9EZ0OT4K8eTfh46O32_ttXh3u2to';
+const sheetUrl = n => 'https://docs.google.com/spreadsheets/d/' + FILE_ID +
+  '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(n);
+
+const $ = id => document.getElementById(id);
+const norm = s => String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
+const val = s => String(s == null ? '' : s).trim();
+
+function parseCSV(text) {
+  const rows = []; let row = [], f = '', q = false;
+  for (let i = 0; i < text.length; i++) {
+    const c = text[i];
+    if (q) {
+      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
+      else f += c;
+    } else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
+    else if (c === '\r') { /* skip */ }
+    else f += c;
+  }
+  if (f !== '' || row.length) { row.push(f); rows.push(row); }
+  return rows;
+}
+
+async function readSheet(name) {
+  const r = await fetch(sheetUrl(name));
+  if (!r.ok) throw new Error('Sheet "' + name + '" gagal dibaca (HTTP ' + r.status + ')');
+  const t = await r.text();
+  if (t.trim().startsWith('<')) throw new Error('Sheet "' + name + '" tidak bisa dibaca. Pastikan file dibagikan "Siapa saja yang memiliki link".');
+  return parseCSV(t);
+}
+
+function colIdx(header, ...names) {
+  const h = header.map(norm);
+  for (const n of names) { const i = h.indexOf(norm(n)); if (i >= 0) return i; }
+  return -1;
+}
+function colStarts(header, prefix) {
+  const h = header.map(norm);
+  return h.findIndex(x => x.startsWith(norm(prefix)));
+}
+function need(i, nm, sh) { if (i < 0) throw new Error('Kolom "' + nm + '" tidak ditemukan di sheet ' + sh); return i; }
+
+let OUT = [], VIEW = [], HEAD = [], page = 0;
+const PAGE = 100;
+
+async function run() {
+  $('btnLoad').disabled = true; $('btnCsv').disabled = true;
+  const st = $('status'); st.className = '';
+  try {
+    st.textContent = 'Membaca sheet AM, SB AM dan Data SA...';
+    const [am, sb, sa] = await Promise.all([readSheet('AM'), readSheet('SB AM'), readSheet('Data SA')]);
+    st.textContent = 'Menyusun data...';
+    await new Promise(r => setTimeout(r, 30));
+
+    // Data SA (baca berdasarkan judul kolom)
+    const saH = sa[0];
+    const saCode = need(colIdx(saH, 'Advisor'), 'Advisor', 'Data SA');
+    const saName = need(colIdx(saH, 'Nama Advisor'), 'Nama Advisor', 'Data SA');
+    const saMap = new Map();
+    for (let i = 1; i < sa.length; i++) {
+      const k = norm(sa[i][saCode]); if (k && !saMap.has(k)) saMap.set(k, val(sa[i][saName]));
+    }
+
+    // SB AM
+    const sbH = sb[0];
+    const S = {
+      tglWO: need(colIdx(sbH, 'TglWO'), 'TglWO', 'SB AM'),
+      wo: need(colIdx(sbH, 'No WO'), 'No WO', 'SB AM'),
+      sikkTgl: need(colIdx(sbH, 'SIKK Tgl'), 'SIKK Tgl', 'SB AM'),
+      sikkNo: need(colIdx(sbH, 'SIKK No'), 'SIKK No', 'SB AM'),
+      ket: need(colIdx(sbH, 'Keterangan'), 'Keterangan', 'SB AM'),
+      fisik: need(colIdx(sbH, 'Fisik SIKK'), 'Fisik SIKK', 'SB AM'),
+      keluar: need(colStarts(sbH, 'Tgl Keluar'), 'Tgl Keluar', 'SB AM')
+    };
+    S.p = S.keluar + 1;   // kolom P (tanpa judul) = kolom setelah Tgl Keluar
+    const dateOf = s => val(s).split(' ')[0];
+
+    const sikk1 = new Map(), sikk2 = new Map(), wo1 = new Map(), wo2 = new Map();
+    for (let i = 1; i < sb.length; i++) {
+      const r = sb[i];
+      const sn = val(r[S.sikkNo]), wn = val(r[S.wo]);
+      if (sn) {
+        if (!sikk1.has(sn)) sikk1.set(sn, r);
+        const k2 = sn + '|' + dateOf(r[S.sikkTgl]); if (!sikk2.has(k2)) sikk2.set(k2, r);
+      }
+      if (wn) {
+        if (!wo1.has(wn)) wo1.set(wn, r);
+        const k2 = wn + '|' + val(r[S.tglWO]); if (!wo2.has(k2)) wo2.set(k2, r);
+      }
+    }
+
+    // AM (baca berdasarkan judul kolom)
+    const amH = am[0];
+    const A = {
+      no: colIdx(amH, 'No'),
+      tglWO: need(colIdx(amH, 'TglWO'), 'TglWO', 'AM'),
+      pol: need(colIdx(amH, 'NoPolisi'), 'NoPolisi', 'AM'),
+      wo: need(colIdx(amH, 'No WO'), 'No WO', 'AM'),
+      adv: need(colIdx(amH, 'Advisor'), 'Advisor', 'AM'),
+      nama: need(colIdx(amH, 'Nama'), 'Nama', 'AM'),
+      sikkTgl: need(colIdx(amH, 'SIKK Tgl'), 'SIKK Tgl', 'AM'),
+      sikkNo: need(colIdx(amH, 'SIKK No'), 'SIKK No', 'AM'),
+      out: need(colIdx(amH, 'Vhc Out'), 'Vhc Out', 'AM'),
+      sat: need(colIdx(amH, 'Satpam'), 'Satpam', 'AM'),
+      op: need(colIdx(amH, 'Operator'), 'Operator', 'AM')
+    };
+
+    const pHead = val(sbH[S.p]) || 'Kolom P';
+    HEAD = ['No', 'TglWO', 'NoPolisi', 'No WO', 'Advisor', 'Nama Advisor', 'Nama',
+      'SIKK Tgl', 'SIKK No', 'Vhc Out', 'Satpam', 'Operator',
+      val(sbH[S.ket]), val(sbH[S.fisik]), val(sbH[S.keluar]), pHead, 'Sumber'];
+
+    OUT = [];
+    const stat = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0 };
+    for (let i = 1; i < am.length; i++) {
+      const r = am[i];
+      if (r.every(x => val(x) === '')) continue;
+      const sn = val(r[A.sikkNo]), wn = val(r[A.wo]);
+      let m = null, src = 'NONE';
+      if (sn) {
+        m = sikk2.get(sn + '|' + dateOf(r[A.sikkTgl])) || sikk1.get(sn);
+        if (m) src = 'SIKK';
+      }
+      if (!m && wn) {
+        m = wo2.get(wn + '|' + val(r[A.tglWO])) || wo1.get(wn);
+        if (m) src = 'WO';
+      }
+      const adv = val(r[A.adv]);
+      const advName = saMap.get(norm(adv)) || '';
+      const row = [
+        A.no >= 0 ? val(r[A.no]) : String(OUT.length + 1),
+        val(r[A.tglWO]), val(r[A.pol]), wn, adv, advName, val(r[A.nama]),
+        val(r[A.sikkTgl]), sn, val(r[A.out]), val(r[A.sat]), val(r[A.op]),
+        m ? val(m[S.ket]) : '', m ? val(m[S.fisik]) : '', m ? val(m[S.keluar]) : '', m ? val(m[S.p]) : '',
+        src
+      ];
+      OUT.push(row);
+      stat.total++;
+      if (src === 'SIKK') stat.sikk++; else if (src === 'WO') stat.wo++; else stat.none++;
+      if (!advName) stat.advMiss++;
+      if (row[15]) stat.pFill++;
+    }
+    renderCards(stat);
+    $('cards').hidden = false; $('filters').hidden = false;
+    $('tblWrap').hidden = false; $('pager').hidden = false;
+    applyFilter();
+    $('btnCsv').disabled = false;
+    st.textContent = 'Selesai: ' + stat.total.toLocaleString('id-ID') + ' baris disusun.';
+  } catch (e) {
+    st.className = 'err'; st.textContent = 'Gagal: ' + e.message;
+  } finally { $('btnLoad').disabled = false; }
+}
+
+function renderCards(s) {
+  const f = n => n.toLocaleString('id-ID');
+  $('cards').innerHTML =
+    '<div class="card"><div class="n">' + f(s.total) + '</div><div class="l">Total baris AM</div></div>' +
+    '<div class="card ok"><div class="n">' + f(s.sikk) + '</div><div class="l">Cocok via SIKK No</div></div>' +
+    '<div class="card"><div class="n">' + f(s.wo) + '</div><div class="l">Cocok via No WO</div></div>' +
+    '<div class="card bad"><div class="n">' + f(s.none) + '</div><div class="l">Tidak ketemu di SB AM</div></div>' +
+    '<div class="card warn"><div class="n">' + f(s.advMiss) + '</div><div class="l">Advisor tidak ada di Data SA</div></div>' +
+    '<div class="card"><div class="n">' + f(s.pFill) + '</div><div class="l">Kolom P terisi</div></div>';
+}
+
+function applyFilter() {
+  const q = norm($('q').value), fs = $('fSrc').value, fa = $('fAdv').value, fp = $('fP').value;
+  VIEW = OUT.filter(r => {
+    if (fs && r[16] !== fs) return false;
+    if (fa === 'MISS' && r[5]) return false;
+    if (fp === 'FILLED' && !r[15]) return false;
+    if (q && !r.some(x => norm(x).includes(q))) return false;
+    return true;
+  });
+  page = 0; draw();
+}
+
+function esc(s) { return String(s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+
+function draw() {
+  const pages = Math.max(1, Math.ceil(VIEW.length / PAGE));
+  if (page >= pages) page = pages - 1;
+  const rows = VIEW.slice(page * PAGE, page * PAGE + PAGE);
+  let h = '<thead><tr>' + HEAD.map((t, i) => '<th' + (i === 15 ? ' class="p"' : '') + '>' + esc(t) + '</th>').join('') + '</tr></thead><tbody>';
+  for (const r of rows) {
+    h += '<tr>' + r.map((c, i) => {
+      if (i === 16) return '<td><span class="tag ' + (c === 'SIKK' ? 'sikk' : c === 'WO' ? 'wo' : 'none') + '">' +
+        (c === 'SIKK' ? 'SIKK No' : c === 'WO' ? 'No WO' : 'Tidak ketemu') + '</span></td>';
+      if (i === 5 && !c) return '<td class="miss">-</td>';
+      return '<td>' + esc(c) + '</td>';
+    }).join('') + '</tr>';
+  }
+  $('tbl').innerHTML = h + '</tbody>';
+  $('pinfo').textContent = 'Halaman ' + (page + 1) + ' / ' + pages + '  (' + VIEW.length.toLocaleString('id-ID') + ' baris)';
+  $('prev').disabled = page === 0; $('next').disabled = page >= pages - 1;
+}
+
+function downloadCSV() {
+  const cell = s => { s = String(s == null ? '' : s); return /[",\n]/.test(s) ? '"' + s.replace(/"/g, '""') + '"' : s; };
+  const head = HEAD.slice(0, 16);
+  const lines = [head.map(cell).join(',')].concat(VIEW.map(r => r.slice(0, 16).map(cell).join(',')));
+  const blob = new Blob(['\ufeff' + lines.join('\r\n')], { type: 'text/csv;charset=utf-8' });
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob); a.download = 'AM_tersusun.csv';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+}
+
+$('btnLoad').onclick = run;
+$('btnCsv').onclick = downloadCSV;
+$('prev').onclick = () => { page--; draw(); };
+$('next').onclick = () => { page++; draw(); };
+['q', 'fSrc', 'fAdv', 'fP'].forEach(id => $(id).addEventListener(id === 'q' ? 'input' : 'change', applyFilter));
+</script>
+</body>
+</html>
