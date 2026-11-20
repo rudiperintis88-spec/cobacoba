@@ -106,6 +106,14 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
   <div class="pw"><input id="sandi" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button type="button" id="mata" class="mata" aria-label="Tampilkan password"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
   <button type="button" id="masuk" class="btn-soft">Masuk</button>
   <p id="galat" class="err" role="alert"></p>
+  <div id="kodebox" hidden style="margin-top:10px;padding:12px;border:1px solid #d0d5dd;border-radius:10px;text-align:center">
+    <div style="font-size:12px;opacity:.7">Kode perangkat</div>
+    <div id="kodeteks" style="font:700 22px/1.4 ui-monospace,Menlo,Consolas,monospace;letter-spacing:1px"></div>
+    <div style="margin-top:8px;display:flex;gap:8px;justify-content:center;flex-wrap:wrap">
+      <button type="button" id="kodesalin" style="padding:8px 14px">Salin kode</button>
+      <a id="kodewa" target="_blank" rel="noopener" style="padding:8px 14px;border:1px solid #d0d5dd;border-radius:6px;text-decoration:none;color:inherit">Kirim lewat WhatsApp</a>
+    </div>
+  </div>
 </section>
 
 <div id="app" hidden>
@@ -470,9 +478,11 @@ var AKUN = [
   /* master khusus KM Serba Jaya: semua trip, Laporan Gaji + Laba Rugi, Export PDF (hanya kapal ini) */
   { master: true,  kapal: 'b', s: '0c6dfadae0aba87036dac9193d689a03', h: '03f4921ce4bd826384f0947f50e361e360e5441095d5aa369df61b81da24035c' }
 ];
-/* Skrip Google (Apps Script, file Kode.gs): mengurus persetujuan perangkat (email SETUJUI/TOLAK ke admin)
-   dan mencatat login beserta lokasinya. */
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBeWA7lJpaVMNIPEyEut-UAcujJyDV48r89eIsuDjziaqHKmt3KqncLgIBAkJLa9A7/exec';   // tempel URL Web app (berakhiran /exec) dari Apps Script di sini
+/* Izin perangkat TANPA skrip: sheet "Perangkat" di spreadsheet akses dipublikasikan ke web (CSV) dan dibaca halaman ini.
+   Kolom A = Kode Perangkat, B = Status (disetujui / ditolak), C = catatan/nama. Isi URL_IZIN dengan link CSV hasil
+   File > Bagikan > Publikasikan ke web. Pencatatan riwayat lewat skrip dimatikan (APPS_SCRIPT_URL kosong). */
+var URL_IZIN = 'https://docs.google.com/spreadsheets/d/e/2PACX-1vRKVBYa8VDVh-flLVqCsw2_Vxf6ycaEKLaNZtKCVPctpZy6KZZFtFHSA1X_Pq3cJKgVYNalPBIpSJyN/pub?gid=592641685&single=true&output=csv';
+var APPS_SCRIPT_URL = '';
 /* Trip yang dibuka untuk password biasa. Trip lain tidak tampil.
    Untuk membuka trip berikutnya, ganti nilainya (mis. 'TRIP 76' -> 'TRIP 77'),
    maka trip lama otomatis tertutup. Password master tetap melihat semua trip + Export. */
@@ -502,17 +512,48 @@ function idPerangkat() {
   } catch (e) { return 'no-storage-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
 }
 function namaKapal() { return kapalBoleh ? (kapalBoleh === 'a' ? 'KM Bintang Laut' : 'KM Serba Jaya') : 'Semua kapal (master)'; }
-/* Tanya skrip: approved / pending / rejected. Perangkat baru otomatis didaftarkan dan emailnya terkirim ke admin. */
+/* Kode perangkat = sidik jari SHA-256 dari ID acak perangkat (aman dipublikasikan; ID aslinya tidak bisa ditebak). */
+var kodeSaya = '';
+function kodePerangkat() {
+  return crypto.subtle.digest('SHA-256', new TextEncoder().encode('pp:' + idPerangkat())).then(function (b) {
+    var h = heks(b).slice(0, 12).toUpperCase();
+    return kodeSaya = h.slice(0, 4) + '-' + h.slice(4, 8) + '-' + h.slice(8, 12);
+  });
+}
+function normKode(x) { return String(x || '').toUpperCase().replace(/[^A-Z0-9]/g, ''); }
+function bacaCsv(t) {
+  var rows = [], row = [], f = '', q = false, i, c;
+  for (i = 0; i < t.length; i++) {
+    c = t[i];
+    if (q) { if (c === '"') { if (t[i + 1] === '"') { f += '"'; i++; } else q = false; } else f += c; }
+    else if (c === '"') q = true;
+    else if (c === ',') { row.push(f); f = ''; }
+    else if (c === '\n' || c === '\r') { if (c === '\r' && t[i + 1] === '\n') i++; row.push(f); rows.push(row); row = []; f = ''; }
+    else f += c;
+  }
+  row.push(f); rows.push(row);
+  return rows;
+}
+var STATUS_OK = ['setuju', 'disetujui', 'approved', 'approve', 'ya', 'aktif', 'ok'];
+var STATUS_TOLAK = ['ditolak', 'tolak', 'rejected', 'reject', 'blokir', 'diblokir', 'putus', 'diputus', 'cabut', 'dicabut', 'nonaktif', 'tidak', 'no', 'x'];
+function statusDari(t) {
+  t = String(t || '').trim().toLowerCase();
+  return STATUS_OK.indexOf(t) >= 0 ? 'approved' : STATUS_TOLAK.indexOf(t) >= 0 ? 'rejected' : 'pending';
+}
+/* Baca sheet Perangkat: approved / pending / rejected. Kode yang belum ada di daftar = pending (tidak bisa masuk). */
 function cekSekali() {
-  return new Promise(function (ok) {
-    var cb = '_devcb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6), selesai = false, sc = document.createElement('script'), t;
-    function bersih() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } if (sc.parentNode) sc.parentNode.removeChild(sc); }
-    t = setTimeout(function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'tidak ada respon'; ok(null); } }, 9000);
-    window[cb] = function (d) { if (selesai) return; selesai = true; bersih(); ok(d || null); };
-    sc.onerror = function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'koneksi ke skrip diblokir atau skrip belum bisa diakses'; ok(null); } };
-    sc.src = APPS_SCRIPT_URL + '?action=cek&device=' + encodeURIComponent(idPerangkat()) + '&nama=' + encodeURIComponent(namaMasuk) +
-             '&cabang=' + encodeURIComponent(namaKapal()) + '&callback=' + cb;
-    document.body.appendChild(sc);
+  return kodePerangkat().then(function (kode) {
+    var sambung = URL_IZIN + (URL_IZIN.indexOf('?') >= 0 ? '&' : '?') + 't=' + Date.now();
+    var batas = new Promise(function (_, no) { setTimeout(function () { no(new Error('tidak ada respon')); }, 10000); });
+    return Promise.race([fetch(sambung, { cache: 'no-store' }), batas]).then(function (r) {
+      if (!r.ok) throw new Error('HTTP ' + r.status);
+      return r.text();
+    }).then(function (t) {
+      if (/^\s*</.test(t)) throw new Error('sheet belum dipublikasikan sebagai CSV');
+      var baris = bacaCsv(t), id = normKode(kode), st = 'pending';
+      for (var i = 0; i < baris.length; i++) if (normKode(baris[i][0]) === id) { st = statusDari(baris[i][1]); break; }
+      return { ok: true, status: st, kode: kode };
+    }).catch(function (e) { alasanGagal = String(e && e.message || e); return null; });
   });
 }
 function cekPerangkat() {
@@ -622,18 +663,33 @@ function masukApp() {
     galat.textContent = 'Izin lokasi diperlukan untuk login. Mohon izinkan akses lokasi, lalu coba lagi.';
   });
 }
+function tampilKode(ya) {
+  var b = el('kodebox');
+  b.hidden = !ya;
+  if (!ya) return;
+  el('kodeteks').textContent = kodeSaya;
+  var pesan = 'Mohon setujui perangkat Laporan Hasil Kapal. Nama: ' + namaMasuk + '. Kode perangkat: ' + kodeSaya;
+  el('kodewa').href = 'https://wa.me/?text=' + encodeURIComponent(pesan);
+  el('kodesalin').onclick = function () {
+    var t = kodeSaya, ok = function () { el('kodesalin').textContent = 'Tersalin'; };
+    if (navigator.clipboard && navigator.clipboard.writeText) navigator.clipboard.writeText(t).then(ok, function () {});
+    else { var x = document.createElement('textarea'); x.value = t; document.body.appendChild(x); x.select(); try { document.execCommand('copy'); ok(); } catch (e) {} document.body.removeChild(x); }
+  };
+  el('kodesalin').textContent = 'Salin kode';
+}
 function lanjut() {
   if (!peran) { keluar(); return; }
   var galat = el('galat');
-  if (!APPS_SCRIPT_URL) { peran = null; kapalBoleh = null; galat.textContent = 'Skrip izin perangkat belum dipasang. Isi APPS_SCRIPT_URL di file HTML.'; return; }
-  galat.textContent = 'Memeriksa perangkat...';
+  if (!URL_IZIN) { peran = null; kapalBoleh = null; galat.textContent = 'Daftar izin perangkat belum dipasang. Isi URL_IZIN di file HTML.'; return; }
+  galat.textContent = 'Memeriksa perangkat...'; tampilKode(false);
   cekPerangkat().then(function (dev) {
     if (dev.status === 'approved') { masukApp(); return; }
     if (dev.status === 'pending') catat('Menunggu Persetujuan'); else if (dev.status === 'rejected') catat('Ditolak');
     peran = null; kapalBoleh = null;
-    galat.textContent = dev.status === 'pending' ? 'Perangkat ini belum disetujui admin. Permintaan sudah dikirim, coba Masuk lagi setelah disetujui.'
+    if (dev.status === 'pending') tampilKode(true);
+    galat.textContent = dev.status === 'pending' ? 'Perangkat ini belum disetujui admin. Kirim kode perangkat di bawah ke admin, lalu coba Masuk lagi setelah disetujui.'
       : dev.status === 'rejected' ? 'Perangkat ini ditolak admin.'
-      : dev.status === 'error' ? 'Tidak bisa menghubungi server. Coba lagi.' + (dev.msg ? ' (galat skrip: ' + dev.msg + ')' : alasanGagal ? ' (' + alasanGagal + ')' : '')
+      : dev.status === 'error' ? 'Tidak bisa membaca daftar izin. Coba lagi.' + (alasanGagal ? ' (' + alasanGagal + ')' : '')
       : 'Status perangkat tidak dikenali (' + dev.status + '). Hubungi admin.';
   });
 }
@@ -666,7 +722,7 @@ function keluar() {
   peran = null; namaMasuk = ''; kapalBoleh = null;
   clearInterval(timer); clearInterval(timerIzin);
   el('app').hidden = true; el('login').hidden = false;
-  el('nama').value = ''; el('sandi').value = ''; el('galat').textContent = '';
+  el('nama').value = ''; el('sandi').value = ''; el('galat').textContent = ''; tampilKode(false);
 }
 /* ---------- Status, tab, data ---------- */
 function tgl(d) {
