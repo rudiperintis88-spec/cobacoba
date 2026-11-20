@@ -91,7 +91,6 @@ td:nth-child(3){width:120px;white-space:nowrap}
     <div id="stat" role="status"></div>
     <div class="aksi">
       <button type="button" id="muat" class="refresh"></button>
-      <button type="button" id="keluar" class="keluar">Keluar</button>
     </div>
   </div>
   <nav class="tabs" role="tablist" aria-label="Laporan">
@@ -144,6 +143,11 @@ var TIER = [
   [100000000, null, 0.13, 'Rp 100.000.001 - Max']
 ];
 
+var TIER_DEF = TIER.map(function (t) { return { from: t[0], to: t[1], p: t[2], lab: 'Gaji Hasil (' + t[3] + ')' }; });
+var URL_TIER = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+  '/gviz/tq?tqx=out:csv&headers=0&sheet=' + encodeURIComponent('Perhitungan Gaji') + '&range=A1:H40';
+function he(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;'); }
+function pctNum(p) { return String(Math.round(p * 1000) / 10).replace('.', ','); }
 function el(id) { return document.getElementById(id); }
 function dots(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp' + dots(Math.abs(r)); }
@@ -155,9 +159,9 @@ function angka(t) { return parseInt(String(t).replace(/\D/g, ''), 10) || 0; }
 function hitung(k, trip) {
   var d = k.trips[trip];
   var total = sum(d.nom);
-  var hasil = TIER.map(function (t) {
-    var a = Math.max(0, t[1] === null ? total - t[0] : Math.min(total, t[1]) - t[0]);
-    return { a: a, p: t[2], c: a * t[2], ket: t[3] };
+  var hasil = (k.tier || TIER_DEF).map(function (t) {
+    var a = Math.max(0, t.to === null ? total - t.from : Math.min(total, t.to) - t.from);
+    return { a: a, p: t.p, c: a * t.p, lab: t.lab };
   });
   var gaji = sum(hasil.map(function (h) { return h.c; }));
   var utang = -Math.abs(d.utang), diambil = -Math.abs(d.diambil);
@@ -175,7 +179,7 @@ function atas(k, trip, r) {
   });
   h += '<tr class="t"><td>Total</td><td></td><td class="n">' + rp(r.total) + '</td></tr>';
   r.hasil.forEach(function (x) {
-    h += '<tr><td>Gaji Terima Sesuai Hasil (' + x.ket + ')</td><td>' + Math.round(x.p * 100) +
+    h += '<tr><td>' + he(x.lab) + '</td><td>' + pctNum(x.p) +
          ' %</td><td class="n">' + rp(x.c) + '</td></tr>';
   });
   h += '<tr class="b ln"><td>Gaji Total</td><td></td><td class="n">' + rp(r.gaji) + '</td></tr>' +
@@ -188,7 +192,7 @@ function atas(k, trip, r) {
 function bawah(r) {
   var h = '<table><tr class="h"><td>Hasil</td><td>Percent %</td><td class="n">Nominal</td></tr>';
   r.hasil.forEach(function (x) {
-    h += '<tr class="g"><td class="n">' + rp2(x.a) + '</td><td>' + Math.round(x.p * 100) +
+    h += '<tr class="g"><td class="n">' + rp2(x.a) + '</td><td>' + pctNum(x.p) +
          '%</td><td class="n">' + rp(x.c) + '</td></tr>';
   });
   h += '<tr class="g b"><td class="n">' + rp2(r.total) + '</td><td></td><td class="n">' + rp(r.gaji) + '</td></tr></table>';
@@ -227,6 +231,51 @@ function isiPilihan() {
       s.appendChild(o);
     });
     s.value = k.trips[cur] ? cur : (names.length ? names[names.length - 1] : '');
+  });
+}
+
+/* ---------- Tarif gaji dari sheet "Perhitungan Gaji" (label, persen, batas hasil ikut spreadsheet) ---------- */
+function csvRows(t) {
+  var out = [], row = [], c = '', q = false, i, ch;
+  for (i = 0; i < t.length; i++) {
+    ch = t.charAt(i);
+    if (q) { if (ch === '"') { if (t.charAt(i + 1) === '"') { c += '"'; i++; } else q = false; } else c += ch; }
+    else if (ch === '"') q = true;
+    else if (ch === ',') { row.push(c); c = ''; }
+    else if (ch === '\n') { row.push(c); out.push(row); row = []; c = ''; }
+    else if (ch !== '\r') c += ch;
+  }
+  if (c.length || row.length) { row.push(c); out.push(row); }
+  return out;
+}
+function pctVal(s) {
+  s = String(s == null ? '' : s).trim();
+  var n = parseFloat(s.replace(/\s/g, '').replace('%', '').replace(',', '.'));
+  if (!s || !isFinite(n) || n < 0) return NaN;
+  return /%/.test(s) ? n / 100 : (n > 1 ? n / 100 : n);
+}
+/* Baris "Gaji Hasil (Rp 0 - Rp 50.000.000)" + persen di sebelahnya, di bawah judul nama kapal. Batas diambil dari angka pada label. */
+function olahTier(txt) {
+  var rows = csvRows(txt);
+  K.forEach(function (k) {
+    var lc = -1, i, j;
+    for (i = 0; i < rows.length && i < 8 && lc < 0; i++) {
+      for (j = 0; j < rows[i].length; j++) { if (String(rows[i][j]).trim().toUpperCase() === k.nama) { lc = j; break; } }
+    }
+    if (lc < 0) return;
+    var out = [], prev = 0, ok = true;
+    for (i = 0; i < rows.length; i++) {
+      var lab = String(rows[i][lc] == null ? '' : rows[i][lc]).trim();
+      if (!/^gaji\b[^(]*\(\s*rp/i.test(lab)) { if (out.length) break; continue; }
+      var nums = (lab.match(/Rp\s*[\d.]+/gi) || []).map(angka);
+      var p = pctVal(rows[i][lc + 1]);
+      var to = /max/i.test(lab) ? null : nums[nums.length - 1];
+      if (!isFinite(p) || (to !== null && (to === undefined || to < prev))) { ok = false; break; }
+      out.push({ from: prev, to: to, p: p, lab: lab });
+      if (to === null) break;
+      prev = to;
+    }
+    if (ok && out.length) k.tier = out;
   });
 }
 
@@ -421,7 +470,8 @@ function lanjut() {
     peran = null; kapalBoleh = null;
     galat.textContent = dev.status === 'pending' ? 'Perangkat ini belum disetujui admin. Permintaan sudah dikirim, coba Masuk lagi setelah disetujui.'
       : dev.status === 'rejected' ? 'Perangkat ini ditolak admin.'
-      : 'Tidak bisa menghubungi server. Coba lagi.';
+      : dev.status === 'error' ? 'Tidak bisa menghubungi server. Coba lagi.'
+      : 'Status perangkat tidak dikenali (' + dev.status + '). Hubungi admin.';
   });
 }
 function bukaApp() {
@@ -461,12 +511,16 @@ function pilihTab(t) {
 function muat() {
   if (el('app').hidden) return;
   el('stat').innerHTML = '<span class="ico">' + IKON + '</span>Memuat data...';
-  fetch(URL_DATA + '&t=' + Date.now())
-    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
-    .then(function (txt) {
-      var j = bacaGviz(txt);
+  Promise.all([
+    fetch(URL_DATA + '&t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
+    fetch(URL_TIER + '&t=' + Date.now()).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; })
+  ])
+    .then(function (hs) {
+      var j = bacaGviz(hs[0]);
       if (j.status !== 'ok') throw new Error('status');
-      olah(j.table.rows); isiPilihan(); render();
+      olah(j.table.rows);
+      if (hs[1]) { try { olahTier(hs[1]); } catch (e) {} }
+      isiPilihan(); render();
       setStatus(true);
     })
     .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
@@ -512,14 +566,14 @@ function halaman(h) {
   baris('Keterangan', 'Percent %', 'Nominal', 'h');
   k.items.forEach(function (it, i) { baris(it, '', rp(r.d.nom[i]), ''); });
   baris('Total', '', rp(r.total), 't');
-  r.hasil.forEach(function (x) { baris('Gaji Terima Sesuai Hasil (' + x.ket + ')', Math.round(x.p * 100) + ' %', rp(x.c), ''); });
+  r.hasil.forEach(function (x) { baris(x.lab, pctNum(x.p) + ' %', rp(x.c), ''); });
   baris('Gaji Total', '', rp(r.gaji), 'bl');
   baris('Sisa Utang', '', rp(r.utang), 'b');
   baris('Gaji Sudah Diambil', '', rp(r.diambil), 'b');
   baris('Sisa Gaji', '', rp(r.sisa), 'bl');
   y -= 24;
   kuning(); teks('Hasil', 44, 1, 10.5); teks('Percent %', 375, 1, 10.5); teks('Nominal', 551, 1, 10.5, 'r'); y -= RH;
-  r.hasil.forEach(function (x) { petak3(rp2(x.a), Math.round(x.p * 100) + '%', rp(x.c), 0); });
+  r.hasil.forEach(function (x) { petak3(rp2(x.a), pctNum(x.p) + '%', rp(x.c), 0); });
   petak3(rp2(r.total), '', rp(r.gaji), 1);
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
@@ -575,7 +629,6 @@ el('sandi').addEventListener('keydown', function (e) { if (e.key === 'Enter') ma
 el('nama').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('sandi').focus(); });
 el('muat').addEventListener('click', muat);
 el('pdf').addEventListener('click', ekspor);
-el('keluar').addEventListener('click', keluar);
 document.addEventListener('visibilitychange', function () { if (!document.hidden) muat(); });
 </script>
 </body>
