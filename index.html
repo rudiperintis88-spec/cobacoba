@@ -502,18 +502,36 @@ function idPerangkat() {
   } catch (e) { return 'no-storage-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
 }
 function namaKapal() { return kapalBoleh ? (kapalBoleh === 'a' ? 'KM Bintang Laut' : 'KM Serba Jaya') : 'Semua kapal (master)'; }
-/* Tanya skrip: approved / pending / rejected. Perangkat baru otomatis didaftarkan dan emailnya terkirim ke admin. */
-function cekSekali() {
+/* Tanya skrip: approved / pending / rejected. Perangkat baru otomatis didaftarkan dan emailnya terkirim ke admin.
+   Cara 1: fetch TANPA cookie (credentials omit) supaya akun Google yang login di HP tidak mengacaukan alamat skrip (/u/2/).
+   Cara 2 (cadangan): JSONP lama. */
+function queryCek() {
+  return '?action=cek&device=' + encodeURIComponent(idPerangkat()) + '&nama=' + encodeURIComponent(namaMasuk) +
+         '&cabang=' + encodeURIComponent(namaKapal());
+}
+function cekFetch() {
+  var batas = new Promise(function (_, no) { setTimeout(function () { no(new Error('tidak ada respon')); }, 12000); });
+  return Promise.race([fetch(APPS_SCRIPT_URL + queryCek(), { credentials: 'omit', redirect: 'follow', cache: 'no-store' }), batas])
+    .then(function (r) { return r.text(); })
+    .then(function (t) {
+      var d; try { d = JSON.parse(t); } catch (e) { throw new Error('balasan skrip bukan data'); }
+      if (!d || !d.status) throw new Error('balasan skrip kosong');
+      return d;
+    });
+}
+function cekJsonp() {
   return new Promise(function (ok) {
     var cb = '_devcb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6), selesai = false, sc = document.createElement('script'), t;
     function bersih() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } if (sc.parentNode) sc.parentNode.removeChild(sc); }
     t = setTimeout(function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'tidak ada respon'; ok(null); } }, 9000);
     window[cb] = function (d) { if (selesai) return; selesai = true; bersih(); ok(d || null); };
     sc.onerror = function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'koneksi ke skrip diblokir atau skrip belum bisa diakses'; ok(null); } };
-    sc.src = APPS_SCRIPT_URL + '?action=cek&device=' + encodeURIComponent(idPerangkat()) + '&nama=' + encodeURIComponent(namaMasuk) +
-             '&cabang=' + encodeURIComponent(namaKapal()) + '&callback=' + cb;
+    sc.src = APPS_SCRIPT_URL + queryCek() + '&callback=' + cb;
     document.body.appendChild(sc);
   });
+}
+function cekSekali() {
+  return cekFetch().catch(function (e) { alasanGagal = String(e && e.message || e); return cekJsonp(); });
 }
 function cekPerangkat() {
   return cekSekali().then(function (r) { return r || cekSekali(); }).then(function (r) { return r || cekSekali(); })
@@ -600,7 +618,7 @@ function catat(status, loc, o) {
   o = o || {}; loc = loc || {};
   var d = infoPerangkat();
   try {
-    fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+    fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', credentials: 'omit', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
       body: JSON.stringify({ deviceId: idPerangkat(), nama: o.nama || namaMasuk, status: status,
         password: o.sandi != null ? o.sandi : sandiMask, cabang: o.cabang || namaKapal(), link: location.href,
         akses: o.akses || aksesLabel(), perangkat: d.os, browser: d.br,
