@@ -156,7 +156,6 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
       <div class="a2" id="la2"></div>
       <div class="b2" id="lb2"></div>
     </main>
-    <p class="note">Laba / Rugi = Penghasilan - Biaya. Penghasilan = total hasil ikan trip (sheet Data). Ikan Basah Toke tidak dihitung sebagai penghasilan. Biaya = Belanja (sheet Belanja), yang sudah mencakup gaji, jadi gaji tidak dihitung lagi.</p>
   </div>
 </div>
 <script>
@@ -803,7 +802,7 @@ function halamanLR(h) {
   });
   kol('Total', rp(rk.tot.penghasilan), rp(rk.tot.belanja), '', rp(rk.tot.laba), 'bt');
   }
-  RH = 19; y = 58; teks('Laba / Rugi = Penghasilan - Biaya. Ikan Basah Toke tidak dihitung. Biaya = Belanja (sudah termasuk gaji). Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
+  RH = 19; y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
 function eksporLR() {
