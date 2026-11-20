@@ -481,7 +481,7 @@ var peran = null, namaMasuk = '', kapalBoleh = null;
 function isMaster() { return peran === 'master'; }
 var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 var IKON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg>';
-var tab = 'semua', gagal = 0, kunciSampai = 0, timer = null, timerIzin = null, sandiMask = '';
+var alasanGagal = '', tab = 'semua', gagal = 0, kunciSampai = 0, timer = null, timerIzin = null, sandiMask = '';
 
 function heks(b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
 function dariHeks(h) { var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
@@ -507,9 +507,9 @@ function cekSekali() {
   return new Promise(function (ok) {
     var cb = '_devcb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6), selesai = false, sc = document.createElement('script'), t;
     function bersih() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } if (sc.parentNode) sc.parentNode.removeChild(sc); }
-    t = setTimeout(function () { if (!selesai) { selesai = true; bersih(); ok(null); } }, 9000);
+    t = setTimeout(function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'tidak ada respon'; ok(null); } }, 9000);
     window[cb] = function (d) { if (selesai) return; selesai = true; bersih(); ok(d || null); };
-    sc.onerror = function () { if (!selesai) { selesai = true; bersih(); ok(null); } };
+    sc.onerror = function () { if (!selesai) { selesai = true; bersih(); alasanGagal = 'koneksi ke skrip diblokir atau skrip belum bisa diakses'; ok(null); } };
     sc.src = APPS_SCRIPT_URL + '?action=cek&device=' + encodeURIComponent(idPerangkat()) + '&nama=' + encodeURIComponent(namaMasuk) +
              '&cabang=' + encodeURIComponent(namaKapal()) + '&callback=' + cb;
     document.body.appendChild(sc);
@@ -633,7 +633,7 @@ function lanjut() {
     peran = null; kapalBoleh = null;
     galat.textContent = dev.status === 'pending' ? 'Perangkat ini belum disetujui admin. Permintaan sudah dikirim, coba Masuk lagi setelah disetujui.'
       : dev.status === 'rejected' ? 'Perangkat ini ditolak admin.'
-      : dev.status === 'error' ? 'Tidak bisa menghubungi server. Coba lagi.'
+      : dev.status === 'error' ? 'Tidak bisa menghubungi server. Coba lagi.' + (dev.msg ? ' (galat skrip: ' + dev.msg + ')' : alasanGagal ? ' (' + alasanGagal + ')' : '')
       : 'Status perangkat tidak dikenali (' + dev.status + '). Hubungi admin.';
   });
 }
