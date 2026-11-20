@@ -1,945 +1,582 @@
-<!doctype html>
+<!DOCTYPE html>
 <html lang="id">
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>Dashboard SIKK Group</title>
-<link rel="preconnect" href="https://fonts.googleapis.com">
-<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
-<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif&family=IBM+Plex+Mono:wght@400;500;600&family=Public+Sans:wght@400;500;600;700&display=swap" rel="stylesheet">
+<title>Laporan Hasil Kapal</title>
 <style>
-  :root{
-    --bg:#ffffff;--ink:#16202e;--muted:#667085;--line:#e3e6ec;--navy:#1b3556;
-    --green:#16a34a;--red:#d8281e;--orange:#b45309;--blue:#2563eb;
-    --serif:"Instrument Serif","Iowan Old Style","Palatino Linotype",Georgia,serif;
-    --mono:"IBM Plex Mono",ui-monospace,"SFMono-Regular",Consolas,monospace;
-    --sans:"Public Sans",system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
-  }
-  *{box-sizing:border-box}
-  body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.45 var(--sans)}
-  .top{display:flex;align-items:center;gap:18px;padding:0 28px;height:62px;border-bottom:1px solid var(--line);overflow-x:auto;white-space:nowrap}
-  .brand{font-weight:700;font-size:19px;letter-spacing:-.2px}
-  nav{display:flex;gap:8px}
-  nav button{border:0;background:transparent;font:inherit;font-weight:500;color:#344054;padding:9px 22px;border-radius:99px;cursor:pointer}
-  nav button:hover{background:#f2f4f7}
-  nav button.on{background:var(--navy);color:#fff;font-weight:600}
-  main{max-width:1500px;margin:0 auto;padding:34px 28px 60px}
-  .head{display:flex;justify-content:space-between;gap:24px;flex-wrap:wrap;align-items:flex-start}
-  h1{margin:0;font:400 54px/1.02 var(--serif);letter-spacing:-.5px}
-  .per{margin-top:10px;color:#475467;font-size:16px}
-  .side{text-align:right;max-width:100%}
-  .liveRow{display:flex;gap:14px;align-items:center;justify-content:flex-end;flex-wrap:wrap}
-  .live{display:inline-flex;gap:8px;align-items:center;font-size:15px;color:#475467}
-  .live b{color:var(--ink);font-weight:600}
-  .dot{width:11px;height:11px;border-radius:50%;background:var(--green);box-shadow:0 0 0 4px #dcf5e4;display:inline-block;flex:none}
-  .dot.bad{background:var(--red);box-shadow:0 0 0 4px #fbdedb}
-  .dot.load{background:#f59e0b;box-shadow:0 0 0 4px #fdeccb}
-  .refresh{display:inline-flex;gap:10px;align-items:center;border:1px solid var(--line);background:#fff;border-radius:14px;padding:13px 22px;font:inherit;font-weight:600;cursor:pointer;color:var(--ink)}
-  .refresh .ric{display:inline-grid;place-items:center;width:34px;height:34px;border-radius:9px;background:var(--blue);color:#fff;font-size:19px}
-  .refresh:disabled{opacity:.6;cursor:default}
-  .src{margin-top:12px;color:#667085;font-size:15px}
-  hr.sep{border:0;border-top:1px solid var(--line);margin:22px 0}
-  .alert{margin:0 0 20px;padding:20px 28px;border-radius:14px;font-size:17px;background:#fdf1d6;color:#8a5a00}
-  .alert.ok{background:#e6f6ec;color:#12683a}
-  .alert.err{background:#fdecea;color:#a3231a}
-  .alert a{color:inherit;font-weight:600}
-  .kpis{display:grid;grid-template-columns:1.25fr 1fr 1fr;grid-template-rows:auto auto;gap:18px;margin-bottom:30px}
-  .k{border:1px solid var(--line);border-radius:22px;padding:24px 28px;background:#fff;min-width:0}
-  .k .lab{display:flex;gap:12px;align-items:center;font-size:19px;color:#344054}
-  .k .lab i{width:15px;height:15px;border-radius:50%;flex:none}
-  .k .num{font:500 46px/1.1 var(--mono);margin:18px 0 10px;letter-spacing:-1px}
-  .k .num small{font-size:36px}
-  .k .sub{color:#667085;font-size:17px}
-  .k.big{grid-row:span 2;display:flex;flex-direction:column}
-  .k.big .lab{font:400 19px var(--mono);letter-spacing:.2px}
-  .k.big .num{font:400 128px/1 var(--serif);letter-spacing:-3px;margin:auto 0 18px;padding-top:30px}
-  .k.big .sub{font:400 18px/1.6 var(--mono);color:#1c2430}
-  .k.big .sub span{color:#667085}
-  .k.red{background:#fdecea;border-color:#f5c6c1}
-  .k.red .num{color:var(--red)}
-  .k.org .num{color:var(--orange)}
-  .pills{display:flex;gap:12px;flex-wrap:wrap;margin:6px 0 18px;border-top:2px solid #dfe3ea;padding-top:24px}
-  .pills button{border:1px solid #cfd5df;background:#fff;color:#475467;font:inherit;font-weight:500;border-radius:99px;padding:13px 26px;cursor:pointer;font-size:16px}
-  .pills button:hover{background:#f7f8fb}
-  .pills button.on{background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
-  .tools{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin-bottom:12px}
-  .tools input,.tools select,.tools button{font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink)}
-  .tools input{min-width:280px}
-  .tools button{cursor:pointer;font-weight:600}
-  .tools button:disabled{opacity:.5;cursor:default}
-  .tbl{border:1px solid var(--line);border-radius:16px;overflow:auto;max-height:70vh}
-  table{border-collapse:collapse;table-layout:fixed;min-width:100%;white-space:nowrap}
-  th,td{overflow:hidden;text-overflow:ellipsis}
-  th,td{padding:9px 14px;border-bottom:1px solid #eef0f4;text-align:left;font-size:13.5px}
-  th{position:sticky;top:0;background:#f4f6fa;z-index:1;font-weight:600;color:#344054}
-  th.p{background:#fff1cf}
-  tbody tr:hover td{background:#f9fafc}
-  td.mono{font-family:var(--mono);font-size:13px}
-  .miss{color:var(--red)}
-  .tag{display:inline-block;padding:2px 10px;border-radius:99px;font-size:12px;border:1px solid;font-weight:500}
-  .tag.sikk{color:#12683a;border-color:#a9d8b8;background:#eaf7ee}
-  .tag.wo{color:#1d4ed8;border-color:#b9cdf5;background:#edf3fd}
-  .tag.none{color:var(--red);border-color:#f0b7b2;background:#fdeeed}
-  .empty{padding:40px;text-align:center;color:var(--muted)}
-  .pager{display:flex;gap:10px;align-items:center;margin-top:12px}
-  .pager button{font:inherit;padding:8px 14px;border:1px solid var(--line);border-radius:10px;background:#fff;cursor:pointer}
-  .pager button:disabled{opacity:.45;cursor:default}
-  .note{color:var(--muted);font-size:13px;margin-top:16px;max-width:980px}
-  th.sortable{cursor:pointer;user-select:none}
-  th .ht{margin-right:7px}
-  .arr{display:inline-block;font-size:12px;color:#c3c8d3;vertical-align:middle}
-  th.sortable:hover .arr{color:#98a2b3}
-  th.sorted .arr{color:#6d28d9}
-  .modal{position:fixed;inset:0;background:rgba(16,24,40,.45);display:flex;align-items:center;justify-content:center;z-index:50;padding:16px;overflow:hidden}
-  .modal .mbox{min-width:0;max-width:100%}
-  .modal[hidden]{display:none}
-  .mbox{background:#fff;border-radius:20px;padding:28px 30px;width:min(540px,100%);box-shadow:0 24px 70px rgba(0,0,0,.28)}
-  .mbox h3{margin:0 0 4px;font:400 32px var(--serif)}
-  .mbox .mp{margin:0 0 18px;color:var(--muted);font-size:14px}
-  .opt{display:flex;gap:12px;align-items:flex-start;border:1px solid var(--line);border-radius:14px;padding:14px 16px;margin-bottom:10px;cursor:pointer}
-  .opt.on{border-color:var(--navy);background:#f3f6fb}
-  .opt input{margin-top:5px}
-  .opt b{display:block;font-weight:600}
-  .opt span{color:var(--muted);font-size:13px}
-  .mnote{color:var(--orange);font-size:13px;min-height:18px;margin-top:6px}
-  .mnote.err{color:var(--red)}
-  .mbtn{display:flex;gap:10px;justify-content:flex-end;margin-top:14px}
-  .mbtn button{font:inherit;padding:11px 22px;border-radius:12px;border:1px solid var(--line);background:#fff;cursor:pointer;font-weight:600}
-  .mbtn button.go{background:var(--navy);border-color:var(--navy);color:#fff}
-  .mbtn button:disabled{opacity:.6;cursor:default}
-  .period{display:flex;flex-wrap:wrap;gap:10px;align-items:center;margin:0 0 20px}
-  .period .pl{font-weight:600;color:#344054;margin-right:2px}
-  .period select{font:inherit;padding:10px 14px;border:1px solid var(--line);border-radius:12px;background:#fff;color:var(--ink);min-width:150px}
-  .period button{font:inherit;padding:10px 16px;border:1px solid var(--line);border-radius:12px;background:#fff;cursor:pointer;font-weight:600}
-  .period .pi{color:var(--muted);font-size:14px}
-  .k.clk{cursor:pointer;transition:transform .12s,box-shadow .12s,border-color .12s;position:relative}
-  .k.clk:hover{transform:translateY(-2px);box-shadow:0 8px 24px rgba(16,24,40,.10);border-color:#b8c2d4}
-  .k.clk:focus-visible{outline:2px solid var(--blue);outline-offset:2px}
-  .k .chev{margin-left:auto;font-size:26px;line-height:1;color:#98a2b3}
-  .k.clk:hover .chev{color:var(--navy)}
-  .pbox{width:min(1300px,100%);max-height:92vh;display:flex;flex-direction:column}
-  .pbox{overflow:hidden}
-  .pbox .tbl{flex:1 1 auto;max-height:none;min-height:180px;min-width:0;max-width:100%;overflow:auto}
-  .pbox .tools{margin:4px 0 10px}
-  .phead{display:flex;justify-content:space-between;align-items:flex-start;gap:12px}
-  .phead .x{border:0;background:transparent;font-size:34px;line-height:1;cursor:pointer;color:#667085;padding:0 6px}
-  .pbox .pager .go{margin-left:auto;background:var(--navy);border-color:var(--navy);color:#fff;font-weight:600}
-  @media (max-width:1000px){
-    .kpis{grid-template-columns:1fr 1fr}.k.big{grid-column:1/-1;grid-row:auto}
-    h1{font-size:40px}.k.big .num{font-size:92px}.side{text-align:left}.liveRow{justify-content:flex-start}
-  }
-  @media (max-width:600px){
-    main{padding:22px 16px 50px}.top{padding:0 14px}.kpis{grid-template-columns:1fr}
-    .k .num{font-size:36px}.tools input{min-width:0;width:100%}
-  }
+:root{--y:#ffff00;--ink:#111;--bg:#fff;--mut:#666}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:15px/1.35 Cambria,"Times New Roman",Times,serif}
+.bar{display:flex;flex-wrap:wrap;gap:12px 20px;align-items:end;padding:14px 20px;border-bottom:1px solid #ccc;background:#f6f6f6}
+.bar label{display:flex;flex-direction:column;gap:3px;font-size:13px;font-weight:bold}
+.bar select,.bar button{font:inherit;padding:6px 10px;border:1px solid #888;border-radius:4px;background:#fff;color:var(--ink)}
+.bar button{cursor:pointer;font-weight:bold}
+.bar #cetak{background:var(--y);border-color:var(--ink)}
+.bar select:focus-visible,.bar button:focus-visible{outline:3px solid #1a5fd0;outline-offset:2px}
+.grid{display:grid;grid-template-columns:1fr 1fr;column-gap:36px;row-gap:22px;padding:20px;max-width:1100px;margin:0 auto}
+table{width:100%;border-collapse:collapse}
+td{padding:3px 6px;vertical-align:middle}
+td:nth-child(2){width:84px;white-space:nowrap}
+td:nth-child(3){width:120px;white-space:nowrap}
+.n{text-align:right}
+.h td{background:var(--y);font-weight:bold}
+.t td{background:var(--y);font-weight:bold;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
+.b td{font-weight:bold}
+.ln td{border-top:1px solid var(--ink)}
+.g td{border:1px solid var(--ink)}
+.g td:nth-child(2){text-align:right}
+.note{max-width:1100px;margin:0 auto;padding:0 20px 24px;color:var(--mut);font-size:12.5px}
+@media (max-width:820px){
+  .grid{grid-template-columns:1fr}
+  .a1{order:1}.a2{order:2}.b1{order:3}.b2{order:4}
+  td:nth-child(2){width:76px}
+  td:nth-child(3){width:108px}
+}
+@media print{
+  @page{size:A4 landscape;margin:12mm}
+  *{-webkit-print-color-adjust:exact;print-color-adjust:exact}
+  .bar{display:none}
+  body{font-size:11px}
+  .grid{padding:0;max-width:none;column-gap:28px;row-gap:16px}
+  .note{padding:8px 0 0}
+}
+
+[hidden]{display:none!important}
+.center{max-width:480px;margin:20vh auto 0;padding:0 20px;display:flex;flex-direction:column;gap:14px;font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+.center .hint{margin:0 0 6px;text-align:center;color:#111;font:bold 28px/1.2 Georgia,"Times New Roman",serif}
+.center input{height:56px;border:1px solid #dde3ef;border-radius:16px;background:#e8f0fe;text-align:center;font-size:20px;color:#111;width:100%;padding:0 56px}
+.center input:focus{border:3px solid #111;padding:0 54px}
+.pw{position:relative}
+.mata{position:absolute;right:14px;top:50%;transform:translateY(-50%);width:38px;height:38px;border:0;background:none;color:#6b7280;cursor:pointer;display:grid;place-items:center;padding:0}
+.center input::placeholder{color:#8a94a6}
+.center input:focus-visible{outline:3px solid #2563eb;outline-offset:2px}
+.btn-soft{height:54px;border:0;border-radius:14px;background:#2a4bd7;font-size:20px;font-weight:bold;color:#fff;cursor:pointer}
+.btn-soft:hover{background:#2140c0}
+.err{min-height:22px;margin:0;text-align:center;color:#b42318;font-size:15px}
+.link{align-self:center;background:none;border:0;color:#2563eb;font:inherit;font-size:15px;cursor:pointer;text-decoration:underline}
+.kode{font:bold 30px/1.2 ui-monospace,Menlo,Consolas,monospace;text-align:center;letter-spacing:2px;padding:18px;background:#e8f0fe;border-radius:18px}
+.center p{margin:0;text-align:center;color:#444;font-size:16px;line-height:1.5}
+.center textarea{width:100%;min-height:90px;border:2px solid #111;border-radius:14px;padding:10px;font:13px ui-monospace,Menlo,Consolas,monospace}
+.status{display:flex;flex-wrap:wrap;align-items:center;justify-content:space-between;gap:10px 16px;padding:12px 20px;color:#8a94a6;font:15px system-ui,"Segoe UI",Roboto,Arial,sans-serif}
+.status b{color:#1f2937}
+.ico{display:inline-grid;place-items:center;width:32px;height:32px;margin-right:10px;border-radius:9px;background:#2563eb;color:#fff;vertical-align:middle}
+.aksi{display:flex;gap:10px;align-items:center}
+.refresh{display:inline-flex;align-items:center;gap:10px;padding:9px 22px;border:1px solid #e1e6f0;border-radius:16px;background:#eef1f8;color:#1f2937;font:bold 17px system-ui,"Segoe UI",Roboto,Arial,sans-serif;cursor:pointer}
+.refresh .ico{width:30px;height:30px;margin:0}
+.keluar{border:0;background:none;color:#6b7280;font:15px system-ui,Arial,sans-serif;cursor:pointer;text-decoration:underline}
+.tabs{display:flex;gap:6px;padding:0 20px;border-bottom:1px solid #dde2ec;overflow-x:auto}
+.tabs button{padding:11px 16px;border:0;border-bottom:3px solid transparent;background:none;color:#6b7280;font:600 15px system-ui,"Segoe UI",Roboto,Arial,sans-serif;cursor:pointer;white-space:nowrap}
+.tabs button[aria-selected=true]{color:#1f2937;border-bottom-color:#2563eb}
+.ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;padding:16px 20px 0;max-width:1100px;margin:0 auto}
+.ctl label{display:flex;flex-direction:column;gap:3px;font:bold 13px system-ui,Arial,sans-serif}
+.ctl select,.ctl button{font:inherit;padding:7px 10px;border:1px solid #888;border-radius:6px;background:#fff;color:#111}
+.ctl #pdf{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.grid[data-tab=a],.grid[data-tab=b]{grid-template-columns:1fr;max-width:640px}
+.grid[data-tab=a] .b1,.grid[data-tab=a] .b2,.grid[data-tab=b] .a1,.grid[data-tab=b] .a2{display:none}
+@media print{.status,.tabs,.ctl{display:none}}
 </style>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf-autotable/3.8.2/jspdf.plugin.autotable.min.js"></script>
-<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 </head>
 <body>
-<header class="top">
-  <div class="brand">SIKK Group</div>
-  <nav id="nav"></nav>
-</header>
+<section id="login" class="center">
+  <p class="hint">Laporan</p>
+  <input id="nama" type="text" placeholder="Nama" autocomplete="username" aria-label="Nama">
+  <div class="pw"><input id="sandi" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password"><button type="button" id="mata" class="mata" aria-label="Tampilkan password"><svg viewBox="0 0 24 24" width="28" height="28" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3"/></svg></button></div>
+  <button type="button" id="masuk" class="btn-soft">Masuk</button>
+  <p id="galat" class="err" role="alert"></p>
+</section>
 
-<main>
-  <div class="head">
-    <div>
-      <h1 id="title">SIKK</h1>
-      <div class="per" id="per"></div>
-    </div>
-    <div class="side">
-      <div class="liveRow">
-        <span class="live"><i class="dot load" id="dot"></i><span id="liveTxt">Memuat data dari Google Sheet...</span></span>
-        <button class="refresh" id="btnRefresh"><span class="ric">&#8635;</span>Refresh</button>
-      </div>
-      <div class="src" id="src"></div>
+<div id="app" hidden>
+  <div class="status">
+    <div id="stat" role="status"></div>
+    <div class="aksi">
+      <button type="button" id="muat" class="refresh"></button>
+      <button type="button" id="keluar" class="keluar">Keluar</button>
     </div>
   </div>
-  <hr class="sep">
-
-  <div class="period" id="period" hidden>
-    <span class="pl">Periode</span>
-    <select id="selYear"><option value="">Semua tahun</option></select>
-    <select id="selMonth"><option value="">Semua bulan</option></select>
-    <button id="periodReset" hidden>Reset</button>
-    <span class="pi" id="periodInfo"></span>
+  <nav class="tabs" role="tablist" aria-label="Laporan">
+    <button type="button" role="tab" data-t="semua">Semua</button>
+    <button type="button" role="tab" data-t="a">KM Bintang Laut</button>
+    <button type="button" role="tab" data-t="b">KM Serba Jaya</button>
+  </nav>
+  <div class="ctl">
+    <label id="wa">KM Bintang Laut<select id="sa"></select></label>
+    <label id="wb">KM Serba Jaya<select id="sb"></select></label>
+    <button type="button" id="pdf">Export PDF</button>
   </div>
-
-  <div class="alert" id="alert" hidden></div>
-  <section class="kpis" id="kpis" hidden></section>
-
-  <div class="pills" id="pills"></div>
-
-  <div class="tools" id="tools" hidden>
-    <input type="search" id="q" placeholder="Cari no polisi, nama, no WO, no SIKK...">
-    <select id="fSrc">
-      <option value="">Semua sumber</option>
-      <option value="SIKK">Cocok SIKK No</option>
-      <option value="WO">Cocok No WO</option>
-      <option value="NONE">Tidak ketemu</option>
-    </select>
-    <select id="fAdv">
-      <option value="">Semua advisor</option>
-      <option value="MISS">Nama Advisor kosong</option>
-    </select>
-    <select id="fP">
-      <option value="">Kolom P: semua</option>
-      <option value="FILLED">Kolom P terisi</option>
-    </select>
-    <button id="btnPdf" disabled>Export PDF</button>
-    <button id="btnXls" disabled>Export Excel</button>
-  </div>
-
-  <div class="tbl" id="tblWrap"><table id="tbl"></table></div>
-  <div class="pager" id="pager" hidden>
-    <button id="prev">&laquo; Sebelumnya</button>
-    <span id="pinfo"></span>
-    <button id="next">Berikutnya &raquo;</button>
-  </div>
-
-  <div class="note" id="note"></div>
-</main>
-
-<div class="modal" id="modal" hidden>
-  <div class="mbox">
-    <h3 id="mTitle">Export</h3>
-    <p class="mp">Mau export tab ini saja atau semua tab? File langsung terunduh.</p>
-    <label class="opt on" id="optCur"><input type="radio" name="scope" value="cur" checked>
-      <div><b id="mCurT">Tab ini saja</b><span id="mCur"></span></div></label>
-    <label class="opt" id="optAll"><input type="radio" name="scope" value="all">
-      <div><b>Semua tab</b><span id="mAll"></span></div></label>
-    <div class="mnote" id="mNote"></div>
-    <div class="mbtn"><button id="mCancel">Batal</button><button id="mGo" class="go">Export</button></div>
-  </div>
+  <main class="grid" id="grid" data-tab="semua">
+    <div class="a1" id="a1"></div>
+    <div class="b1" id="b1"></div>
+    <div class="a2" id="a2"></div>
+    <div class="b2" id="b2"></div>
+  </main>
 </div>
-
-<div class="modal" id="pop" hidden>
-  <div class="mbox pbox">
-    <div class="phead">
-      <div><h3 id="pTitle">Detail</h3><div class="mp" id="pCount"></div></div>
-      <button class="x" id="pClose" title="Tutup">&times;</button>
-    </div>
-    <div class="tools"><input type="search" id="pq" placeholder="Cari di daftar ini..."></div>
-    <div class="tbl"><table id="pTbl"></table></div>
-    <div class="pager">
-      <button id="pPrev">&laquo; Sebelumnya</button>
-      <span id="pInfo"></span>
-      <button id="pNext">Berikutnya &raquo;</button>
-      <button id="pOpen" class="go">Buka di tab Data Terbaru</button>
-    </div>
-  </div>
-</div>
-
 <script>
-const FILE_ID = '1D9Hu8RNqkWMa6uJ9EZ0OT4K8eTfh46O32_ttXh3u2to';
-const SHEET_SA = 'Data SA';
-const BR = [
-  { key: 'AM', name: 'GR Adam Malik', sb: 'SB AM', am: 'AM' },
-  { key: 'PF', name: 'GR Flamboyan',  sb: 'SB PF', am: 'PF' },
-  { key: 'BP', name: 'Body Repair',   sb: 'SB BP', am: 'BP' },
-  { key: 'OX', name: 'Otoxpert',      sb: 'SB OX', am: 'OX' }
+var SHEET_ID = '1c1ADp2Yc7xJ6GI6vRAYlZqauayF89lmVdH-LjE-IbNM';
+var URL_DATA = 'https://docs.google.com/spreadsheets/d/' + SHEET_ID +
+  '/gviz/tq?tqx=out:json&sheet=Data&headers=0&range=A3:O1000';
+
+// Kolom di sheet Data (mulai 0 = kolom A)
+var K = [
+  { id: 'a', nama: 'KM BINTANG LAUT', def: 'TRIP 76',
+    c: { ket: 10, trip: 11, nom: 12, ut: 13, di: 14 },
+    // data tersimpan 20 November 2026 (dipakai bila spreadsheet tidak bisa dibaca)
+    items: ['Ikan Basah', 'Ikan Asin'],
+    trips: {
+      'TRIP 75': { nom: [10568000, 36672800], utang: 129760, diambil: 3100000 },
+      'TRIP 76': { nom: [19369800, 33206850], utang: 0, diambil: 3950000 },
+      'TRIP 77': { nom: [11764500, 0], utang: 0, diambil: 2000000 }
+    } },
+  { id: 'b', nama: 'KM SERBA JAYA', def: 'TRIP 14',
+    c: { ket: 2, trip: 3, nom: 4, ut: 5, di: 6 },
+    items: ['Ikan Basah', 'Ikan Basah Toke', 'Ikan Asin'],
+    trips: {
+      'TRIP 13': { nom: [3996250, 0, 9502500], utang: 335075, diambil: 1780000 },
+      'TRIP 14': { nom: [15856850, 712500, 28545400], utang: 765200, diambil: 1680000 },
+      'TRIP 15': { nom: [9994200, 435000, 0], utang: 0, diambil: 1430000 }
+    } }
 ];
-const MONTHS = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
-const REFRESH_MS = 2 * 60 * 1000;
-const PAGE = 100;
 
-const sheetUrl = n => 'https://docs.google.com/spreadsheets/d/' + FILE_ID +
-  '/gviz/tq?tqx=out:csv&headers=1&sheet=' + encodeURIComponent(n);
-const $ = id => document.getElementById(id);
-const norm = s => String(s == null ? '' : s).trim().toLowerCase().replace(/\s+/g, ' ');
-const val = s => String(s == null ? '' : s).trim();
-const fnum = n => Number(n).toLocaleString('id-ID');
-const esc = s => String(s == null ? '' : s).replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;');
-const pad = n => String(n).padStart(2, '0');
+var TIER = [
+  [0, 50000000, 0.10, 'Rp 0 - Rp 50.000.000'],
+  [50000000, 75000000, 0.11, 'Rp 50.000.001 - Rp 75.000.000'],
+  [75000000, 100000000, 0.12, 'Rp 75.000.001 - Rp 100.000.000'],
+  [100000000, null, 0.13, 'Rp 100.000.001 - Max']
+];
 
-const S = { cur: 'AM', tab: 'out', page: 0, loading: false, data: {}, sort: {}, memo: null, year: '', month: '' };
-const OUTLIKE = ['out', 'nosikk', 'noket', 'both'];     // tab yang memakai susunan kolom Data Terbaru
+function el(id) { return document.getElementById(id); }
+function dots(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
+function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp' + dots(Math.abs(r)); }
+function rp2(n) { var p = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + 'Rp' + dots(p[0]) + ',' + p[1]; }
+function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
+function angka(t) { return parseInt(String(t).replace(/\D/g, ''), 10) || 0; }
 
-/* ---------- CSV & Sheet ---------- */
-function parseCSV(text) {
-  const rows = []; let row = [], f = '', q = false;
-  for (let i = 0; i < text.length; i++) {
-    const c = text[i];
-    if (q) {
-      if (c === '"') { if (text[i + 1] === '"') { f += '"'; i++; } else q = false; }
-      else f += c;
-    } else if (c === '"') q = true;
-    else if (c === ',') { row.push(f); f = ''; }
-    else if (c === '\n') { row.push(f); rows.push(row); row = []; f = ''; }
-    else if (c === '\r') { /* skip */ }
-    else f += c;
-  }
-  if (f !== '' || row.length) { row.push(f); rows.push(row); }
-  return rows;
-}
-/* Jalur 1: link-sharing (gviz). Jalur 2: "Publikasikan ke web" (link pubhtml). */
-const PUB_ID = '2PACX-1vRMbMi2Lkoed_DWOxFPNQjcBhiDFRVqammycjZufOmpFfifrMCgbP1i_ORFFari85ZAXfBC4sM_r5_F';
-let pubMap = null;
-async function pubSheets() {
-  if (pubMap) return pubMap;
-  const r = await fetch('https://docs.google.com/spreadsheets/d/e/' + PUB_ID + '/pubhtml');
-  if (!r.ok) throw new Error('pubhtml HTTP ' + r.status);
-  const t = await r.text();
-  const m = new Map(), re = /name:\s*"((?:[^"\\]|\\.)*)"[\s\S]{0,600}?gid:\s*"(\d+)"/g;
-  let x;
-  while ((x = re.exec(t))) m.set(x[1].replace(/\\x([0-9a-fA-F]{2})/g, (_, h) => String.fromCharCode(parseInt(h, 16))), x[2]);
-  if (!m.size) throw new Error('daftar sheet tidak ditemukan di link publikasi');
-  pubMap = m; return m;
-}
-async function readSheet(name) {
-  let why = '';
-  try {                                                   // jalur 1
-    const r = await fetch(sheetUrl(name));
-    if (r.ok) {
-      const t = await r.text();
-      if (!t.trim().startsWith('<')) return parseCSV(t);
-      why = 'file belum dibagikan ke publik';
-    } else why = 'HTTP ' + r.status;
-  } catch (e) { why = 'diblokir browser / file belum dibagikan ke publik'; }
-  try {                                                   // jalur 2
-    const m = await pubSheets();
-    if (!m.has(name)) throw new Error('sheet tidak ada di link publikasi');
-    const r = await fetch('https://docs.google.com/spreadsheets/d/e/' + PUB_ID + '/pub?gid=' + m.get(name) + '&single=true&output=csv');
-    if (!r.ok) throw new Error('HTTP ' + r.status);
-    const t = await r.text();
-    if (t.trim().startsWith('<')) throw new Error('bukan CSV');
-    return parseCSV(t);
-  } catch (e2) {
-    throw new Error('Sheet "' + name + '" tidak bisa dibaca (' + why + '; link publikasi: ' + e2.message + '). ' +
-      'Solusi: di Google Sheet pilih Bagikan > "Siapa saja yang memiliki link" (Pelihat), atau File > Bagikan > Publikasikan ke web (seluruh dokumen).');
-  }
-}
-function colIdx(header, ...names) {
-  const h = header.map(norm);
-  for (const n of names) { const i = h.indexOf(norm(n)); if (i >= 0) return i; }
-  return -1;
-}
-function colStarts(header, prefix) { return header.map(norm).findIndex(x => x.startsWith(norm(prefix))); }
-function need(i, nm, sh) { if (i < 0) throw new Error('Kolom "' + nm + '" tidak ditemukan di sheet ' + sh); return i; }
-const dateOf = s => val(s).split(' ')[0];
-const dmy = s => { const m = /(\d{1,2})\/(\d{1,2})\/(\d{4})/.exec(String(s || '')); return m ? { d: +m[1], m: +m[2], y: +m[3] } : null; };
-
-/* ---------- Susun AM seperti SB ---------- */
-function build(d, br, sb, am, sa) {
-  const saH = sa[0];
-  const saCode = need(colIdx(saH, 'Advisor'), 'Advisor', SHEET_SA);
-  const saName = need(colIdx(saH, 'Nama Advisor'), 'Nama Advisor', SHEET_SA);
-  const saMap = new Map();
-  for (let i = 1; i < sa.length; i++) {
-    const k = norm(sa[i][saCode]); if (k && !saMap.has(k)) saMap.set(k, val(sa[i][saName]));
-  }
-
-  const sbH = sb[0];
-  const T = {
-    tglWO: need(colIdx(sbH, 'TglWO'), 'TglWO', br.sb),
-    wo: need(colIdx(sbH, 'No WO'), 'No WO', br.sb),
-    sikkTgl: need(colIdx(sbH, 'SIKK Tgl'), 'SIKK Tgl', br.sb),
-    sikkNo: need(colIdx(sbH, 'SIKK No'), 'SIKK No', br.sb),
-    ket: need(colIdx(sbH, 'Keterangan'), 'Keterangan', br.sb),
-    fisik: need(colIdx(sbH, 'Fisik SIKK'), 'Fisik SIKK', br.sb),
-    keluar: need(colStarts(sbH, 'Tgl Keluar'), 'Tgl Keluar', br.sb),
-    namaAdv: colIdx(sbH, 'Nama Advisor')
-  };
-  T.p = T.keluar + 1;   // kolom P (tanpa judul) = kolom setelah Tgl Keluar
-
-  const sikk1 = new Map(), sikk2 = new Map(), wo1 = new Map(), wo2 = new Map();
-  for (let i = 1; i < sb.length; i++) {
-    const r = sb[i];
-    const sn = val(r[T.sikkNo]), wn = val(r[T.wo]);
-    if (sn) {
-      if (!sikk1.has(sn)) sikk1.set(sn, r);
-      const k2 = sn + '|' + dateOf(r[T.sikkTgl]); if (!sikk2.has(k2)) sikk2.set(k2, r);
-    }
-    if (wn) {
-      if (!wo1.has(wn)) wo1.set(wn, r);
-      const k2 = wn + '|' + val(r[T.tglWO]); if (!wo2.has(k2)) wo2.set(k2, r);
-    }
-  }
-
-  const amH = am[0];
-  const A = {
-    no: colIdx(amH, 'No'),
-    tglWO: need(colIdx(amH, 'TglWO'), 'TglWO', br.am),
-    pol: need(colIdx(amH, 'NoPolisi'), 'NoPolisi', br.am),
-    wo: need(colIdx(amH, 'No WO'), 'No WO', br.am),
-    adv: need(colIdx(amH, 'Advisor'), 'Advisor', br.am),
-    nama: need(colIdx(amH, 'Nama'), 'Nama', br.am),
-    sikkTgl: need(colIdx(amH, 'SIKK Tgl'), 'SIKK Tgl', br.am),
-    sikkNo: need(colIdx(amH, 'SIKK No'), 'SIKK No', br.am),
-    out: need(colIdx(amH, 'Vhc Out'), 'Vhc Out', br.am),
-    sat: need(colIdx(amH, 'Satpam'), 'Satpam', br.am),
-    op: need(colIdx(amH, 'Operator'), 'Operator', br.am)
-  };
-
-  const pHead = val(sbH[T.p]) || 'Kolom P';
-  const head = ['No', 'TglWO', 'NoPolisi', 'No WO', 'Advisor', 'Nama Advisor', 'Nama',
-    'SIKK Tgl', 'SIKK No', 'Vhc Out', 'Satpam', 'Operator',
-    val(sbH[T.ket]), val(sbH[T.fisik]), val(sbH[T.keluar]), pHead, 'Sumber'];
-
-  const out = [];
-  const stat = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0, years: {}, latest: null };
-  for (let i = 1; i < am.length; i++) {
-    const r = am[i];
-    if (r.every(x => val(x) === '')) continue;
-    const sn = val(r[A.sikkNo]), wn = val(r[A.wo]);
-    let m = null, src = 'NONE';
-    if (sn) {
-      m = sikk2.get(sn + '|' + dateOf(r[A.sikkTgl])) || sikk1.get(sn);
-      if (m) src = 'SIKK';
-    }
-    if (!m && wn) {
-      m = wo2.get(wn + '|' + val(r[A.tglWO])) || wo1.get(wn);
-      if (m) src = 'WO';
-    }
-    const adv = val(r[A.adv]);
-    let advName = saMap.get(norm(adv)) || '';
-    if (!advName && m && T.namaAdv >= 0) advName = val(m[T.namaAdv]);   // cadangan: dari SB bila tidak ada di Data SA
-    const row = [
-      A.no >= 0 ? val(r[A.no]) : String(out.length + 1),
-      val(r[A.tglWO]), val(r[A.pol]), wn, adv, advName, val(r[A.nama]),
-      val(r[A.sikkTgl]), sn, val(r[A.out]), val(r[A.sat]), val(r[A.op]),
-      m ? val(m[T.ket]) : '', m ? val(m[T.fisik]) : '', m ? val(m[T.keluar]) : '', m ? val(m[T.p]) : '',
-      src
-    ];
-    out.push(row);
-    stat.total++;
-    if (src === 'SIKK') stat.sikk++; else if (src === 'WO') stat.wo++; else stat.none++;
-    if (!advName) stat.advMiss++;
-    if (row[15]) stat.pFill++;
-    const dt = dmy(r[A.tglWO]);
-    if (dt) stat.years[dt.y] = (stat.years[dt.y] || 0) + 1;
-    const ds = dmy(r[A.sikkTgl]) || dt;
-    if (ds) {
-      const t = Date.UTC(ds.y, ds.m - 1, ds.d);
-      if (!stat.latest || t > stat.latest.t) stat.latest = { t, d: ds.d, m: ds.m, y: ds.y };
-    }
-  }
-  // Database = sheet AM + Nama Advisor (12 kolom pertama); Data Terbaru = Database + kolom M-P dari SB AM
-  d.db = { head: head.slice(0, 12), rows: out.map(r => r.slice(0, 12)) };
-  d.sbTgl = T.tglWO;                      // posisi kolom TglWO di sheet SB (untuk pilihan periode)
-  d.nosikk = out.filter(r => !r[8]);     // belum ada No SIKK
-  d.noket = out.filter(r => !r[12]);     // belum ada Keterangan
-  d.both = out.filter(r => !r[8] && !r[12]);   // belum ada No SIKK dan belum ada Keterangan
-  d.sb = sb; d.am = am; d.sa = sa; d.out = out; d.head = head; d.stat = stat;
-}
-
-async function loadBranch(key) {
-  if (S.loading) return;
-  S.loading = true; render();
-  const br = BR.find(b => b.key === key);
-  const d = S.data[key] || (S.data[key] = {});
-  const res = await Promise.allSettled([br.sb, br.am, SHEET_SA].map(readSheet));
-  d.synced = res.filter(r => r.status === 'fulfilled').length; d.n = 3;
-  d.names = [br.sb, br.am, SHEET_SA];
-  if (d.synced < 3) {
-    d.err = res.find(r => r.status === 'rejected').reason.message;
-  } else {
-    await new Promise(r => setTimeout(r, 20));
-    try { build(d, br, res[0].value, res[1].value, res[2].value); d.err = ''; d.at = new Date(); }
-    catch (e) { d.err = e.message; }
-  }
-  S.loading = false; render();
+/* ---------- Hitungan ---------- */
+function hitung(k, trip) {
+  var d = k.trips[trip];
+  var total = sum(d.nom);
+  var hasil = TIER.map(function (t) {
+    var a = Math.max(0, t[1] === null ? total - t[0] : Math.min(total, t[1]) - t[0]);
+    return { a: a, p: t[2], c: a * t[2], ket: t[3] };
+  });
+  var gaji = sum(hasil.map(function (h) { return h.c; }));
+  var utang = -Math.abs(d.utang), diambil = -Math.abs(d.diambil);
+  return { d: d, total: total, hasil: hasil, gaji: gaji, utang: utang, diambil: diambil, sisa: gaji + utang + diambil };
 }
 
 /* ---------- Tampilan ---------- */
-/* ---------- Pilihan periode (tahun / bulan, berdasarkan kolom TglWO) ---------- */
-function periodLabel() { return [S.month ? MONTHS[+S.month - 1] : '', S.year].filter(Boolean).join(' '); }
-function inPeriod(tgl) {
-  if (!S.year && !S.month) return true;
-  const m = dmy(tgl); if (!m) return false;
-  if (S.year && String(m.y) !== S.year) return false;
-  if (S.month && String(m.m) !== S.month) return false;
-  return true;
-}
-function statOf(rows) {
-  const s = { total: 0, sikk: 0, wo: 0, none: 0, advMiss: 0, pFill: 0, years: {}, latest: null };
-  for (const r of rows) {
-    s.total++;
-    if (r[16] === 'SIKK') s.sikk++; else if (r[16] === 'WO') s.wo++; else s.none++;
-    if (!r[5]) s.advMiss++;
-    if (r[15]) s.pFill++;
-    const dt = dmy(r[1]); if (dt) s.years[dt.y] = (s.years[dt.y] || 0) + 1;
-    const ds = dmy(r[7]) || dt;
-    if (ds) { const t = Date.UTC(ds.y, ds.m - 1, ds.d); if (!s.latest || t > s.latest.t) s.latest = { t, d: ds.d, m: ds.m, y: ds.y }; }
-  }
-  return s;
-}
-const SC = { sig: '', v: null };
-function scoped() {           // data cabang yang sedang dibuka, sudah dipersempit sesuai periode terpilih
-  const d = S.data[S.cur];
-  if (!d || !d.out) return d || {};
-  if (!S.year && !S.month) return d;
-  const sig = [S.cur, d.at && d.at.getTime(), S.year, S.month].join('|');
-  if (SC.sig === sig && SC.v) return SC.v;
-  const out = d.out.filter(r => inPeriod(r[1]));
-  const v = Object.assign({}, d, {
-    out, nosikk: out.filter(r => !r[8]), noket: out.filter(r => !r[12]), both: out.filter(r => !r[8] && !r[12]),
-    db: { head: d.db.head, rows: d.db.rows.filter(r => inPeriod(r[1])) },
-    sb: [d.sb[0]].concat(d.sb.slice(1).filter(r => inPeriod(r[d.sbTgl]))),
-    stat: statOf(out)
+function atas(k, trip, r) {
+  var h = '<table><tr><td colspan="3"><b>LAPORAN HASIL KAPAL</b></td></tr>' +
+    '<tr><td colspan="3"><b>' + k.nama + '</b></td></tr>' +
+    '<tr><td colspan="3"><b>' + trip + '</b></td></tr>' +
+    '<tr class="h"><td>Keterangan</td><td>Percent %</td><td class="n">Nominal</td></tr>';
+  k.items.forEach(function (it, i) {
+    h += '<tr><td>' + it + '</td><td></td><td class="n">' + rp(r.d.nom[i]) + '</td></tr>';
   });
-  SC.sig = sig; SC.v = v; return v;
+  h += '<tr class="t"><td>Total</td><td></td><td class="n">' + rp(r.total) + '</td></tr>';
+  r.hasil.forEach(function (x) {
+    h += '<tr><td>Gaji Terima Sesuai Hasil (' + x.ket + ')</td><td>' + Math.round(x.p * 100) +
+         ' %</td><td class="n">' + rp(x.c) + '</td></tr>';
+  });
+  h += '<tr class="b ln"><td>Gaji Total</td><td></td><td class="n">' + rp(r.gaji) + '</td></tr>' +
+       '<tr class="b"><td>Sisa Utang</td><td></td><td class="n">' + rp(r.utang) + '</td></tr>' +
+       '<tr class="b"><td>Gaji Sudah Diambil</td><td></td><td class="n">' + rp(r.diambil) + '</td></tr>' +
+       '<tr class="b ln"><td>Sisa Gaji</td><td></td><td class="n">' + rp(r.sisa) + '</td></tr></table>';
+  return h;
 }
 
-function curView(full) {
-  const d = full ? S.data[S.cur] : scoped();
-  if (!d || !d.out) return { head: [], rows: [] };
-  if (S.tab === 'out') return { head: d.head, rows: d.out };
-  if (S.tab === 'nosikk') return { head: d.head, rows: d.nosikk };
-  if (S.tab === 'noket') return { head: d.head, rows: d.noket };
-  if (S.tab === 'both') return { head: d.head, rows: d.both };
-  if (S.tab === 'db') return d.db;
-  const src = S.tab === 'prev' ? d.sb : d.sa;
-  return { head: src[0].map(val), rows: src.slice(1).filter(r => r.some(x => val(x) !== '')) };
-}
-function filteredRaw() {
-  const v = curView();
-  const q = norm($('q').value);
-  let rows = v.rows;
-  if (OUTLIKE.includes(S.tab)) {
-    const fs = $('fSrc').value, fa = $('fAdv').value, fp = $('fP').value;
-    if (fs || fa || fp) rows = rows.filter(r => {
-      if (fs && r[16] !== fs) return false;
-      if (fa === 'MISS' && r[5]) return false;
-      if (fp === 'FILLED' && !r[15]) return false;
-      return true;
-    });
-  }
-  if (q) rows = rows.filter(r => r.join(' ').toLowerCase().includes(q));
-  const so = S.sort[S.tab];
-  if (so) rows = sortRows(rows, so.c, so.dir);
-  return { head: v.head, rows };
-}
-function filtered() {            // hasil disimpan sementara agar pindah halaman tidak mengurutkan ulang
-  const d = S.data[S.cur] || {};
-  const sig = [S.cur, S.tab, d.at && d.at.getTime(), JSON.stringify(S.sort[S.tab] || null),
-    $('q').value, $('fSrc').value, $('fAdv').value, $('fP').value, S.year, S.month].join('§');
-  if (S.memo && S.memo.sig === sig) return S.memo.v;
-  const v = filteredRaw(); S.memo = { sig, v }; return v;
-}
-
-/* ---------- Pengurutan kolom ---------- */
-/* ---------- Lebar kolom tetap: mengikuti teks terpanjang di seluruh data ---------- */
-const WCACHE = {};
-let MCTX;
-function meas(s, bold) {
-  if (MCTX === undefined) { try { MCTX = document.createElement('canvas').getContext('2d') || null; } catch (e) { MCTX = null; } }
-  if (!MCTX) return String(s).length * 7.6 * (bold ? 1.06 : 1);
-  MCTX.font = (bold ? '600 ' : '') + '13.5px "Public Sans", system-ui, -apple-system, "Segoe UI", sans-serif';
-  return MCTX.measureText(String(s)).width;
-}
-function widthsFor(tab) {
-  const d = S.data[S.cur] || {};
-  const base = OUTLIKE.includes(tab) ? 'out' : tab;
-  const key = S.cur + '|' + base + '|' + (d.at ? d.at.getTime() : 0);
-  if (WCACHE[key]) return WCACHE[key];
-  const keep = S.tab; S.tab = base;
-  let v; try { v = curView(true); } finally { S.tab = keep; }     // lebar kolom dari seluruh data, tidak terpengaruh periode
-  const W = v.head.map((h, c) => {
-    let mx = String(h).length;
-    for (const r of v.rows) { const n = r[c] == null ? 0 : String(r[c]).length; if (n > mx) mx = n; }
-    let cell = 0, seen = 0;
-    for (const r of v.rows) {                         // ukur hanya teks yang terpanjang (cepat)
-      const s = r[c] == null ? '' : String(r[c]);
-      if (s.length >= mx - 2 && s.length > 0) { cell = Math.max(cell, meas(s)); if (++seen >= 12) break; }
-    }
-    if (base === 'out' && c === 16) cell = Math.max(cell, 96);          // label Sumber (tag)
-    const head = meas(h, true) + 24;                                    // judul + panah urut
-    return Math.min(420, Math.max(64, Math.ceil(Math.max(cell, head)) + 32));
+function bawah(r) {
+  var h = '<table><tr class="h"><td>Hasil</td><td>Percent %</td><td class="n">Nominal</td></tr>';
+  r.hasil.forEach(function (x) {
+    h += '<tr class="g"><td class="n">' + rp2(x.a) + '</td><td>' + Math.round(x.p * 100) +
+         '%</td><td class="n">' + rp(x.c) + '</td></tr>';
   });
-  WCACHE[key] = W; return W;
-}
-const COLL = new Intl.Collator('id', { numeric: true, sensitivity: 'base' });
-const RE_DATE = /^(\d{1,2})\/(\d{1,2})\/(\d{4})(?:\s+(\d{1,2}):(\d{2})(?::(\d{2}))?)?$/;
-function sortRows(rows, c, dir) {
-  const sample = [];
-  for (const r of rows) { const v = val(r[c]); if (v) { sample.push(v); if (sample.length >= 60) break; } }
-  let type = 's';
-  if (sample.length && sample.every(v => RE_DATE.test(v))) type = 'd';
-  else if (sample.length && sample.every(v => /^-?\d+([.,]\d+)?$/.test(v) && !/^-?0\d/.test(v))) type = 'n';
-  const keyOf = v => {
-    v = val(v);
-    if (type === 'd') { const m = RE_DATE.exec(v); return m ? Date.UTC(+m[3], +m[2] - 1, +m[1], +(m[4] || 0), +(m[5] || 0), +(m[6] || 0)) : 0; }
-    if (type === 'n') return parseFloat(v.replace(',', '.'));
-    return v;
-  };
-  const k = rows.map(r => ({ r, k: keyOf(r[c]), b: val(r[c]) === '' }));
-  const sg = dir === 'desc' ? -1 : 1;
-  k.sort((a, b) => {
-    if (a.b !== b.b) return a.b ? 1 : -1;          // sel kosong selalu di bawah
-    if (a.b) return 0;
-    const x = type === 's' ? COLL.compare(a.k, b.k) : a.k - b.k;
-    return sg * x;
-  });
-  return k.map(o => o.r);
+  h += '<tr class="g b"><td class="n">' + rp2(r.total) + '</td><td></td><td class="n">' + rp(r.gaji) + '</td></tr></table>';
+  return h;
 }
 
 function render() {
-  const br = BR.find(b => b.key === S.cur);
-  const raw = S.data[S.cur] || {};
-  if (raw.stat && S.year && raw.stat.years[S.year] === undefined) S.year = '';
-  const d = scoped();
-  const hasData = !!d.out;
-
-  // pilihan tahun dan bulan
-  $('period').hidden = !hasData;
-  if (hasData) {
-    const yrs = Object.keys(raw.stat.years).sort().reverse();
-    const ysig = S.cur + ':' + yrs.join(',');
-    if ($('selYear').dataset.sig !== ysig) {
-      $('selYear').innerHTML = '<option value="">Semua tahun</option>' + yrs.map(y => '<option value="' + y + '">' + y + '</option>').join('');
-      $('selYear').dataset.sig = ysig;
+  K.forEach(function (k) {
+    if (kapalBoleh && k.id !== kapalBoleh) { el(k.id + '1').innerHTML = ''; el(k.id + '2').innerHTML = ''; return; }
+    var trip = el('s' + k.id).value;
+    if (!trip || !k.trips[trip]) {
+      el(k.id + '1').innerHTML = '<p><b>' + k.nama + '</b><br>Belum ada data trip.</p>';
+      el(k.id + '2').innerHTML = '';
+      return;
     }
-    $('selYear').value = S.year; $('selMonth').value = S.month;
-    $('periodReset').hidden = !periodLabel();
-    $('periodInfo').textContent = periodLabel()
-      ? 'Menampilkan ' + fnum(d.out.length) + ' dari ' + fnum(raw.out.length) + ' baris (berdasarkan TglWO)' : '';
-  }
-
-  $('nav').innerHTML = BR.map(b => '<button data-k="' + b.key + '" class="' + (b.key === S.cur ? 'on' : '') + '">' + esc(b.name) + '</button>').join('');
-  $('title').textContent = 'SIKK ' + br.name;
-  $('btnRefresh').disabled = S.loading;
-
-  // status live
-  const dot = $('dot');
-  if (S.loading) {
-    dot.className = 'dot load'; $('liveTxt').textContent = 'Memuat data dari Google Sheet...';
-  } else if (d.err) {
-    dot.className = 'dot bad';
-    $('liveTxt').innerHTML = '<b>Gagal</b> · ' + fnum(d.synced || 0) + ' dari ' + (d.n || 3) + ' sheet tersinkron';
-  } else if (d.at) {
-    dot.className = 'dot';
-    const a = d.at;
-    $('liveTxt').innerHTML = '<b>Live</b> · <b>' + (d.synced) + ' dari ' + d.n + ' sheet</b> tersinkron <b>' +
-      a.getDate() + ' ' + MONTHS[a.getMonth()] + ' ' + a.getFullYear() + ', ' + pad(a.getHours()) + ':' + pad(a.getMinutes()) +
-      '</b> · otomatis tiap 2 menit';
-  }
-
-  if (hasData) {
-    const s = d.stat;
-    const lt = s.latest ? 'Data SIKK terakhir : ' + pad(s.latest.d) + '-' + MONTHS[s.latest.m - 1] + '-' + s.latest.y : '';
-    $('per').textContent = lt + (periodLabel() ? (lt ? '  ·  ' : '') + 'Periode : ' + periodLabel() : '');
-    $('src').textContent = 'Sumber: sheet ' + br.sb + ' (' + fnum(raw.sb.length - 1) + ' baris), ' + br.am + ' (' + fnum(raw.am.length - 1) + ' baris) dan ' + SHEET_SA + ' (' + fnum(raw.sa.length - 1) + ' baris)';
-  } else { $('per').textContent = ''; $('src').textContent = ''; }
-
-  // banner
-  const al = $('alert');
-  if (d.err) {
-    al.hidden = false; al.className = 'alert err';
-    al.textContent = 'Data belum bisa dibaca: ' + d.err;
-  } else al.hidden = true;
-
-  // kartu
-  const kp = $('kpis');
-  if (hasData) {
-    const s = d.stat;
-    const pct = n => s.total ? (Math.round(n * 1000 / s.total) / 10).toLocaleString('id-ID') + '% dari total' : '';
-    const yrs = Object.keys(s.years).sort().map(y => '<b>' + y + '</b> <span>' + fnum(s.years[y]) + '</span>').join(' <span>·</span> ');
-    kp.hidden = false;
-    kp.innerHTML =
-      '<div class="k big"><div class="lab">Total seluruh baris Data Terbaru</div>' +
-        '<div class="num">' + fnum(s.total) + '</div>' +
-        '<div class="sub"><b>' + fnum(s.sikk + s.wo) + '</b> ketemu di ' + esc(br.sb) + ', <b>' + fnum(s.none) + '</b> tidak ketemu<br>' + yrs + '</div></div>' +
-      '<div class="k clk" data-pop="sikk" role="button" tabindex="0" title="Klik untuk melihat detail"><div class="lab"><i style="background:var(--green)"></i>Cocok via SIKK No<span class="chev">&rsaquo;</span></div>' +
-        '<div class="num">' + fnum(s.sikk) + ' <small>baris</small></div><div class="sub">' + pct(s.sikk) + '</div></div>' +
-      '<div class="k clk" data-pop="wo" role="button" tabindex="0" title="Klik untuk melihat detail"><div class="lab"><i style="background:var(--blue)"></i>Cocok via No WO<span class="chev">&rsaquo;</span></div>' +
-        '<div class="num">' + fnum(s.wo) + ' <small>baris</small></div><div class="sub">SIKK No kosong atau tidak cocok</div></div>' +
-      '<div class="k clk' + (s.none ? ' red' : '') + '" data-pop="none" role="button" tabindex="0" title="Klik untuk melihat detail"><div class="lab"><i style="background:var(--red)"></i>Tidak ketemu di ' + esc(br.sb) + '<span class="chev">&rsaquo;</span></div>' +
-        '<div class="num">' + fnum(s.none) + ' <small>baris</small></div><div class="sub">tidak ada catatan SIKK/WO di ' + esc(br.sb) + '</div></div>' +
-      '<div class="k clk' + (s.advMiss ? ' org' : '') + '" data-pop="adv" role="button" tabindex="0" title="Klik untuk melihat detail"><div class="lab"><i style="background:#c2410c"></i>Nama Advisor kosong<span class="chev">&rsaquo;</span></div>' +
-        '<div class="num">' + fnum(s.advMiss) + ' <small>baris</small></div><div class="sub">kode advisor belum ada di ' + SHEET_SA + '</div></div>';
-  } else kp.hidden = true;
-
-  // tab sheet
-  const pl = $('pills');
-  if (hasData) {
-    const cnt = a => fnum(a.length - 1);
-    const tabs = [
-      ['prev', 'Data Sebelumnya (' + cnt(d.sb) + ')'],
-      ['db', 'Database (' + fnum(d.db.rows.length) + ')'],
-      ['out', 'Data Terbaru (' + fnum(d.out.length) + ')'],
-      ['nosikk', 'Belum Ada No SIKK (' + fnum(d.nosikk.length) + ')'],
-      ['noket', 'Belum Ada Keterangan (' + fnum(d.noket.length) + ')'],
-      ['both', 'Tanpa No SIKK & Keterangan (' + fnum(d.both.length) + ')'],
-      ['sa', SHEET_SA + ' (' + cnt(d.sa) + ')']
-    ];
-    pl.innerHTML = tabs.map(t => '<button data-t="' + t[0] + '" class="' + (S.tab === t[0] ? 'on' : '') + '">' + esc(t[1]) + '</button>').join('');
-  } else pl.innerHTML = '';
-
-  $('tools').hidden = !hasData;
-  const isOut = OUTLIKE.includes(S.tab);
-  ['fSrc', 'fAdv', 'fP'].forEach(id => { $(id).style.display = isOut ? '' : 'none'; });
-  $('btnPdf').disabled = !hasData; $('btnXls').disabled = !hasData;
-
-  if (hasData) {
-    const v = filtered();
-    const pages = Math.max(1, Math.ceil(v.rows.length / PAGE));
-    if (S.page >= pages) S.page = pages - 1;
-    const rows = v.rows.slice(S.page * PAGE, S.page * PAGE + PAGE);
-    const so = S.sort[S.tab];
-    let h = '<thead><tr>' + v.head.map((t, i) => {
-      const on = so && so.c === i;
-      return '<th data-c="' + i + '" class="sortable' + (isOut && i === 15 ? ' p' : '') + (on ? ' sorted' : '') +
-        '" title="Klik untuk mengurutkan"><span class="ht">' + esc(t) + '</span><span class="arr">' +
-        (on ? (so.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8597;') + '</span></th>';
-    }).join('') + '</tr></thead><tbody>';
-    for (const r of rows) {
-      h += '<tr>';
-      for (let i = 0; i < v.head.length; i++) {
-        const c = r[i] == null ? '' : r[i];
-        if (isOut && i === 16) h += '<td><span class="tag ' + (c === 'SIKK' ? 'sikk' : c === 'WO' ? 'wo' : 'none') + '">' +
-          (c === 'SIKK' ? 'SIKK No' : c === 'WO' ? 'No WO' : 'Tidak ketemu') + '</span></td>';
-        else if (isOut && i === 5 && !c) h += '<td class="miss">-</td>';
-        else h += '<td>' + esc(c) + '</td>';
-      }
-      h += '</tr>';
-    }
-    h += '</tbody>';
-    const W = widthsFor(S.tab);
-    $('tbl').style.width = W.reduce((a, b) => a + b, 0) + 'px';
-    $('tbl').innerHTML = '<colgroup>' + W.map(w => '<col style="width:' + w + 'px">').join('') + '</colgroup>' + h;
-    $('tblWrap').hidden = false;
-    $('pager').hidden = false;
-    $('pinfo').textContent = 'Halaman ' + (S.page + 1) + ' / ' + pages + '  (' + fnum(v.rows.length) + ' baris)';
-    $('prev').disabled = S.page === 0; $('next').disabled = S.page >= pages - 1;
-    $('note').textContent =
-      S.tab === 'prev' ? 'Data Sebelumnya: isi sheet "' + br.sb + '" apa adanya.'
-      : S.tab === 'db' ? 'Database: isi sheet "' + br.am + '" ditambah kolom Nama Advisor yang dibaca dari sheet "' + SHEET_SA + '" berdasarkan kode Advisor.'
-      : S.tab === 'out' ? 'Data Terbaru: isi sheet "' + br.am + '" + Nama Advisor, ditambah kolom Keterangan, Fisik SIKK, Tgl Keluar Mobil dan kolom P yang dibaca dari "' + br.sb + '" hanya untuk melengkapi. Jika SIKK No terisi dicocokkan lewat SIKK No; jika kosong (atau tidak cocok) lewat No WO. Bila nomor yang sama berulang, pencocokan memakai tanggalnya juga.'
-      : S.tab === 'nosikk' ? 'Belum Ada No SIKK: baris Data Terbaru yang kolom SIKK No-nya masih kosong (dibaca dari sheet "' + br.am + '"). Kolom M sampai P terisi bila ketemu lewat No WO.'
-      : S.tab === 'both' ? 'Tanpa No SIKK & Keterangan: baris Data Terbaru yang kolom SIKK No dan kolom Keterangan-nya sama-sama masih kosong.'
-      : S.tab === 'noket' ? 'Belum Ada Keterangan: baris Data Terbaru yang kolom Keterangan-nya masih kosong, yaitu tidak ketemu di "' + br.sb + '" atau Keterangan di sana memang kosong.'
-      : 'Menampilkan isi sheet "' + SHEET_SA + '" apa adanya.';
-  } else {
-    $('tblWrap').hidden = true; $('pager').hidden = true; $('note').textContent = '';
-  }
-  if (!$('pop').hidden && P.kind && hasData) drawPop();     // popup yang terbuka ikut diperbarui
+    var r = hitung(k, trip);
+    el(k.id + '1').innerHTML = atas(k, trip, r);
+    el(k.id + '2').innerHTML = bawah(r);
+  });
 }
 
-/* ---------- Popup detail kartu ---------- */
-const POP = {
-  sikk: { t: 'Cocok via SIKK No', f: r => r[16] === 'SIKK', fs: 'SIKK' },
-  wo:   { t: 'Cocok via No WO', f: r => r[16] === 'WO', fs: 'WO' },
-  none: { t: 'Tidak ketemu di Data Sebelumnya', f: r => r[16] === 'NONE', fs: 'NONE' },
-  adv:  { t: 'Nama Advisor kosong', f: r => !r[5], fa: 'MISS' }
-};
-const P = { kind: null, page: 0, sort: null, memo: null, total: 0 };
-function popRows() {
-  const d = scoped();
-  const sig = [S.cur, P.kind, d.at && d.at.getTime(), $('pq').value, JSON.stringify(P.sort), S.year, S.month].join('§');
-  if (P.memo && P.memo.sig === sig) return P.memo.rows;
-  let rows = d.out.filter(POP[P.kind].f);
-  const q = norm($('pq').value);
-  if (q) rows = rows.filter(r => r.join(' ').toLowerCase().includes(q));
-  if (P.sort) rows = sortRows(rows, P.sort.c, P.sort.dir);
-  P.memo = { sig, rows }; return rows;
-}
-function drawPop() {
-  const d = scoped(), br = BR.find(b => b.key === S.cur), def = POP[P.kind];
-  P.total = d.out.filter(def.f).length;
-  const rows = popRows();
-  $('pTitle').textContent = def.t + ' - ' + br.name;
-  $('pCount').textContent = fnum(rows.length) + ' baris' + (norm($('pq').value) ? ' (hasil pencarian dari ' + fnum(P.total) + ')' : '');
-  const pages = Math.max(1, Math.ceil(rows.length / PAGE));
-  if (P.page >= pages) P.page = pages - 1;
-  const view = rows.slice(P.page * PAGE, P.page * PAGE + PAGE);
-  let h = '<thead><tr>' + d.head.map((t, i) => {
-    const on = P.sort && P.sort.c === i;
-    return '<th data-c="' + i + '" class="sortable' + (i === 15 ? ' p' : '') + (on ? ' sorted' : '') + '"><span class="ht">' + esc(t) +
-      '</span><span class="arr">' + (on ? (P.sort.dir === 'asc' ? '&#9650;' : '&#9660;') : '&#8597;') + '</span></th>';
-  }).join('') + '</tr></thead><tbody>';
-  if (!view.length) h += '<tr><td colspan="' + d.head.length + '" class="empty">Tidak ada data.</td></tr>';
-  for (const r of view) {
-    h += '<tr>';
-    for (let i = 0; i < d.head.length; i++) {
-      const c = r[i] == null ? '' : r[i];
-      if (i === 16) h += '<td><span class="tag ' + (c === 'SIKK' ? 'sikk' : c === 'WO' ? 'wo' : 'none') + '">' + (SRC_TXT[c] || c) + '</span></td>';
-      else if (i === 5 && !c) h += '<td class="miss">-</td>';
-      else h += '<td>' + esc(c) + '</td>';
-    }
-    h += '</tr>';
-  }
-  const W = widthsFor('out');
-  $('pTbl').style.width = W.reduce((a, b) => a + b, 0) + 'px';
-  $('pTbl').innerHTML = '<colgroup>' + W.map(w => '<col style="width:' + w + 'px">').join('') + '</colgroup>' + h + '</tbody>';
-  $('pInfo').textContent = 'Halaman ' + (P.page + 1) + ' / ' + pages;
-  $('pPrev').disabled = P.page === 0; $('pNext').disabled = P.page >= pages - 1;
-}
-function openPop(kind) {
-  const d = S.data[S.cur]; if (!d || !d.out || !POP[kind]) return;
-  P.kind = kind; P.page = 0; P.sort = null; P.memo = null; $('pq').value = '';
-  $('pop').hidden = false; drawPop();
-}
-function popToTab() {            // tutup popup dan tampilkan daftar yang sama di tab Data Terbaru
-  const def = POP[P.kind];
-  S.tab = 'out'; S.page = 0; $('q').value = '';
-  $('fSrc').value = def.fs || ''; $('fAdv').value = def.fa || ''; $('fP').value = '';
-  $('pop').hidden = true; render();
-}
-
-/* ---------- Export PDF & Excel (langsung unduh, tanpa dialog cetak) ---------- */
-const TAB_LABEL = { prev: 'Data Sebelumnya', db: 'Database', out: 'Data Terbaru', nosikk: 'Belum Ada No SIKK', noket: 'Belum Ada Keterangan', both: 'Tanpa No SIKK & Keterangan', sa: SHEET_SA };
-const TAB_ORDER = ['prev', 'db', 'out', 'nosikk', 'noket', 'both', 'sa'];
-const SRC_TXT = { SIKK: 'SIKK No', WO: 'No WO', NONE: 'Tidak ketemu' };
-const PDF_MAX = 5000;
-
-function exportItem(tab, active) {        // active = ikut filter, pencarian dan urutan tab yang sedang dibuka
-  const keep = S.tab; S.tab = tab;
-  try {
-    const v = active ? filtered() : curView();
-    const head = v.head.slice();
-    const rows = v.rows.map(r => head.map((_, i) => {
-      const c = r[i] == null ? '' : r[i];
-      return (OUTLIKE.includes(tab) && i === 16) ? (SRC_TXT[c] || c) : c;
-    }));
-    if (OUTLIKE.includes(tab)) head[16] = 'Sumber Data';
-    return { tab, title: TAB_LABEL[tab], head, rows };
-  } finally { S.tab = keep; }
-}
-function stamp() { const a = new Date(); return a.getFullYear() + pad(a.getMonth() + 1) + pad(a.getDate()) + '_' + pad(a.getHours()) + pad(a.getMinutes()); }
-function fileBase(scope) { const br = BR.find(b => b.key === S.cur); return 'SIKK_' + br.name.replace(/\s+/g, '_') + '_' + (scope === 'all' ? 'Semua_Tab' : TAB_LABEL[S.tab].replace(/\s+/g, '_')) + (periodLabel() ? '_' + periodLabel().replace(/\s+/g, '_') : '') + '_' + stamp(); }
-
-function exportPDF(items, scope) {
-  const J = window.jspdf;
-  if (!J || !J.jsPDF) throw new Error('Library PDF belum termuat. Periksa koneksi internet lalu muat ulang halaman.');
-  const br = BR.find(b => b.key === S.cur);
-  const doc = new J.jsPDF({ orientation: 'landscape', unit: 'mm', format: 'a3', compress: true });
-  if (typeof doc.autoTable !== 'function') throw new Error('Plugin tabel PDF belum termuat. Muat ulang halaman.');
-  const now = new Date();
-  const when = now.getDate() + ' ' + MONTHS[now.getMonth()] + ' ' + now.getFullYear() + ', ' + pad(now.getHours()) + ':' + pad(now.getMinutes());
-  items.forEach((it, idx) => {
-    if (idx > 0) doc.addPage();
-    const cut = it.rows.length > PDF_MAX;
-    const body = cut ? it.rows.slice(0, PDF_MAX) : it.rows;
-    doc.setFontSize(15); doc.setTextColor(22, 32, 46);
-    doc.text('SIKK ' + br.name + ' - ' + it.title, 10, 13);
-    doc.setFontSize(9); doc.setTextColor(102, 112, 133);
-    doc.text('Dicetak ' + when + (periodLabel() ? '  |  Periode ' + periodLabel() : '') + '  |  ' + fnum(it.rows.length) + ' baris' +
-      (cut ? '  (PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama, gunakan Export Excel untuk data lengkap)' : ''), 10, 18.5);
-    doc.autoTable({
-      head: [it.head], body, startY: 22,
-      styles: { fontSize: 6.5, cellPadding: 1.1, overflow: 'ellipsize' },
-      headStyles: { fillColor: [27, 53, 86], textColor: 255, fontSize: 6.8 },
-      alternateRowStyles: { fillColor: [247, 249, 252] },
-      margin: { left: 10, right: 10, top: 14, bottom: 12 }
+function isiPilihan() {
+  K.forEach(function (k) {
+    var s = el('s' + k.id);
+    var cur = s.value || k.def;
+    var names = Object.keys(k.trips).sort(function (a, b) { return angka(a) - angka(b); });
+    if (!isMaster()) {
+      names = names.filter(function (t) { return t === TRIP_TERBUKA[k.id]; });
+      cur = TRIP_TERBUKA[k.id];
+      s.disabled = true;
+    } else { s.disabled = false; }
+    s.innerHTML = '';
+    names.forEach(function (t) {
+      var o = document.createElement('option');
+      o.value = t; o.textContent = t;
+      s.appendChild(o);
     });
+    s.value = k.trips[cur] ? cur : (names.length ? names[names.length - 1] : '');
   });
-  const n = doc.getNumberOfPages();
-  for (let i = 1; i <= n; i++) {
-    doc.setPage(i); doc.setFontSize(8); doc.setTextColor(120);
-    doc.text('Halaman ' + i + ' / ' + n, 410, 291, { align: 'right' });
-  }
-  doc.save(fileBase(scope) + '.pdf');
 }
 
-function exportXLS(items, scope) {
-  if (typeof XLSX === 'undefined') throw new Error('Library Excel belum termuat. Periksa koneksi internet lalu muat ulang halaman.');
-  const wb = XLSX.utils.book_new();
-  items.forEach(it => {
-    const ws = XLSX.utils.aoa_to_sheet([it.head].concat(it.rows));
-    ws['!cols'] = it.head.map(h => ({ wch: Math.min(34, Math.max(11, String(h).length + 3)) }));
-    ws['!autofilter'] = { ref: XLSX.utils.encode_range({ s: { r: 0, c: 0 }, e: { r: Math.max(1, it.rows.length), c: Math.max(0, it.head.length - 1) } }) };
-    XLSX.utils.book_append_sheet(wb, ws, it.title);
-  });
-  XLSX.writeFile(wb, fileBase(scope) + '.xlsx');
+/* ---------- Membaca spreadsheet (Google Visualization) ---------- */
+function sel(row, i) { var c = row.c && row.c[i]; return c && c.v !== null && c.v !== undefined ? c.v : ''; }
+function num(v) { var n = Number(v); return isFinite(n) ? n : 0; }
+function normTrip(v) {
+  var s = String(v).trim().replace(/\s+/g, ' ').toUpperCase();
+  return /^\d+$/.test(s) ? 'TRIP ' + s : s;
 }
 
-let pendingKind = null;
-function openExport(kind) {
-  const d = scoped(); if (!d || !d.out) return;
-  pendingKind = kind;
-  $('mTitle').textContent = kind === 'pdf' ? 'Export PDF' : 'Export Excel';
-  $('mCurT').textContent = 'Tab ini saja: ' + TAB_LABEL[S.tab];
-  $('mCur').textContent = fnum(filtered().rows.length) + ' baris, sesuai pencarian, filter dan urutan yang sedang tampil';
-  const cnt = { prev: d.sb.length - 1, db: d.db.rows.length, out: d.out.length, nosikk: d.nosikk.length, noket: d.noket.length, both: d.both.length, sa: d.sa.length - 1 };
-  $('mAll').textContent = TAB_ORDER.map(t => TAB_LABEL[t] + ' (' + fnum(cnt[t]) + ')').join(', ') + '. Semua baris' + (periodLabel() ? ' periode ' + periodLabel() : '') + ', tanpa filter pencarian.';
-  const big = kind === 'pdf' && TAB_ORDER.some(t => cnt[t] > PDF_MAX);
-  $('mNote').className = 'mnote';
-  $('mNote').textContent = big ? 'PDF dibatasi ' + fnum(PDF_MAX) + ' baris pertama per tab. Untuk data lengkap gunakan Export Excel.' : '';
-  document.querySelector('input[name=scope][value=cur]').checked = true; syncOpt();
-  $('mGo').disabled = false; $('modal').hidden = false;
+function olah(rows) {
+  K.forEach(function (k) {
+    var items = [], trips = {};
+    rows.forEach(function (row) {
+      var ket = String(sel(row, k.c.ket)).trim();
+      var trip = normTrip(sel(row, k.c.trip));
+      if (!ket || !trip) return;
+      if (items.indexOf(ket) < 0) items.push(ket);
+      var t = trips[trip] || (trips[trip] = { nom: {}, utang: 0, diambil: 0, ada: false });
+      var n = num(sel(row, k.c.nom)), u = num(sel(row, k.c.ut)), d = num(sel(row, k.c.di));
+      t.nom[ket] = (t.nom[ket] || 0) + n;
+      t.utang += u; t.diambil += d;
+      if (n || u || d) t.ada = true;
+    });
+    var hasil = {};
+    Object.keys(trips).forEach(function (name) {
+      var t = trips[name];
+      if (!t.ada) return;
+      hasil[name] = { nom: items.map(function (it) { return t.nom[it] || 0; }), utang: t.utang, diambil: t.diambil };
+    });
+    k.items = items; k.trips = hasil;
+  });
 }
-function syncOpt() {
-  const all = document.querySelector('input[name=scope][value=all]').checked;
-  $('optAll').className = 'opt' + (all ? ' on' : ''); $('optCur').className = 'opt' + (all ? '' : ' on');
+
+
+/* ---------- Akses: password dan izin perangkat ---------- */
+var ITER = 100000;
+/* Peran dan kapal yang boleh dilihat ditentukan oleh password. Nama bebas diisi (harus nama orang).
+   kapal 'a' = KM Bintang Laut, 'b' = KM Serba Jaya. */
+var AKUN = [
+  { master: true,  kapal: null, s: 'b0c89b4e765af617448ae80d242ccf7b', h: '9d5a8ff26818bff861f0ba0dd2b396a412d94ba3f1ffd362193ad3d0e696453b' },
+  { master: false, kapal: 'a', s: '8a3a3643e079a1dc15182651210bc653', h: '5b850e16b07816f8203c9551f69df14b1d2ca53d3528b72f165014a6517a1065' },
+  { master: false, kapal: 'b', s: '15ae99f1779c9e7b339b1485e1173481', h: '7ad1c9aee5ea986d4973a39aad7ffbd127ee5a25a0d1a1384325492aa3cc9a05' }
+];
+/* Skrip Google (Apps Script) yang sama dengan dashboard cabang: mengurus persetujuan perangkat
+   (email SETUJUI/TOLAK ke admin) dan mencatat login beserta lokasinya. */
+var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLl7p16a1CSTj2prCGzKjUDxeIEyJsWwaCG_Nu2EEIFV2eoDlB7onRJ0KvMyPnNaAljw/exec';
+/* Trip yang dibuka untuk password biasa. Trip lain tidak tampil.
+   Untuk membuka trip berikutnya, ganti nilainya (mis. 'TRIP 76' -> 'TRIP 77'),
+   maka trip lama otomatis tertutup. Password master tetap melihat semua trip + Export. */
+var TRIP_TERBUKA = { a: 'TRIP 76', b: 'TRIP 14' };
+var peran = null, namaMasuk = '', kapalBoleh = null;
+function isMaster() { return peran === 'master'; }
+var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
+var IKON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg>';
+var tab = 'semua', gagal = 0, kunciSampai = 0, timer = null;
+
+function heks(b) { return Array.prototype.map.call(new Uint8Array(b), function (x) { return ('0' + x.toString(16)).slice(-2); }).join(''); }
+function dariHeks(h) { var a = new Uint8Array(h.length / 2); for (var i = 0; i < a.length; i++) a[i] = parseInt(h.substr(i * 2, 2), 16); return a; }
+function turunan(sandi, saltHex) {
+  return crypto.subtle.importKey('raw', new TextEncoder().encode(sandi), 'PBKDF2', false, ['deriveBits'])
+    .then(function (k) { return crypto.subtle.deriveBits({ name: 'PBKDF2', salt: dariHeks(saltHex), iterations: ITER, hash: 'SHA-256' }, k, 256); })
+    .then(heks);
 }
-async function doExport() {
-  const all = document.querySelector('input[name=scope][value=all]').checked;
-  const scope = all ? 'all' : 'cur';
-  $('mGo').disabled = true; $('mNote').className = 'mnote'; $('mNote').textContent = 'Menyiapkan file...';
-  await new Promise(r => setTimeout(r, 40));
+function bacaGviz(txt) { return JSON.parse(txt.match(/setResponse\(([\s\S]*)\);?\s*$/)[1]); }
+function idPerangkat() {
   try {
-    const items = all ? TAB_ORDER.map(t => exportItem(t, false)) : [exportItem(S.tab, true)];
-    if (pendingKind === 'pdf') exportPDF(items, scope); else exportXLS(items, scope);
-    $('modal').hidden = true;
-  } catch (e) {
-    $('mNote').className = 'mnote err'; $('mNote').textContent = 'Gagal export: ' + e.message; $('mGo').disabled = false;
-  }
+    var id = localStorage.getItem('pp_device_id');
+    if (!id || id === 'undefined' || id === 'null') {
+      id = Date.now().toString(36) + '-' + Math.random().toString(36).slice(2) + '-' + Math.random().toString(36).slice(2);
+      localStorage.setItem('pp_device_id', id);
+    }
+    return id;
+  } catch (e) { return 'no-storage-' + Date.now() + '-' + Math.random().toString(36).slice(2); }
+}
+function namaKapal() { return kapalBoleh ? (kapalBoleh === 'a' ? 'KM Bintang Laut' : 'KM Serba Jaya') : 'Semua kapal (master)'; }
+/* Tanya skrip: approved / pending / rejected. Perangkat baru otomatis didaftarkan dan emailnya terkirim ke admin. */
+function cekSekali() {
+  return new Promise(function (ok) {
+    var cb = '_devcb_' + Date.now() + '_' + Math.floor(Math.random() * 1e6), selesai = false, sc = document.createElement('script'), t;
+    function bersih() { clearTimeout(t); try { delete window[cb]; } catch (e) { window[cb] = undefined; } if (sc.parentNode) sc.parentNode.removeChild(sc); }
+    t = setTimeout(function () { if (!selesai) { selesai = true; bersih(); ok(null); } }, 9000);
+    window[cb] = function (d) { if (selesai) return; selesai = true; bersih(); ok(d || null); };
+    sc.onerror = function () { if (!selesai) { selesai = true; bersih(); ok(null); } };
+    sc.src = APPS_SCRIPT_URL + '?action=cek&device=' + encodeURIComponent(idPerangkat()) + '&nama=' + encodeURIComponent(namaMasuk) +
+             '&cabang=' + encodeURIComponent(namaKapal()) + '&callback=' + cb;
+    document.body.appendChild(sc);
+  });
+}
+function cekPerangkat() {
+  return cekSekali().then(function (r) { return r || cekSekali(); }).then(function (r) { return r || cekSekali(); })
+    .then(function (r) { return r || { status: 'error' }; });
 }
 
-/* ---------- Event ---------- */
-$('nav').addEventListener('click', e => {
-  const b = e.target.closest('button[data-k]'); if (!b) return;
-  S.cur = b.dataset.k; S.tab = 'out'; S.page = 0; S.sort = {}; S.year = ''; S.month = '';
-  $('q').value = ''; $('fSrc').value = ''; $('fAdv').value = ''; $('fP').value = '';
-  render();
-  if (!S.data[S.cur] || !S.data[S.cur].out) loadBranch(S.cur);
-});
-$('pills').addEventListener('click', e => {
-  const b = e.target.closest('button[data-t]'); if (!b) return;
-  S.tab = b.dataset.t; S.page = 0; render();
-});
-$('selMonth').innerHTML = '<option value="">Semua bulan</option>' + MONTHS.map((m, i) => '<option value="' + (i + 1) + '">' + m + '</option>').join('');
-$('selYear').addEventListener('change', () => { S.year = $('selYear').value; S.page = 0; render(); });
-$('selMonth').addEventListener('change', () => { S.month = $('selMonth').value; S.page = 0; render(); });
-$('periodReset').onclick = () => { S.year = ''; S.month = ''; S.page = 0; render(); };
-$('btnRefresh').onclick = () => loadBranch(S.cur);
-$('btnPdf').onclick = () => openExport('pdf');
-$('btnXls').onclick = () => openExport('xls');
-$('mCancel').onclick = () => { $('modal').hidden = true; };
-$('mGo').onclick = doExport;
-$('modal').addEventListener('click', e => { if (e.target.id === 'modal') $('modal').hidden = true; });
-document.querySelectorAll('input[name=scope]').forEach(i => i.addEventListener('change', syncOpt));
-document.addEventListener('keydown', e => { if (e.key === 'Escape') { $('modal').hidden = true; $('pop').hidden = true; } });
-$('kpis').addEventListener('click', e => { const c = e.target.closest('[data-pop]'); if (c) openPop(c.dataset.pop); });
-$('kpis').addEventListener('keydown', e => {
-  if (e.key !== 'Enter' && e.key !== ' ') return;
-  const c = e.target.closest('[data-pop]'); if (c) { e.preventDefault(); openPop(c.dataset.pop); }
-});
-$('pClose').onclick = () => { $('pop').hidden = true; };
-$('pop').addEventListener('click', e => { if (e.target.id === 'pop') $('pop').hidden = true; });
-$('pOpen').onclick = popToTab;
-$('pPrev').onclick = () => { P.page--; drawPop(); };
-$('pNext').onclick = () => { P.page++; drawPop(); };
-let pqt = null;
-$('pq').addEventListener('input', () => { clearTimeout(pqt); pqt = setTimeout(() => { P.page = 0; drawPop(); }, 180); });
-$('pTbl').addEventListener('click', e => {
-  const th = e.target.closest('th[data-c]'); if (!th) return;
-  const c = +th.dataset.c, cur = P.sort;
-  if (!cur || cur.c !== c) P.sort = { c, dir: 'asc' };
-  else if (cur.dir === 'asc') P.sort = { c, dir: 'desc' };
-  else P.sort = null;
-  P.page = 0; drawPop();
-});
-$('tbl').addEventListener('click', e => {      // klik judul kolom: naik, turun, lalu kembali normal
-  const th = e.target.closest('th[data-c]'); if (!th) return;
-  const c = +th.dataset.c, cur = S.sort[S.tab];
-  if (!cur || cur.c !== c) S.sort[S.tab] = { c, dir: 'asc' };
-  else if (cur.dir === 'asc') S.sort[S.tab] = { c, dir: 'desc' };
-  else delete S.sort[S.tab];
-  S.page = 0; render();
-});
-$('prev').onclick = () => { S.page--; render(); };
-$('next').onclick = () => { S.page++; render(); };
-let qt = null;
-$('q').addEventListener('input', () => { clearTimeout(qt); qt = setTimeout(() => { S.page = 0; render(); }, 180); });
-['fSrc', 'fAdv', 'fP'].forEach(id => $(id).addEventListener('change', () => { S.page = 0; render(); }));
+function namaValid(n) {
+  if (n.length < 3 || n.length > 60) return false;
+  if (!/^[A-Za-zÀ-ɏ][A-Za-zÀ-ɏ .'-]*$/.test(n)) return false;
+  if (/^(tekong|admin|master|user|test|tes|nama|bos)$/i.test(n)) return false;
+  return true;
+}
+function masuk() {
+  var galat = el('galat');
+  if (Date.now() < kunciSampai) { galat.textContent = 'Terlalu banyak percobaan. Coba lagi beberapa detik lagi.'; return; }
+  if (!window.crypto || !crypto.subtle) { galat.textContent = 'Browser ini tidak mendukung login. Pakai Chrome, Edge, atau Safari terbaru.'; return; }
+  var n = el('nama').value.trim().replace(/\s+/g, ' '), p = el('sandi').value;
+  if (!namaValid(n)) { galat.textContent = 'Isi dengan nama orang (huruf saja, minimal 3 huruf).'; return; }
+  galat.textContent = 'Memeriksa...';
+  Promise.all(AKUN.map(function (a) { return turunan(p, a.s); })).then(function (hs) {
+    var idx = -1;
+    AKUN.forEach(function (a, i) { if (hs[i] === a.h) idx = i; });
+    if (idx >= 0) {
+      gagal = 0; galat.textContent = '';
+      peran = AKUN[idx].master ? 'master' : 'biasa'; kapalBoleh = AKUN[idx].kapal; namaMasuk = n;
+      lanjut();
+    } else {
+      gagal++;
+      if (gagal >= 5) { kunciSampai = Date.now() + 30000; gagal = 0; }
+      galat.textContent = 'Password salah.';
+    }
+  });
+}
 
-render();
-loadBranch(S.cur);                                               // baca otomatis saat dibuka
-setInterval(() => { if (!S.loading) loadBranch(S.cur); }, REFRESH_MS);   // perbarui otomatis tiap 2 menit
+/* ---------- Lokasi login ----------
+   HP/tablet: izin lokasi GPS wajib, alamat dicari dari koordinat. Laptop/PC: lokasi perkiraan dari IP. */
+function infoPerangkat() {
+  var ua = navigator.userAgent || '', os = 'Tidak diketahui', br = 'Tidak diketahui';
+  if (/Windows/i.test(ua)) os = 'Windows'; else if (/Android/i.test(ua)) os = 'Android';
+  else if (/iPhone|iPad|iPod/i.test(ua)) os = 'iOS'; else if (/Macintosh|Mac OS/i.test(ua)) os = 'Mac'; else if (/Linux/i.test(ua)) os = 'Linux';
+  if (/Edg\//i.test(ua)) br = 'Edge'; else if (/OPR\//i.test(ua)) br = 'Opera';
+  else if (/Chrome\//i.test(ua) && !/Chromium/i.test(ua)) br = 'Chrome'; else if (/Firefox\//i.test(ua)) br = 'Firefox';
+  else if (/Safari\//i.test(ua) && !/Chrome/i.test(ua)) br = 'Safari';
+  return { os: os, br: br };
+}
+function perangkatSeluler() { return /Android|iPhone|iPad|iPod|Mobile|Windows Phone|BlackBerry|webOS/i.test(navigator.userAgent || ''); }
+function mintaGPS() {
+  return new Promise(function (ok, no) {
+    if (!navigator.geolocation) { no('nogeo'); return; }
+    navigator.geolocation.getCurrentPosition(function (p) { ok({ lat: p.coords.latitude, lng: p.coords.longitude }); }, no,
+      { enableHighAccuracy: true, timeout: 10000, maximumAge: 60000 });
+  });
+}
+function alamatDariKoordinat(lat, lng) {
+  return fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat=' + lat + '&lon=' + lng + '&zoom=18&addressdetails=1',
+    { headers: { 'Accept': 'application/json' } })
+    .then(function (r) { return r.json(); })
+    .then(function (d) { var a = d.address || {};
+      return { alamat: d.display_name || '-', negara: a.country || '-', kota: a.city || a.town || a.village || a.county || a.regency || '-' }; })
+    .catch(function () { return { alamat: '-', negara: '-', kota: '-' }; });
+}
+function lokasiDariIP() {
+  return new Promise(function (ok) {
+    var selesai = false, t = setTimeout(function () { if (!selesai) { selesai = true; ok({ sumber: 'IP' }); } }, 2500);
+    fetch('https://ipapi.co/json/').then(function (r) { return r.json(); }).then(function (d) {
+      if (selesai) return; selesai = true; clearTimeout(t);
+      ok({ sumber: 'IP', ip: d.ip || '-', negara: d.country_name || '-', kota: d.city || '-',
+           lat: d.latitude != null ? d.latitude : '', lng: d.longitude != null ? d.longitude : '', alamat: '-' });
+    }).catch(function () { if (!selesai) { selesai = true; clearTimeout(t); ok({ sumber: 'IP' }); } });
+  });
+}
+/* Catat login berhasil beserta perangkat dan lokasi ke skrip admin. Password tidak ikut dikirim. */
+function catatLogin(loc) {
+  var d = infoPerangkat();
+  try {
+    fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+      body: JSON.stringify({ nama: namaMasuk, status: 'Berhasil', password: '', cabang: namaKapal(), link: location.href,
+        akses: isMaster() ? 'Bisa Export' : 'Hanya Lihat', perangkat: d.os, browser: d.br,
+        ip: loc.ip || '-', negara: loc.negara || '-', kota: loc.kota || '-', lat: loc.lat == null ? '' : loc.lat, lng: loc.lng == null ? '' : loc.lng,
+        alamat: loc.alamat || '-' }) });
+  } catch (e) { /* gagal mencatat tidak boleh memblokir login */ }
+}
+function masukApp() {
+  var galat = el('galat');
+  function buka(loc) { catatLogin(loc); galat.textContent = ''; el('login').hidden = true; bukaApp(); }
+  if (!perangkatSeluler()) { lokasiDariIP().then(buka); return; }
+  galat.textContent = 'Meminta izin lokasi...';
+  mintaGPS().then(function (g) {
+    return alamatDariKoordinat(g.lat, g.lng).then(function (a) {
+      buka({ lat: g.lat, lng: g.lng, alamat: a.alamat, kota: a.kota, negara: a.negara, sumber: 'GPS' });
+    });
+  }).catch(function () {
+    peran = null; kapalBoleh = null;
+    galat.textContent = 'Izin lokasi diperlukan untuk login. Mohon izinkan akses lokasi, lalu coba lagi.';
+  });
+}
+function lanjut() {
+  if (!peran) { keluar(); return; }
+  var galat = el('galat');
+  galat.textContent = 'Memeriksa perangkat...';
+  cekPerangkat().then(function (dev) {
+    if (dev.status === 'approved') { masukApp(); return; }
+    peran = null; kapalBoleh = null;
+    galat.textContent = dev.status === 'pending' ? 'Perangkat ini belum disetujui admin. Permintaan sudah dikirim, coba Masuk lagi setelah disetujui.'
+      : dev.status === 'rejected' ? 'Perangkat ini ditolak admin.'
+      : 'Tidak bisa menghubungi server. Coba lagi.';
+  });
+}
+function bukaApp() {
+  el('app').hidden = false;
+  el('pdf').hidden = !isMaster();
+  document.querySelector('.tabs').hidden = !!kapalBoleh;
+  tab = kapalBoleh || 'semua';
+  isiPilihan(); render();
+  pilihTab(tab); muat();
+  clearInterval(timer);
+  timer = setInterval(function () {
+    muat();
+    cekPerangkat().then(function (dev) { if (dev.status === 'pending' || dev.status === 'rejected') { keluar(); el('galat').textContent = 'Perangkat ini tidak lagi disetujui admin.'; } });
+  }, 120000);
+}
+function keluar() {
+  peran = null; namaMasuk = ''; kapalBoleh = null;
+  clearInterval(timer);
+  el('app').hidden = true; el('login').hidden = false;
+  el('nama').value = ''; el('sandi').value = ''; el('galat').textContent = '';
+}
+/* ---------- Status, tab, data ---------- */
+function tgl(d) {
+  d = d || new Date();
+  return d.getDate() + ' ' + BLN[d.getMonth()] + ' ' + d.getFullYear() + ', ' + ('0' + d.getHours()).slice(-2) + ':' + ('0' + d.getMinutes()).slice(-2);
+}
+function setStatus(ok, teks) {
+  el('stat').innerHTML = '<span class="ico">' + IKON + '</span>' +
+    (ok ? 'Live · tersinkron <b>' + tgl() + '</b> · otomatis tiap 2 menit' : teks);
+}
+function pilihTab(t) {
+  tab = t;
+  el('grid').setAttribute('data-tab', t);
+  [].forEach.call(document.querySelectorAll('.tabs button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-t') === t); });
+  el('wa').hidden = (t === 'b'); el('wb').hidden = (t === 'a');
+}
+function muat() {
+  if (el('app').hidden) return;
+  el('stat').innerHTML = '<span class="ico">' + IKON + '</span>Memuat data...';
+  fetch(URL_DATA + '&t=' + Date.now())
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(function (txt) {
+      var j = bacaGviz(txt);
+      if (j.status !== 'ok') throw new Error('status');
+      olah(j.table.rows); isiPilihan(); render();
+      setStatus(true);
+    })
+    .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
+}
+
+/* ---------- Export PDF langsung (tanpa dialog cetak) ---------- */
+var LB = { r: { ' ': 250, '%': 833, ',': 250, '-': 333, '.': 250, 'R': 667, 'p': 500 },
+           b: { ' ': 250, '%': 1000, ',': 250, '-': 333, '.': 250, 'R': 722, 'p': 556 } };
+function lebar(t, b, u) {
+  var m = LB[b ? 'b' : 'r'], w = 0;
+  for (var i = 0; i < t.length; i++) { var c = t.charAt(i); w += (c >= '0' && c <= '9') ? 500 : (m[c] || 500); }
+  return w * u / 1000;
+}
+function esc(t) { return t.replace(/[\\()]/g, '\\$&'); }
+function f2(n) { return n.toFixed(2); }
+
+function halaman(h) {
+  var k = h.k, r = h.r, RH = 19, y = 841.89 - 50, s = '';
+  function teks(t, x, b, u, rata) {
+    if (!t) return;
+    var xx = rata === 'r' ? x - lebar(t, b, u) : x;
+    s += 'BT /' + (b ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - 13.5) + ' Td (' + esc(t) + ') Tj ET\n';
+  }
+  function kuning() { s += '1 1 0 rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n'; }
+  function garis(yy) { s += '0.6 w 40 ' + f2(yy) + ' m 555 ' + f2(yy) + ' l S\n'; }
+  function petak(x, w) { s += '0.6 w ' + x + ' ' + f2(y - RH) + ' ' + w + ' ' + RH + ' re S\n'; }
+  function baris(a, b, c, g) {
+    var tebal = /[bth]/.test(g);
+    if (/[ht]/.test(g)) kuning();
+    if (/t/.test(g)) { garis(y); garis(y - RH); }
+    if (/l/.test(g)) garis(y);
+    teks(a, 44, tebal, 10.5); teks(b, 375, tebal, 10.5); teks(c, 551, tebal, 10.5, 'r');
+    y -= RH;
+  }
+  function petak3(a, b, c, tebal) {
+    petak(40, 330); petak(370, 55); petak(425, 130);
+    teks(a, 366, tebal, 10.5, 'r'); teks(b, 421, tebal, 10.5, 'r'); teks(c, 551, tebal, 10.5, 'r');
+    y -= RH;
+  }
+  teks('LAPORAN HASIL KAPAL', 40, 1, 13); y -= 21;
+  teks(k.nama, 40, 1, 13); y -= 21;
+  teks(h.trip, 40, 1, 13); y -= 24;
+  baris('Keterangan', 'Percent %', 'Nominal', 'h');
+  k.items.forEach(function (it, i) { baris(it, '', rp(r.d.nom[i]), ''); });
+  baris('Total', '', rp(r.total), 't');
+  r.hasil.forEach(function (x) { baris('Gaji Terima Sesuai Hasil (' + x.ket + ')', Math.round(x.p * 100) + ' %', rp(x.c), ''); });
+  baris('Gaji Total', '', rp(r.gaji), 'bl');
+  baris('Sisa Utang', '', rp(r.utang), 'b');
+  baris('Gaji Sudah Diambil', '', rp(r.diambil), 'b');
+  baris('Sisa Gaji', '', rp(r.sisa), 'bl');
+  y -= 24;
+  kuning(); teks('Hasil', 44, 1, 10.5); teks('Percent %', 375, 1, 10.5); teks('Nominal', 551, 1, 10.5, 'r'); y -= RH;
+  r.hasil.forEach(function (x) { petak3(rp2(x.a), Math.round(x.p * 100) + '%', rp(x.c), 0); });
+  petak3(rp2(r.total), '', rp(r.gaji), 1);
+  y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
+  return s;
+}
+
+function buatPdf(hal) {
+  var o = [], kids = [];
+  o[1] = '<< /Type /Catalog /Pages 2 0 R >>';
+  o[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>';
+  o[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>';
+  hal.map(halaman).forEach(function (c, i) {
+    var p = 5 + i * 2, q = p + 1;
+    kids.push(p + ' 0 R');
+    o[p] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + q + ' 0 R >>';
+    o[q] = '<< /Length ' + c.length + ' >>\nstream\n' + c + '\nendstream';
+  });
+  o[2] = '<< /Type /Pages /Kids [' + kids.join(' ') + '] /Count ' + kids.length + ' >>';
+  var out = '%PDF-1.4\n', off = [], i;
+  for (i = 1; i < o.length; i++) { off[i] = out.length; out += i + ' 0 obj\n' + o[i] + '\nendobj\n'; }
+  var xr = out.length;
+  out += 'xref\n0 ' + o.length + '\n0000000000 65535 f \n';
+  for (i = 1; i < o.length; i++) out += ('0000000000' + off[i]).slice(-10) + ' 00000 n \n';
+  return out + 'trailer\n<< /Size ' + o.length + ' /Root 1 0 R >>\nstartxref\n' + xr + '\n%%EOF';
+}
+
+function ekspor() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (tab !== 'semua' && tab !== k.id) return;
+    var t = el('s' + k.id).value;
+    if (t && k.trips[t]) hal.push({ k: k, trip: t, r: hitung(k, t) });
+  });
+  if (!hal.length) return;
+  var nama = 'Laporan_' + hal.map(function (h) { return h.k.nama.replace(/\s+/g, '_') + '_' + h.trip.replace(/\s+/g, ''); }).join('_dan_') + '.pdf';
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([buatPdf(hal)], { type: 'application/pdf' }));
+  a.download = nama;
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+
+/* ---------- Mulai ---------- */
+el('muat').innerHTML = IKON.replace('<svg', '<span class="ico"><svg').replace('</svg>', '</svg></span>') + 'Refresh';
+isiPilihan(); render();
+K.forEach(function (k) { el('s' + k.id).addEventListener('change', render); });
+[].forEach.call(document.querySelectorAll('.tabs button'), function (b) {
+  b.addEventListener('click', function () { pilihTab(b.getAttribute('data-t')); });
+});
+el('masuk').addEventListener('click', masuk);
+el('mata').addEventListener('click', function () { var i = el('sandi'); i.type = i.type === 'password' ? 'text' : 'password'; });
+el('sandi').addEventListener('keydown', function (e) { if (e.key === 'Enter') masuk(); });
+el('nama').addEventListener('keydown', function (e) { if (e.key === 'Enter') el('sandi').focus(); });
+el('muat').addEventListener('click', muat);
+el('pdf').addEventListener('click', ekspor);
+el('keluar').addEventListener('click', keluar);
+document.addEventListener('visibilitychange', function () { if (!document.hidden) muat(); });
 </script>
 </body>
 </html>
