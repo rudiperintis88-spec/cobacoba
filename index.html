@@ -267,14 +267,36 @@ function render() {
   });
 }
 
+/* Akun biasa melihat SATU trip, dipilih otomatis: trip bernomor tertinggi yang sudah LENGKAP, yaitu
+   Ikan Basah DAN Ikan Asin sama-sama sudah terisi di sheet Data (Ikan Basah Toke tidak ikut dicek).
+   Trip yang belum lengkap tidak tampil. TRIP_TERBUKA = batas bawah: trip ini selalu tampil walaupun
+   trip yang lebih baru belum lengkap. */
+function tripLengkap(k, nama) {
+  var d = k.trips[nama];
+  if (!d) return false;
+  var basah = 0, asin = 0;
+  k.items.forEach(function (it, i) {
+    if (/asin/i.test(it)) asin += d.nom[i] || 0;
+    else if (/basah/i.test(it) && !/toke/i.test(it)) basah += d.nom[i] || 0;
+  });
+  return basah > 0 && asin > 0;
+}
+function tripBuka(k) {
+  var pilih = TRIP_TERBUKA[k.id];
+  Object.keys(k.trips).forEach(function (n) {
+    if (angka(n) > angka(pilih) && tripLengkap(k, n)) pilih = n;
+  });
+  return pilih;
+}
+
 function isiPilihan() {
   K.forEach(function (k) {
     var s = el('s' + k.id);
     var cur = s.value || k.def;
     var names = Object.keys(k.trips).sort(function (a, b) { return angka(a) - angka(b); });
     if (!isMaster()) {
-      names = names.filter(function (t) { return t === TRIP_TERBUKA[k.id]; });
-      cur = TRIP_TERBUKA[k.id];
+      cur = tripBuka(k);
+      names = names.filter(function (t) { return t === cur; });
       s.disabled = true;
     } else { s.disabled = false; }
     s.innerHTML = '';
@@ -473,9 +495,8 @@ var AKUN = [
 /* Skrip Google (Apps Script, file Kode.gs): mengurus persetujuan perangkat (email SETUJUI/TOLAK ke admin)
    dan mencatat login beserta lokasinya. */
 var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBeWA7lJpaVMNIPEyEut-UAcujJyDV48r89eIsuDjziaqHKmt3KqncLgIBAkJLa9A7/exec';   // tempel URL Web app (berakhiran /exec) dari Apps Script di sini
-/* Trip yang dibuka untuk password biasa. Trip lain tidak tampil.
-   Untuk membuka trip berikutnya, ganti nilainya (mis. 'TRIP 76' -> 'TRIP 77'),
-   maka trip lama otomatis tertutup. Password master tetap melihat semua trip + Export. */
+/* Trip minimal yang selalu terbuka untuk password biasa. Trip yang LEBIH BARU tampil otomatis begitu lengkap
+   (Ikan Basah + Ikan Asin terisi), tanpa mengubah file ini dan tanpa dipilih manual. Password master melihat semua trip + Export. */
 var TRIP_TERBUKA = { a: 'TRIP 76', b: 'TRIP 14' };
 var peran = null, namaMasuk = '', kapalBoleh = null;
 function isMaster() { return peran === 'master'; }
