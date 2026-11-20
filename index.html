@@ -349,7 +349,7 @@ function hitungLR(k, trip) {
   var r = hitung(k, trip), bel = Math.round((k.belanja && k.belanja[trip]) || 0), p = 0;
   k.items.forEach(function (it, i) { if (!bukanPenghasilan(it)) p += (r.d.nom[i] || 0); });
   p = Math.round(p);
-  return { r: r, penghasilan: p, belanja: bel, biaya: bel, laba: p - bel };
+  return { r: r, penghasilan: p, belanja: bel, gaji: Math.round(r.gaji), biaya: bel, laba: p - bel };
 }
 function labaTxt(v) { return v < 0 ? 'RUGI' : 'LABA'; }
 function marginTxt(x) { return x.penghasilan > 0 ? pctNum(x.laba / x.penghasilan) + ' %' : ''; }
@@ -362,7 +362,10 @@ function lrTabel(k, trip, x) {
   k.items.forEach(function (it, i) { if (bukanPenghasilan(it)) return; h += '<tr><td>' + he(it) + '</td><td></td><td class="n">' + rp(x.r.d.nom[i]) + '</td></tr>'; });
   h += '<tr class="b ln"><td>Total Penghasilan</td><td></td><td class="n">' + rp(x.penghasilan) + '</td></tr>' +
     '<tr class="sec"><td colspan="3">BIAYA</td></tr>' +
-    '<tr><td>Belanja</td><td></td><td class="n">' + rp(x.belanja) + '</td></tr>' +
+    (x.belanja > 0
+      ? '<tr><td>Belanja (di luar gaji)</td><td></td><td class="' + nc(x.belanja - x.gaji) + '">' + rp(x.belanja - x.gaji) + '</td></tr>' +
+        '<tr><td>Gaji Total</td><td></td><td class="n">' + rp(x.gaji) + '</td></tr>'
+      : '<tr><td>Belanja</td><td></td><td class="n">' + rp(x.belanja) + '</td></tr>') +
     '<tr class="b ln"><td>Total Biaya</td><td></td><td class="n">' + rp(x.biaya) + '</td></tr>' +
     '<tr class="t lb"><td>' + labaTxt(x.laba) + ' (Penghasilan - Biaya)</td><td>' + marginTxt(x) + '</td><td class="n ' +
     (x.laba < 0 ? 'neg' : 'pos') + '">' + rp(x.laba) + '</td></tr></table>';
@@ -779,7 +782,8 @@ function halamanLR(h) {
   k.items.forEach(function (it, i) { if (!bukanPenghasilan(it)) baris(it, '', rp(x.r.d.nom[i]), ''); });
   baris('Total Penghasilan', '', rp(x.penghasilan), 'bl');
   baris('BIAYA', '', '', 's');
-  baris('Belanja', '', rp(x.belanja), '');
+  if (x.belanja > 0) { baris('Belanja (di luar gaji)', '', rp(x.belanja - x.gaji), ''); baris('Gaji Total', '', rp(x.gaji), ''); }
+  else baris('Belanja', '', rp(x.belanja), '');
   baris('Total Biaya', '', rp(x.biaya), 'bl');
   baris(labaTxt(x.laba) + ' (Penghasilan - Biaya)', marginTxt(x), rp(x.laba), 't');
   if (!x.belanja) { y -= 4; teks('Catatan: belanja trip ini belum terisi di sheet Belanja.', 44, 0, 8.5); y -= RH; }
