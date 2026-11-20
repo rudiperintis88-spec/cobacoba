@@ -321,9 +321,9 @@ var AKUN = [
   { master: false, kapal: 'a', s: '8a3a3643e079a1dc15182651210bc653', h: '5b850e16b07816f8203c9551f69df14b1d2ca53d3528b72f165014a6517a1065' },
   { master: false, kapal: 'b', s: '15ae99f1779c9e7b339b1485e1173481', h: '7ad1c9aee5ea986d4973a39aad7ffbd127ee5a25a0d1a1384325492aa3cc9a05' }
 ];
-/* Skrip Google (Apps Script) yang sama dengan dashboard cabang: mengurus persetujuan perangkat
-   (email SETUJUI/TOLAK ke admin) dan mencatat login beserta lokasinya. */
-var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLl7p16a1CSTj2prCGzKjUDxeIEyJsWwaCG_Nu2EEIFV2eoDlB7onRJ0KvMyPnNaAljw/exec';
+/* Skrip Google (Apps Script, file Kode.gs): mengurus persetujuan perangkat (email SETUJUI/TOLAK ke admin)
+   dan mencatat login beserta lokasinya. */
+var APPS_SCRIPT_URL = '';   // tempel URL Web app (berakhiran /exec) dari Apps Script di sini
 /* Trip yang dibuka untuk password biasa. Trip lain tidak tampil.
    Untuk membuka trip berikutnya, ganti nilainya (mis. 'TRIP 76' -> 'TRIP 77'),
    maka trip lama otomatis tertutup. Password master tetap melihat semua trip + Export. */
@@ -438,10 +438,11 @@ function lokasiDariIP() {
 }
 /* Catat login berhasil beserta perangkat dan lokasi ke skrip admin. Password tidak ikut dikirim. */
 function catatLogin(loc) {
+  if (!APPS_SCRIPT_URL) return;
   var d = infoPerangkat();
   try {
     fetch(APPS_SCRIPT_URL, { method: 'POST', mode: 'no-cors', headers: { 'Content-Type': 'text/plain;charset=utf-8' },
-      body: JSON.stringify({ nama: namaMasuk, status: 'Berhasil', password: '', cabang: namaKapal(), link: location.href,
+      body: JSON.stringify({ deviceId: idPerangkat(), nama: namaMasuk, status: 'Berhasil', password: '', cabang: namaKapal(), link: location.href,
         akses: isMaster() ? 'Bisa Export' : 'Hanya Lihat', perangkat: d.os, browser: d.br,
         ip: loc.ip || '-', negara: loc.negara || '-', kota: loc.kota || '-', lat: loc.lat == null ? '' : loc.lat, lng: loc.lng == null ? '' : loc.lng,
         alamat: loc.alamat || '-' }) });
@@ -464,6 +465,7 @@ function masukApp() {
 function lanjut() {
   if (!peran) { keluar(); return; }
   var galat = el('galat');
+  if (!APPS_SCRIPT_URL) { peran = null; kapalBoleh = null; galat.textContent = 'Skrip izin perangkat belum dipasang. Isi APPS_SCRIPT_URL di file HTML.'; return; }
   galat.textContent = 'Memeriksa perangkat...';
   cekPerangkat().then(function (dev) {
     if (dev.status === 'approved') { masukApp(); return; }
