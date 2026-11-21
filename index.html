@@ -72,9 +72,13 @@ td:nth-child(3){width:120px;white-space:nowrap}
 .ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;padding:16px 20px 0;max-width:1100px;margin:0 auto}
 .ctl label{display:flex;flex-direction:column;gap:3px;font:bold 13px system-ui,Arial,sans-serif}
 .ctl select,.ctl button{font:inherit;padding:7px 10px;border:1px solid #888;border-radius:6px;background:#fff;color:#111}
-.ctl #pdf,.ctl #pdfLr{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
-.grid[data-tab=rekap]{grid-template-columns:1fr;max-width:960px}
-.grid:not([data-tab=semua]):not([data-tab=rekap]){grid-template-columns:1fr;max-width:640px}
+.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.grid:not([data-tab=semua]){grid-template-columns:1fr;max-width:1100px}
+#rkgrid{grid-template-columns:1fr;max-width:960px}
+.tg{display:grid;grid-template-columns:1fr 1fr;gap:28px 36px;align-items:start}
+.multi{grid-column:1/-1}
+.tg1{width:100%;max-width:640px;margin:0 auto}
+@media (max-width:820px){.tg{grid-template-columns:1fr}}
 @media print{.status,.tabs,.ctl{display:none}}
 
 .mainnav{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px 0;border-bottom:1px solid #dde2ec;font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
@@ -93,7 +97,6 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
 .note2{margin:6px 0 0;color:var(--mut);font-size:12.5px}
 @media print{.mainnav{display:none}}
 .rg{display:flex;gap:10px;align-items:end;flex-wrap:wrap}
-.blok+.blok{margin-top:28px}
 .blok .gap{height:22px}
 @media print{.blok{break-inside:avoid}}
 </style>
@@ -117,7 +120,8 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
   </div>
   <nav class="mainnav" id="mainnav" role="tablist" aria-label="Menu" hidden>
     <button type="button" role="tab" data-m="gaji" aria-selected="true">Laporan Gaji</button>
-    <button type="button" role="tab" data-m="lr" aria-selected="false">Laporan Laba Rugi</button>
+    <button type="button" role="tab" data-m="lr" aria-selected="false">Detail Laba Rugi</button>
+    <button type="button" role="tab" data-m="rekap" aria-selected="false">Rekap Laba Rugi</button>
   </nav>
   <div id="paneGaji">
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
@@ -129,10 +133,16 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
   <div id="paneLR" hidden>
     <nav class="tabs" id="tabsLR" role="tablist" aria-label="Laba Rugi">
       <button type="button" role="tab" data-l="semua">Semua</button>
-      <button type="button" role="tab" data-l="rekap" id="tabRekap">Rekap Trip</button>
     </nav>
     <div class="ctl" id="ctlLR"><button type="button" id="pdfLr">Export PDF</button></div>
     <main class="grid" id="lrgrid" data-tab="semua"></main>
+  </div>
+  <div id="paneRekap" hidden>
+    <nav class="tabs" id="tabsRk" role="tablist" aria-label="Rekap Laba Rugi">
+      <button type="button" role="tab" data-r="semua">Semua</button>
+    </nav>
+    <div class="ctl" id="ctlRk"><button type="button" id="pdfRk">Export PDF</button></div>
+    <main class="grid" id="rkgrid" data-tab="semua"></main>
   </div>
 </div>
 <script>
@@ -181,9 +191,9 @@ function he(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 function pctNum(p) { return String(Math.round(p * 1000) / 10).replace('.', ','); }
 function el(id) { return document.getElementById(id); }
 function dots(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp' + dots(Math.abs(r)); }
+function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp ' + dots(Math.abs(r)); }
 function nc(v) { return Math.round(v) < 0 ? 'n neg' : 'n'; } /* minus = merah, selain itu hitam */
-function rp2(n) { var p = Math.abs(n).toFixed(2).split('.'); return (n < 0 ? '-' : '') + 'Rp' + dots(p[0]) + ',' + p[1]; }
+function rp2(n) { return rp(n); } /* tabel Hasil: sama dengan rp, tanpa desimal ,00 */
 function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
 function angka(t) { return parseInt(String(t).replace(/\D/g, ''), 10) || 0; }
 
@@ -240,16 +250,18 @@ function tripRange(k, dari, sampai) {
 function labelRange(ds) { return ds.length > 1 ? ds[0] + ' - ' + ds[ds.length - 1] : (ds[0] || ''); }
 function daftarGaji(k) { return tripRange(k, el('s' + k.id).value, el('xs' + k.id).value); }
 function render() {
-  /* Tiap kapal satu kolom: untuk setiap trip di rentang, tabel atas lalu tabel hasil di bawahnya. */
+  /* Tiap kapal satu bagian. Satu trip: satu kolom. Lebih dari satu trip: bagian selebar halaman, trip disusun 2 kolom kiri-kanan. */
   K.forEach(function (k) {
     var c = el('g' + k.id);
-    if (!boleh(k)) { c.innerHTML = ''; return; }
+    if (!boleh(k)) { c.innerHTML = ''; c.className = ''; return; }
     var ds = daftarGaji(k);
-    if (!ds.length) { c.innerHTML = '<p><b>' + k.nama + '</b><br>Belum ada data trip.</p>'; return; }
-    c.innerHTML = ds.map(function (t) {
+    if (!ds.length) { c.className = 'tg1'; c.innerHTML = '<p><b>' + k.nama + '</b><br>Belum ada data trip.</p>'; return; }
+    var h = ds.map(function (t) {
       var r = hitung(k, t);
       return '<div class="blok">' + atas(k, t, r) + '<div class="gap"></div>' + bawah(r) + '</div>';
     }).join('');
+    if (ds.length > 1) { c.className = 'multi'; c.innerHTML = '<div class="tg">' + h + '</div>'; }
+    else { c.className = 'tg1'; c.innerHTML = h; }
   });
 }
 
@@ -417,9 +429,8 @@ function pilihTabLR(t) {
   el('lrgrid').setAttribute('data-tab', t);
   K.forEach(function (k) {
     var ok = boleh(k);
-    el('l' + k.id + '1').hidden = !ok || t === 'rekap' || (t !== 'semua' && t !== k.id);
-    el('l' + k.id + '2').hidden = !ok || t !== 'rekap';
-    el('wl' + k.id).hidden = !ok || (t !== 'semua' && t !== 'rekap' && t !== k.id);
+    el('l' + k.id + '1').hidden = !ok || (t !== 'semua' && t !== k.id);
+    el('wl' + k.id).hidden = !ok || (t !== 'semua' && t !== k.id);
   });
   [].forEach.call(document.querySelectorAll('#tabsLR button'), function (b) {
     var l = b.getAttribute('data-l'), k = kapal(l), hide = false;
@@ -430,18 +441,52 @@ function pilihTabLR(t) {
 }
 function renderLR() {
   K.forEach(function (k) {
-    var b1 = el('l' + k.id + '1'), b2 = el('l' + k.id + '2');
-    if (!boleh(k)) { b1.innerHTML = ''; b2.innerHTML = ''; return; }
+    var c = el('l' + k.id + '1');
+    if (!boleh(k)) { c.innerHTML = ''; c.className = ''; return; }
     var ds = daftarLR(k);
-    if (!ds.length) { b1.innerHTML = '<p><b>' + he(k.nama) + '</b><br>Belum ada data trip.</p>'; b2.innerHTML = lrRekap(k, ds); return; }
-    b1.innerHTML = ds.map(function (t) { return '<div class="blok">' + lrTabel(k, t, hitungLR(k, t)) + '</div>'; }).join('');
-    b2.innerHTML = lrRekap(k, ds);
+    if (!ds.length) { c.className = 'tg1'; c.innerHTML = '<p><b>' + he(k.nama) + '</b><br>Belum ada data trip.</p>'; return; }
+    var h = ds.map(function (t) { return '<div class="blok">' + lrTabel(k, t, hitungLR(k, t)) + '</div>'; }).join('');
+    if (ds.length > 1) { c.className = 'multi'; c.innerHTML = '<div class="tg">' + h + '</div>'; }
+    else { c.className = 'tg1'; c.innerHTML = h; }
+  });
+}
+
+/* ---------- Menu induk "Rekap Laba Rugi" ---------- */
+var tabRk = 'semua';
+function daftarRk(k) { return tripRange(k, el('r' + k.id).value, el('xr' + k.id).value); }
+/* Bawaan: semua trip (dari trip pertama sampai terakhir). Setelah pengguna memilih sendiri, pilihannya dipertahankan. */
+function isiPilihanRk() {
+  K.forEach(function (k) {
+    var s = el('r' + k.id), s2 = el('xr' + k.id), names = namaTrip(k), cur, cur2;
+    if (k.rkAuto === false) { cur = s.value; cur2 = s2.value; }
+    else { cur = names[0]; cur2 = names[names.length - 1]; }
+    isiRange(s, s2, k, names, cur, cur2, false);
+  });
+}
+function pilihTabRk(t) {
+  tabRk = t;
+  K.forEach(function (k) {
+    var tp = boleh(k) && (t === 'semua' || t === k.id);
+    el('rk' + k.id).hidden = !tp; el('wr' + k.id).hidden = !tp;
+  });
+  [].forEach.call(document.querySelectorAll('#tabsRk button'), function (b) {
+    var r = b.getAttribute('data-r'), k = kapal(r), hide = false;
+    if (r === 'semua') hide = !!kapalBoleh; else if (k) hide = !boleh(k);
+    b.hidden = hide;
+    b.setAttribute('aria-selected', r === t);
+  });
+}
+function renderRekap() {
+  K.forEach(function (k) {
+    var c = el('rk' + k.id);
+    c.innerHTML = boleh(k) ? lrRekap(k, daftarRk(k)) : '';
   });
 }
 function pilihMenu(m) {
-  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr';
+  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap';
   [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-m') === m); });
   if (m === 'lr') renderLR();
+  if (m === 'rekap') renderRekap();
 }
 
 /* ---------- Membaca spreadsheet (Google Visualization) ---------- */
@@ -494,19 +539,25 @@ function bangunDom() {
     var id = k.id, d;
     d = document.createElement('div'); d.id = 'g' + id; el('grid').appendChild(d);
     d = document.createElement('div'); d.id = 'l' + id + '1'; el('lrgrid').appendChild(d);
-    d = document.createElement('div'); d.id = 'l' + id + '2'; el('lrgrid').appendChild(d);
+    d = document.createElement('div'); d.id = 'rk' + id; el('rkgrid').appendChild(d);
     d = document.createElement('div'); d.className = 'rg'; d.id = 'w' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="s' + id + '"></select></label><label>sampai trip<select id="xs' + id + '"></select></label>';
     el('ctlGaji').insertBefore(d, el('pdf'));
     d = document.createElement('div'); d.className = 'rg'; d.id = 'wl' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="l' + id + '"></select></label><label>sampai trip<select id="xl' + id + '"></select></label>';
     el('ctlLR').insertBefore(d, el('pdfLr'));
+    d = document.createElement('div'); d.className = 'rg'; d.id = 'wr' + id;
+    d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="r' + id + '"></select></label><label>sampai trip<select id="xr' + id + '"></select></label>';
+    el('ctlRk').insertBefore(d, el('pdfRk'));
+    pasangRentang(el('r' + id), el('xr' + id), function () { k.rkAuto = false; renderRekap(); });
     pasangRentang(el('s' + id), el('xs' + id), render);
     pasangRentang(el('l' + id), el('xl' + id), renderLR);
     d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-t', id); d.textContent = k.lbl;
     el('tabsGaji').appendChild(d);
     d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-l', id); d.textContent = k.lbl;
-    el('tabsLR').insertBefore(d, el('tabRekap'));
+    el('tabsLR').appendChild(d);
+    d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-r', id); d.textContent = k.lbl;
+    el('tabsRk').appendChild(d);
   });
 }
 
@@ -741,6 +792,7 @@ function bukaApp() {
   pilihTab(tab); muat();
   el('mainnav').hidden = !isMaster(); pilihMenu('gaji'); isiPilihanLR();
   pilihTabLR(kapalBoleh || 'semua'); renderLR();
+  isiPilihanRk(); pilihTabRk(kapalBoleh || 'semua'); renderRekap();
   clearInterval(timer); clearInterval(timerIzin);
   timer = setInterval(muat, 120000);
   timerIzin = setInterval(cekIzin, 30000);   // status akses di sheet Perangkat diperiksa tiap 30 detik
@@ -800,8 +852,8 @@ function muat() {
       olah(j.table.rows);
       if (hs[1]) { try { olahTier(hs[1]); } catch (e) {} }
       if (hs[2]) { try { var jb = bacaGviz(hs[2]); if (jb.status === 'ok') olahBelanja(jb.table.rows); } catch (e) {} }
-      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR();
-      pilihTab(tab); pilihTabLR(tabLR);
+      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap();
+      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk);
       setStatus(true);
     })
     .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
@@ -919,24 +971,35 @@ function halamanLR(h) {
   RH = 19; y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
-function eksporLR() {
-  if (!isMaster()) return;
-  var hal = [];
-  K.forEach(function (k) {
-    if (!boleh(k)) return;
-    var ds = daftarLR(k);
-    if (!ds.length) return;
-    if (tabLR === 'rekap') { hal.push({ lr: true, rekap: true, k: k, ds: ds }); return; }
-    if (tabLR !== 'semua' && tabLR !== k.id) return;
-    ds.forEach(function (t) { hal.push({ lr: true, k: k, trip: t, x: hitungLR(k, t) }); });
-  });
-  if (!hal.length) return;
-  var nama = tabLR === 'rekap' ? 'Rekap_Trip_LabaRugi.pdf' : namaFile('LabaRugi_', hal);
+function unduh(nama, hal) {
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([buatPdf(hal)], { type: 'application/pdf' }));
   a.download = nama;
   document.body.appendChild(a); a.click(); a.remove();
   setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+function eksporLR() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabLR !== 'semua' && tabLR !== k.id) return;
+    daftarLR(k).forEach(function (t) { hal.push({ lr: true, k: k, trip: t, x: hitungLR(k, t) }); });
+  });
+  if (!hal.length) return;
+  unduh(namaFile('LabaRugi_', hal), hal);
+}
+function eksporRekap() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabRk !== 'semua' && tabRk !== k.id) return;
+    var ds = daftarRk(k);
+    if (ds.length) hal.push({ lr: true, rekap: true, k: k, ds: ds });
+  });
+  if (!hal.length) return;
+  unduh('Rekap_Laba_Rugi' + (tabRk === 'semua' ? '' : '_' + kapal(tabRk).nama.replace(/\s+/g, '_')) + '.pdf', hal);
 }
 
 function namaFile(awal, hal) {
@@ -988,6 +1051,7 @@ el('muat').innerHTML = IKON.replace('<svg', '<span class="ico"><svg').replace('<
 bangunDom(); isiPilihan(); render();
 el('tabsGaji').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTab(b.getAttribute('data-t')); });
 el('tabsLR').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabLR(b.getAttribute('data-l')); });
+el('tabsRk').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabRk(b.getAttribute('data-r')); });
 el('masuk').addEventListener('click', masuk);
 el('mata').addEventListener('click', function () { var i = el('sandi'); i.type = i.type === 'password' ? 'text' : 'password'; });
 el('sandi').addEventListener('keydown', function (e) { if (e.key === 'Enter') masuk(); });
@@ -995,6 +1059,7 @@ el('nama').addEventListener('keydown', function (e) { if (e.key === 'Enter') el(
 el('muat').addEventListener('click', muat);
 el('pdf').addEventListener('click', ekspor);
 el('pdfLr').addEventListener('click', eksporLR);
+el('pdfRk').addEventListener('click', eksporRekap);
 [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.addEventListener('click', function () { pilihMenu(b.getAttribute('data-m')); }); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { cekIzin(); muat(); } });
 </script>
