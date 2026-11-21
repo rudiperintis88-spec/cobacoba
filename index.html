@@ -172,7 +172,11 @@ var K = [
       'TRIP 13': { nom: [3996250, 0, 9502500], utang: 335075, diambil: 1780000 },
       'TRIP 14': { nom: [15856850, 712500, 28545400], utang: 765200, diambil: 1680000 },
       'TRIP 15': { nom: [9994200, 435000, 0], utang: 0, diambil: 1430000 }
-    } }
+    } },
+  /* KM Damai: tabel di sheet Data mulai kolom S (Keterangan); posisi disesuaikan otomatis bila judulnya ketemu di tempat lain.
+     Tidak tampil selama datanya kosong. */
+  { id: 'c', nama: 'KM DAMAI', lbl: 'KM Damai', def: '',
+    c: { ket: 18, trip: 19, nom: 20, ut: 21, di: 22 }, items: [], belanja: {}, trips: {} }
 ];
 
 var TIER = [
@@ -277,6 +281,12 @@ function tripLengkap(k, nama) {
     if (/asin/i.test(it)) asin += d.nom[i] || 0;
     else if (/basah/i.test(it) && !/toke/i.test(it)) basah += d.nom[i] || 0;
   });
+  var adaB = false, adaA = false, lain = 0;
+  k.items.forEach(function (it, i) {
+    if (/asin/i.test(it)) adaA = true; else if (/basah/i.test(it) && !/toke/i.test(it)) adaB = true;
+    if (!bukanPenghasilan(it)) lain += d.nom[i] || 0;
+  });
+  if (!adaA || !adaB) return lain > 0;   /* kapal tanpa Ikan Basah + Ikan Asin (mis. KM Damai): lengkap bila sudah ada penghasilan */
   return basah > 0 && asin > 0;
 }
 function tripBuka(k) {
@@ -499,7 +509,7 @@ function normTrip(v) {
 
 function kapal(id) { for (var i = 0; i < K.length; i++) if (K[i].id === id) return K[i]; return null; }
 /* Kapal tampil bila punya data trip. KM Bintang Laut dan KM Serba Jaya selalu ada; kapal baru (mis. KM Damai) hanya bila datanya terisi. */
-function tampil(k) { return !!k.tetap || Object.keys(k.trips).length > 0; }
+function tampil(k) { return !!k.tetap || k.id === kapalBoleh || Object.keys(k.trips).length > 0; }
 function boleh(k) { return tampil(k) && (!kapalBoleh || k.id === kapalBoleh); }
 function judul(n) { return n.split(' ').map(function (w) { return w.toUpperCase() === 'KM' ? 'KM' : w.charAt(0).toUpperCase() + w.slice(1).toLowerCase(); }).join(' '); }
 function tambahKapal(nama, kc) {
@@ -508,7 +518,7 @@ function tambahKapal(nama, kc) {
 }
 /* Cari tabel kapal baru di sheet Data: kolom "Keterangan" yang belum dipakai + tulisan "KM ..." di dekatnya.
    Susunan tiap tabel sama seperti kapal lain: Keterangan, Trip, Nominal, Utang, Diambil (kolom berurutan).
-   Cadangan: KM Damai diasumsikan mulai di kolom S (Keterangan) bila tidak ketemu. */
+   KM Damai sudah ada di daftar (kolom S); bila judulnya ditemukan di kolom lain, posisinya dipindah. */
 function temukanKapal(j) {
   var nm = [], kt = [];
   if (j && j.status === 'ok') j.table.rows.forEach(function (row) {
@@ -523,9 +533,12 @@ function temukanKapal(j) {
     if (K.some(function (k) { return k.c.ket === kc; })) return;
     var best = null;
     nm.forEach(function (n) { var d = Math.abs(n.col - kc); if (d <= 6 && (!best || d < best.d)) best = { d: d, nama: n.nama }; });
-    if (best && !K.some(function (k) { return k.nama === best.nama; })) tambahKapal(best.nama, kc);
+    if (!best) return;
+    var ada = null;
+    K.forEach(function (k) { if (k.nama === best.nama) ada = k; });
+    if (!ada) tambahKapal(best.nama, kc);
+    else if (!ada.tetap) ada.c = { ket: kc, trip: kc + 1, nom: kc + 2, ut: kc + 3, di: kc + 4 };
   });
-  if (!K.some(function (k) { return /DAMAI/.test(k.nama) || k.c.ket === 18; })) tambahKapal('KM DAMAI', 18);
 }
 /* Bangun tab, pilihan trip, dan kotak laporan untuk tiap kapal (sekali per kapal). */
 function pasangRentang(d, e, fn) {
@@ -597,7 +610,11 @@ var AKUN = [
   /* master penuh kedua (sama seperti master utama): semua kapal, semua trip, Laba Rugi, Export PDF */
   { master: true,  kapal: null, s: 'fa6e3669eed8e6b7d56d79dd19fbed9f', h: 'f36eb1de071aa6c514b0bafe07339325d78f570a976cab715ee1aac00d17e861' },
   /* master khusus KM Serba Jaya: semua trip, Laporan Gaji + Laba Rugi, Export PDF (hanya kapal ini) */
-  { master: true,  kapal: 'b', s: '0c6dfadae0aba87036dac9193d689a03', h: '03f4921ce4bd826384f0947f50e361e360e5441095d5aa369df61b81da24035c' }
+  { master: true,  kapal: 'b', s: '0c6dfadae0aba87036dac9193d689a03', h: '03f4921ce4bd826384f0947f50e361e360e5441095d5aa369df61b81da24035c' },
+  /* master khusus KM Damai: semua trip, Laporan Gaji + Detail/Rekap Laba Rugi, Export PDF (hanya kapal ini) */
+  { master: true, kapal: 'c', s: '6c8bc481f1a91ad0c05858a6cefb21ed', h: '6e5e50bbdfd52911c8b1873d37cb510f11e8c1d42382e74c24696f10ebe51b6d' },
+  /* hanya lihat KM Damai (satu trip otomatis, tanpa Export), seperti akun KM Bintang Laut / KM Serba Jaya */
+  { master: false, kapal: 'c', s: '29418044abd7e742df01fc6ab9cc9b3f', h: '18b8b3ac951e3ebac554578fbbc8820eab76930d356c46b39fe2afb655f6d5b5' }
 ];
 /* Skrip Google (Apps Script, file Kode.gs): mengurus persetujuan perangkat (email SETUJUI/TOLAK ke admin)
    dan mencatat login beserta lokasinya. */
