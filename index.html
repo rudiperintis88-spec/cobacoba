@@ -72,9 +72,9 @@ td:nth-child(3){width:120px;white-space:nowrap}
 .ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;padding:16px 20px 0;max-width:1100px;margin:0 auto}
 .ctl label{display:flex;flex-direction:column;gap:3px;font:bold 13px system-ui,Arial,sans-serif}
 .ctl select,.ctl button{font:inherit;padding:7px 10px;border:1px solid #888;border-radius:6px;background:#fff;color:#111}
-.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj,.ctl #pdfPb{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj,.ctl #pdfPb,.ctl #pdfEs{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
 .grid:not([data-tab=semua]){grid-template-columns:1fr;max-width:1100px}
-#rkgrid,#pjgrid,#pbgrid{grid-template-columns:1fr;max-width:960px}
+#rkgrid,#pjgrid,#pbgrid,#esgrid{grid-template-columns:1fr;max-width:960px}
 table.pj td:nth-child(2),table.pj td:nth-child(3){width:auto}
 table.pj td{white-space:nowrap;padding:5px 8px}
 table.pj tr.h td{white-space:normal;vertical-align:bottom}
@@ -130,6 +130,7 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     <button type="button" role="tab" data-m="rekap" aria-selected="false">Rekap Laba Rugi</button>
     <button type="button" role="tab" data-m="pinj" aria-selected="false">Pinjaman ABK</button>
     <button type="button" role="tab" data-m="pjb" aria-selected="false">Pinjaman ABK Berhenti</button>
+    <button type="button" role="tab" data-m="est" aria-selected="false">Estimasi Hasil</button>
   </nav>
   <div id="paneGaji">
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
@@ -165,6 +166,13 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     </nav>
     <div class="ctl" id="ctlPb"><button type="button" id="pdfPb">Export PDF</button></div>
     <main class="grid" id="pbgrid" data-tab="semua"></main>
+  </div>
+  <div id="paneEs" hidden>
+    <nav class="tabs" id="tabsEs" role="tablist" aria-label="Estimasi Hasil">
+      <button type="button" role="tab" data-e="semua">Semua</button>
+    </nav>
+    <div class="ctl" id="ctlEs"><button type="button" id="pdfEs">Export PDF</button></div>
+    <main class="grid" id="esgrid" data-tab="semua"></main>
   </div>
 </div>
 <script>
@@ -655,6 +663,101 @@ function renderPinj() {
   });
 }
 
+/* ---------- Menu induk "Estimasi Hasil" ----------
+   Dibaca dari sheet bernama sama dengan kapal ("KM Bintang Laut", "KM Serba Jaya", "KM Damai").
+   Tabel: kolom A-E (No, Keterangan, Qty, Harga, Total), mulai baris di bawah judul "Keterangan".
+   Jumlah item tidak ditulis di sini: tiap baris yang Keterangannya terisi ikut tampil, jadi 14 item
+   menjadi 16 item otomatis begitu baris ditambah di sheet. Kolom F ke kanan tidak dibaca. */
+var tabEs = 'semua';
+function URL_EST(k) {
+  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:json&headers=0&sheet=' +
+    encodeURIComponent(k.lbl) + '&range=A1:E300';
+}
+function selF(row, i) {
+  var c = row.c && row.c[i];
+  if (!c) return '';
+  if (c.f !== null && c.f !== undefined && c.f !== '') return String(c.f);
+  return c.v !== null && c.v !== undefined ? String(c.v) : '';
+}
+function nilai(v) {
+  if (typeof v === 'number') return v;
+  var t = String(v == null ? '' : v).replace(/Rp|\s/gi, '');
+  if (!t) return 0;
+  t = t.indexOf(',') >= 0 ? t.replace(/\./g, '').replace(',', '.') : (/^-?\d{1,3}(\.\d{3})+$/.test(t) ? t.replace(/\./g, '') : t);
+  var n = parseFloat(t);
+  return isFinite(n) ? n : 0;
+}
+function qtyTxt(q) { return q ? String(Math.round(q * 100) / 100).replace('.', ',') : '-'; }
+function olahEstimasi(k, rows) {
+  var hi = -1, ada = false, i;
+  for (i = 0; i < rows.length && i < 15; i++) {
+    if (String(sel(rows[i], 0)).trim().toUpperCase() === k.nama) ada = true;   /* pastikan sheet yang terbaca memang milik kapal ini */
+    if (hi < 0 && /^keterangan$/i.test(String(sel(rows[i], 1)).trim())) hi = i;
+  }
+  if (hi < 0 || !ada) { k.est = { ok: false, rows: [] }; return; }
+  var e = { ok: true, tgl1: '', tgl2: '', hari: '', rows: [], jumlah: 0, adaTotal: false };
+  for (i = 0; i < hi; i++) {
+    if (/^hari\s*ke$/i.test(String(sel(rows[i], 2)).trim())) { e.tgl1 = selF(rows[i], 0); e.tgl2 = selF(rows[i], 1); e.hari = selF(rows[i], 3); }
+  }
+  for (i = hi + 1; i < rows.length; i++) {
+    var ket = String(sel(rows[i], 1)).trim();
+    if (!ket) continue;
+    var q = nilai(sel(rows[i], 2)), h = nilai(sel(rows[i], 3)), tv = sel(rows[i], 4);
+    var t = tv === '' ? q * h : nilai(tv), isT = /^(grand\s*)?(total|jumlah)\b/i.test(ket);
+    if (isT) e.adaTotal = true; else e.jumlah += t;
+    e.rows.push({ no: String(sel(rows[i], 0)).trim(), ket: ket, qty: q, harga: h, total: t, isTotal: isT });
+  }
+  var n = 0;
+  e.rows.forEach(function (r) { if (!r.isTotal) { n++; if (!r.no) r.no = String(n); } });
+  e.item = n;
+  k.est = e;
+}
+function estBoleh(k) { return (!kapalBoleh || k.id === kapalBoleh) && (!!k.tetap || !!(k.est && k.est.ok)); }
+function estPeriode(e) {
+  return (e.tgl1 || e.tgl2 ? e.tgl1 + (e.tgl2 ? ' - ' + e.tgl2 : '') : '') + (e.hari ? (e.tgl1 || e.tgl2 ? '  |  ' : '') + 'Hari ke ' + e.hari : '');
+}
+function estHtml(k) {
+  var e = k.est;
+  var h = '<div class="blok"><div class="sc"><table class="pj"><tr><td colspan="5"><b>ESTIMASI HASIL</b></td></tr>' +
+    '<tr><td colspan="5"><b>' + he(k.nama) + '</b></td></tr>';
+  if (!e || !e.ok) return h + '</table></div><p class="note2">Sheet "' + he(k.lbl) + '" belum terbaca atau belum ada di spreadsheet.</p></div>';
+  if (estPeriode(e)) h += '<tr><td colspan="5"><b>' + he(estPeriode(e)) + '</b></td></tr>';
+  h += '<tr class="h"><td>No</td><td>Keterangan</td><td class="n">Qty</td><td class="n">Harga</td><td class="n">Total</td></tr>';
+  function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
+  var z = 0;
+  e.rows.forEach(function (r) {
+    if (r.isTotal) { h += '<tr class="tt"><td></td><td>' + he(r.ket) + '</td><td></td><td></td><td class="n">' + rp(r.total) + '</td></tr>'; return; }
+    h += '<tr' + (z++ % 2 ? ' class="z"' : '') + '><td>' + he(r.no) + '</td><td>' + he(r.ket) + '</td><td class="n">' + (r.qty ? qtyTxt(r.qty) : '<span class="kosong">-</span>') +
+      '</td><td class="n">' + ang(r.harga) + '</td><td class="n">' + ang(r.total) + '</td></tr>';
+  });
+  if (!e.adaTotal) h += '<tr class="tt"><td></td><td>Total Estimasi Hasil</td><td></td><td></td><td class="n">' + rp(e.jumlah) + '</td></tr>';
+  return h + '</table></div><p class="note2">' + e.item + ' item, otomatis mengikuti sheet "' + he(k.lbl) + '" (kolom A-E). Item baru yang ditambah di sheet langsung ikut tampil.</p></div>';
+}
+function pilihTabEs(t) {
+  tabEs = t;
+  K.forEach(function (k) {
+    el('es' + k.id).hidden = !(estBoleh(k) && (t === 'semua' || t === k.id));
+  });
+  [].forEach.call(document.querySelectorAll('#tabsEs button'), function (b) {
+    var d = b.getAttribute('data-e'), k = kapal(d), hide = false;
+    if (d === 'semua') hide = !!kapalBoleh; else if (k) hide = !estBoleh(k);
+    b.hidden = hide;
+    b.setAttribute('aria-selected', d === t);
+  });
+}
+function renderEst() {
+  K.forEach(function (k) { el('es' + k.id).innerHTML = estBoleh(k) ? estHtml(k) : ''; });
+}
+function muatEst() {
+  if (!isMaster()) return Promise.resolve();
+  return Promise.all(K.map(function (k) {
+    if (kapalBoleh && k.id !== kapalBoleh) return null;
+    return fetch(URL_EST(k) + '&t=' + Date.now()).then(function (r) { return r.ok ? r.text() : null; })
+      .then(function (t) { if (!t) return; var j = bacaGviz(t); if (j.status === 'ok') olahEstimasi(k, j.table.rows); })
+      .catch(function () { /* gagal baca: tampilan terakhir dipertahankan */ });
+  })).then(function () { renderEst(); pilihTabEs(tabEs); });
+}
+
 var tabPb = 'semua';
 function pilihTabPb(t) {
   tabPb = t;
@@ -677,12 +780,13 @@ function renderPjb() {
 }
 
 function pilihMenu(m) {
-  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj'; el('panePjb').hidden = m !== 'pjb';
+  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj'; el('panePjb').hidden = m !== 'pjb'; el('paneEs').hidden = m !== 'est';
   [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-m') === m); });
   if (m === 'lr') renderLR();
   if (m === 'rekap') renderRekap();
   if (m === 'pinj') renderPinj();
   if (m === 'pjb') renderPjb();
+  if (m === 'est') renderEst();
 }
 
 /* ---------- Membaca spreadsheet (Google Visualization) ---------- */
@@ -751,6 +855,7 @@ function bangunDom() {
     pasangRentang(el('r' + id), el('xr' + id), function () { k.rkAuto = false; renderRekap(); });
     d = document.createElement('div'); d.id = 'pj' + id; el('pjgrid').appendChild(d);
     d = document.createElement('div'); d.id = 'pb' + id; el('pbgrid').appendChild(d);
+    d = document.createElement('div'); d.id = 'es' + id; el('esgrid').appendChild(d);
     d = document.createElement('div'); d.className = 'rg'; d.id = 'wpn' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="pn' + id + '"></select></label><label>sampai trip<select id="xpn' + id + '"></select></label>';
     el('ctlPj').insertBefore(d, el('pdfPj'));
@@ -767,6 +872,8 @@ function bangunDom() {
     el('tabsPj').appendChild(d);
     d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-b', id); d.textContent = k.lbl;
     el('tabsPb').appendChild(d);
+    d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-e', id); d.textContent = k.lbl;
+    el('tabsEs').appendChild(d);
   });
 }
 
@@ -1023,6 +1130,7 @@ function bukaApp() {
   isiPilihanRk(); pilihTabRk(kapalBoleh || 'semua'); renderRekap();
   isiPilihanPj(); pilihTabPj(kapalBoleh || 'semua'); renderPinj();
   pilihTabPb(kapalBoleh || 'semua'); renderPjb();
+  pilihTabEs(kapalBoleh || 'semua'); renderEst();
   clearInterval(timer); clearInterval(timerIzin);
   timer = setInterval(muat, 120000);
   timerIzin = setInterval(cekIzin, 30000);   // status akses di sheet Perangkat diperiksa tiap 30 detik
@@ -1085,7 +1193,7 @@ function muat() {
       if (hs[2]) { try { var jb = bacaGviz(hs[2]); if (jb.status === 'ok') olahBelanja(jb.table.rows); } catch (e) {} }
       if (hs[4]) { try { var jp = bacaGviz(hs[4]); if (jp.status === 'ok') olahPinjaman(jp.table.rows); } catch (e) {} }
       bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap(); isiPilihanPj(); renderPinj(); renderPjb();
-      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj); pilihTabPb(tabPb);
+      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj); pilihTabPb(tabPb); muatEst();
       setStatus(true);
     })
     .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
@@ -1267,6 +1375,45 @@ function eksporPinj() {
   if (!hal.length) return;
   unduh(namaFile('PinjamanABK_', hal), hal);
 }
+function halamanEs(h) {
+  var k = h.k, e = h.e, RH = 19, y = 841.89 - 50, s = '', pos = [44, 78, 335, 435, 551];
+  function teks(t, px, bold, u, rata) {
+    if (!t) return;
+    var xx = rata === 'r' ? px - lebar(t, bold, u) : px;
+    s += 'BT /' + (bold ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - RH + 5.5) + ' Td (' + esc(t) + ') Tj ET\n';
+  }
+  function kuning() { s += '1 1 0 rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n'; }
+  function garis(yy) { s += '0.6 w 40 ' + f2(yy) + ' m 555 ' + f2(yy) + ' l S\n'; }
+  function kol(c, g) {
+    var tebal = /[bh]/.test(g);
+    if (/h/.test(g)) kuning();
+    if (/t/.test(g)) { kuning(); garis(y); garis(y - RH); }
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 2 ? 'r' : undefined); });
+    y -= RH;
+  }
+  teks('ESTIMASI HASIL', 40, 1, 13); y -= 21;
+  teks(k.nama, 40, 1, 13); y -= 21;
+  teks(estPeriode(e), 40, 0, 10.5); y -= 24;
+  kol(['No', 'Keterangan', 'Qty', 'Harga', 'Total'], 'h');
+  h.rows.forEach(function (r) {
+    if (r.isTotal) kol(['', r.ket, '', '', rp(r.total)], 'bt');
+    else kol([r.no, r.ket, qtyTxt(r.qty), r.harga ? rp(r.harga) : '-', r.total ? rp(r.total) : '-'], '');
+  });
+  if (h.last && !e.adaTotal) kol(['', 'Total Estimasi Hasil', '', '', rp(e.jumlah)], 'bt');
+  y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.' + (h.hal > 1 ? '  Halaman ' + h.no + '/' + h.hal : ''), 40, 0, 8);
+  return s;
+}
+function eksporEs() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (!estBoleh(k) || (tabEs !== 'semua' && tabEs !== k.id) || !k.est || !k.est.ok) return;
+    var per = 30, n = Math.max(1, Math.ceil(k.est.rows.length / per));
+    for (var i = 0; i < n; i++) hal.push({ es: true, k: k, e: k.est, rows: k.est.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n });
+  });
+  if (!hal.length) return;
+  unduh('EstimasiHasil' + (tabEs === 'semua' ? '' : '_' + kapal(tabEs).nama.replace(/\s+/g, '_')) + '.pdf', hal);
+}
 function eksporPjb() {
   if (!isMaster()) return;
   var hal = [];
@@ -1323,7 +1470,7 @@ function buatPdf(hal) {
   o[1] = '<< /Type /Catalog /Pages 2 0 R >>';
   o[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>';
   o[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>';
-  hal.map(function (h) { return h.pjb ? halamanPjB(h) : (h.pj ? halamanPj(h) : (h.lr ? halamanLR(h) : halaman(h))); }).forEach(function (c, i) {
+  hal.map(function (h) { return h.es ? halamanEs(h) : h.pjb ? halamanPjB(h) : (h.pj ? halamanPj(h) : (h.lr ? halamanLR(h) : halaman(h))); }).forEach(function (c, i) {
     var p = 5 + i * 2, q = p + 1;
     kids.push(p + ' 0 R');
     o[p] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + q + ' 0 R >>';
@@ -1361,6 +1508,7 @@ el('tabsGaji').addEventListener('click', function (e) { var b = e.target.closest
 el('tabsLR').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabLR(b.getAttribute('data-l')); });
 el('tabsRk').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabRk(b.getAttribute('data-r')); });
 el('tabsPj').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPj(b.getAttribute('data-p')); });
+el('tabsEs').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabEs(b.getAttribute('data-e')); });
 el('tabsPb').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPb(b.getAttribute('data-b')); });
 el('masuk').addEventListener('click', masuk);
 el('mata').addEventListener('click', function () { var i = el('sandi'); i.type = i.type === 'password' ? 'text' : 'password'; });
@@ -1372,6 +1520,7 @@ el('pdfLr').addEventListener('click', eksporLR);
 el('pdfRk').addEventListener('click', eksporRekap);
 el('pdfPj').addEventListener('click', eksporPinj);
 el('pdfPb').addEventListener('click', eksporPjb);
+el('pdfEs').addEventListener('click', eksporEs);
 [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.addEventListener('click', function () { pilihMenu(b.getAttribute('data-m')); }); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { cekIzin(); muat(); } });
 </script>
