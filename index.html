@@ -916,8 +916,8 @@ function gbBayarHtml(k, gr, sm) {
   return '<div class="blok"><div class="sc"><table class="pj"><tr><td colspan="2"><b>GAJI YANG HARUS DIBAYAR</b></td></tr>' +
     '<tr><td colspan="2"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="2"><b>' + he(gr.trip) + '</b></td></tr>' +
     '<tr class="h"><td>Keterangan</td><td class="n">Nominal</td></tr>' +
-    '<tr><td>Total Gaji</td><td class="n">' + rp(sm.gaji) + '</td></tr>' +
-    '<tr class="z"><td>Total Pinjaman</td><td class="n">' + rp(sm.pinj) + '</td></tr>' +
+    '<tr><td>' + he(gbTotLabel(gr)) + '</td><td class="n">' + rp(sm.gaji) + '</td></tr>' +
+    '<tr class="z"><td>Total Pinjaman ABK</td><td class="n">' + rp(sm.pinj) + '</td></tr>' +
     '<tr class="tt"><td>Gaji Yang Harus Dibayar</td><td class="n">' + nom(sm.bayar) + '</td></tr></table></div>' +
     '<p class="note2">Gaji Yang Harus Dibayar = Total Gaji - Total Pinjaman' + (sm.pt ? ' (' + he(sm.pt) + ').' : '. Tidak ada data pinjaman ABK untuk ' + he(gr.trip) + ' di sheet Pinjaman ABK, jadi dihitung tanpa pinjaman.') + '</p></div>';
 }
@@ -1680,8 +1680,8 @@ function halamanGb(h) {
   } else { teks('Belum ada data pinjaman ABK untuk ' + gr.trip + '.', 44, 0, FS); y -= RH; }
   y -= 8;
   kol(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h', pos, 4);
-  kol(['', '', '', 'Total Gaji', '', '', rp(sm.gaji)], '', pos, 4);
-  kol(['', '', '', 'Total Pinjaman', '', '', rp(sm.pinj)], '', pos, 4);
+  kol(['', '', '', gbTotLabel(gr), '', '', rp(sm.gaji)], '', pos, 4);
+  kol(['', '', '', 'Total Pinjaman ABK', '', '', rp(sm.pinj)], '', pos, 4);
   kol(['', '', '', 'Gaji Yang Harus Dibayar', '', '', rp(sm.bayar)], 'bt', pos, 4);
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
@@ -1993,8 +1993,8 @@ function xGb(k) {
     if (sm.pt) rows = rows.concat([[], []], xPinj(k, [sm.pt]).rows);
     else rows.push([], ['Belum ada data pinjaman ABK untuk ' + gr.trip + '.']);
     rows.push([], R(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h'));
-    rows.push(['', '', '', 'Total Gaji', '', '', sm.gaji]);
-    rows.push(['', '', '', 'Total Pinjaman', '', '', sm.pinj]);
+    rows.push(['', '', '', gbTotLabel(gr), '', '', sm.gaji]);
+    rows.push(['', '', '', 'Total Pinjaman ABK', '', '', sm.pinj]);
     rows.push(R(['', '', '', 'Gaji Yang Harus Dibayar', '', '', sm.bayar], 't'));
   });
   return { nama: k.lbl, rows: rows };
