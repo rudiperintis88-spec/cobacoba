@@ -72,9 +72,9 @@ td:nth-child(3){width:120px;white-space:nowrap}
 .ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;padding:16px 20px 0;max-width:1100px;margin:0 auto}
 .ctl label{display:flex;flex-direction:column;gap:3px;font:bold 13px system-ui,Arial,sans-serif}
 .ctl select,.ctl button{font:inherit;padding:7px 10px;border:1px solid #888;border-radius:6px;background:#fff;color:#111}
-.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj,.ctl #pdfPb,.ctl #pdfEs{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj,.ctl #pdfPb,.ctl #pdfEs,.ctl #pdfGb{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
 .grid:not([data-tab=semua]){grid-template-columns:1fr;max-width:1100px}
-#rkgrid,#pjgrid,#pbgrid,#esgrid{grid-template-columns:1fr;max-width:960px}
+#rkgrid,#pjgrid,#pbgrid,#esgrid,#gbgrid{grid-template-columns:1fr;max-width:960px}
 table.pj td:nth-child(2),table.pj td:nth-child(3){width:auto}
 table.pj td{white-space:nowrap;padding:5px 8px}
 table.pj tr.h td{white-space:normal;vertical-align:bottom}
@@ -91,7 +91,14 @@ table.pj tr.tt td{font-weight:bold;background:#fff9d6;border-top:1px solid var(-
 #esgrid[data-tab=semua] table.pj td{padding:4px 5px}
 #esgrid[data-tab=semua] .note2{font-size:11.5px}
 @media (max-width:1100px){#esgrid[data-tab=semua]{grid-template-columns:1fr;max-width:960px}}
-.ctl #xlsG,.ctl #xlsLr,.ctl #xlsRk,.ctl #xlsPj,.ctl #xlsPb,.ctl #xlsEs{background:#1d6f42;border-color:#1d6f42;color:#fff;font-weight:bold;cursor:pointer}
+#gbgrid[data-tab=semua]{grid-template-columns:repeat(3,minmax(0,1fr));max-width:1760px;column-gap:22px;padding:20px 24px}
+#ctlGb{max-width:1760px;padding-left:24px}
+#gbgrid[data-tab=semua] table.pj{font-size:12.5px}
+#gbgrid[data-tab=semua] table.pj td{padding:4px 5px}
+#gbgrid[data-tab=semua] .note2{font-size:11.5px}
+#gbgrid .gap{height:18px}
+@media (max-width:1100px){#gbgrid[data-tab=semua]{grid-template-columns:1fr;max-width:960px}}
+.ctl #xlsG,.ctl #xlsLr,.ctl #xlsRk,.ctl #xlsPj,.ctl #xlsPb,.ctl #xlsEs,.ctl #xlsGb{background:#1d6f42;border-color:#1d6f42;color:#fff;font-weight:bold;cursor:pointer}
 @media print{.status,.tabs,.ctl{display:none}}
 
 .mainnav{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px 0;border-bottom:1px solid #dde2ec;font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
@@ -138,6 +145,7 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     <button type="button" role="tab" data-m="pinj" aria-selected="false">Pinjaman ABK</button>
     <button type="button" role="tab" data-m="pjb" aria-selected="false">Pinjaman ABK Berhenti</button>
     <button type="button" role="tab" data-m="est" aria-selected="false">Estimasi Hasil</button>
+    <button type="button" role="tab" data-m="gabk" aria-selected="false">Gaji ABK</button>
   </nav>
   <div id="paneGaji">
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
@@ -180,6 +188,13 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     </nav>
     <div class="ctl" id="ctlEs"><button type="button" id="pdfEs">Export PDF</button><button type="button" id="xlsEs">Export Excel</button></div>
     <main class="grid" id="esgrid" data-tab="semua"></main>
+  </div>
+  <div id="paneGb" hidden>
+    <nav class="tabs" id="tabsGb" role="tablist" aria-label="Gaji ABK">
+      <button type="button" role="tab" data-g="semua">Semua</button>
+    </nav>
+    <div class="ctl" id="ctlGb"><button type="button" id="pdfGb">Export PDF</button><button type="button" id="xlsGb">Export Excel</button></div>
+    <main class="grid" id="gbgrid" data-tab="semua"></main>
   </div>
 </div>
 <script>
@@ -799,6 +814,119 @@ function muatEst() {
   })).then(function () { renderEst(); pilihTabEs(tabEs); });
 }
 
+/* ---------- Menu induk "Gaji ABK" ----------
+   Dibaca dari sheet "Gaji ABK": tiap kapal satu blok (judul kapal di baris 1, judul kolom di baris 3, data mulai baris 4).
+   Letak blok dicari dari nama kapal di baris 1 dan letak kolom dari judulnya di baris 3, jadi urutan kapal atau kolom
+   boleh berubah. Setiap baris yang Keterangannya terisi ikut tampil, jadi ABK yang ditambah di sheet langsung muncul.
+   Hari dan Total Gaji memakai hasil rumus di sheet. Di bawah tiap tabel gaji ditampilkan Pinjaman ABK kapal yang sama. */
+var tabGb = 'semua';
+var GB_BLN = { januari: 'Jan', februari: 'Feb', maret: 'Mar', april: 'Apr', mei: 'Mei', juni: 'Jun', juli: 'Jul', agustus: 'Agu', september: 'Sep', oktober: 'Okt', november: 'Nov', desember: 'Des' };
+var GB_KOL = ['no', 'tgl berangkat', 'tgl pulang', 'trip', 'keterangan', 'hari', 'gaji', 'total gaji'];
+function gbTgl(t) {
+  t = String(t == null ? '' : t).trim();
+  if (!t) return '';
+  var m = t.replace(/^[^,]*,\s*/, '').match(/^(\d{1,2})\s+([A-Za-z]+)\s+(\d{4})$/);
+  return m ? m[1] + ' ' + (GB_BLN[m[2].toLowerCase()] || m[2]) + ' ' + m[3] : t;
+}
+function gvizGb(range) {
+  return fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&headers=0&sheet=' +
+    encodeURIComponent('Gaji ABK') + '&range=' + range + '&t=' + Date.now())
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(csvRows);
+}
+function gbRentang(head, k) {
+  var r1 = head[0] || [], r3 = head[2] || [], nm = k.nama.replace(/\s+/g, ' ').toUpperCase(), s0 = -1, i;
+  for (i = 0; i < r1.length; i++) if (String(r1[i]).replace(/\s+/g, ' ').trim().toUpperCase() === nm) { s0 = i; break; }
+  if (s0 < 0) return null;
+  var e = Math.max(r1.length, r3.length);
+  for (i = s0 + 1; i < r1.length; i++) if (/^KM\s/i.test(String(r1[i]).trim())) { e = i; break; }
+  e = Math.min(e, s0 + 12);
+  var c = {};
+  for (i = s0; i < e; i++) {
+    var h = String(r3[i] || '').trim().toLowerCase();
+    if (GB_KOL.indexOf(h) >= 0 && c[h] === undefined) c[h] = i - s0;
+  }
+  if (c.keterangan === undefined || c.gaji === undefined) return null;
+  return { s: s0, w: e - s0, c: c };
+}
+function olahGb(k, b, tab) {
+  var c = b.c, g = { ok: true, grup: [], jumlah: 0, n: 0 }, map = {};
+  function kol(r, nama) { return c[nama] === undefined ? '' : cs(r, c[nama]); }
+  tab.forEach(function (r) {
+    var ket = kol(r, 'keterangan'), gaji = nilai(kol(r, 'gaji'));
+    if (!ket && !gaji) return;
+    var hari = nilai(kol(r, 'hari')), tot = nilai(kol(r, 'total gaji'));
+    if (!tot && gaji) tot = hari ? hari * gaji : gaji;
+    var trip = kol(r, 'trip') || '-', gr = map[trip];
+    if (!gr) { gr = map[trip] = { trip: trip, rows: [], total: 0, tgl1: gbTgl(kol(r, 'tgl berangkat')), tgl2: gbTgl(kol(r, 'tgl pulang')) }; g.grup.push(gr); }
+    g.n++;
+    gr.rows.push({ no: kol(r, 'no') || String(gr.rows.length + 1), b: gbTgl(kol(r, 'tgl berangkat')), p: gbTgl(kol(r, 'tgl pulang')), ket: ket, hari: hari, gaji: gaji, total: tot });
+    gr.total += tot; g.jumlah += tot;
+  });
+  k.gb = g;
+}
+function muatGb() {
+  if (!isMaster()) return Promise.resolve();
+  return gvizGb('A1:AZ3').then(function (head) {
+    return Promise.all(K.map(function (k) {
+      if (kapalBoleh && k.id !== kapalBoleh) return null;
+      var b = gbRentang(head, k);
+      if (!b) { k.gb = { ok: false, grup: [], err: 'blok "' + k.nama + '" tidak ditemukan di sheet Gaji ABK' }; return null; }
+      return gvizGb(xlsKol(b.s) + '4:' + xlsKol(b.s + b.w - 1) + '300').then(function (tab) { olahGb(k, b, tab); })
+        .catch(function (x) { if (!(k.gb && k.gb.ok)) k.gb = { ok: false, grup: [], err: 'gagal membaca: ' + (x && x.message || x) }; });
+    }));
+  }).catch(function (x) {
+    K.forEach(function (k) { if (!(k.gb && k.gb.ok)) k.gb = { ok: false, grup: [], err: 'gagal membaca: ' + (x && x.message || x) }; });
+  }).then(function () { renderGb(); pilihTabGb(tabGb); });
+}
+function gbBoleh(k) { return (!kapalBoleh || k.id === kapalBoleh) && !!(k.gb && k.gb.ok); }
+/* ABK = hanya baris yang punya Hari. Baris tanpa Hari (tekong, tambahan toke) bukan hitungan ABK. */
+function gbJmlAbk(gr) { return gr.rows.filter(function (r) { return r.hari > 0; }).length; }
+function gbTotLabel(gr) { var n = gbJmlAbk(gr); return 'Total Gaji' + (n ? ' (' + n + ' ABK)' : ''); }
+function gbPeriode(gr) { return (gr.tgl1 || gr.tgl2) ? gr.tgl1 + (gr.tgl2 ? ' - ' + gr.tgl2 : '') : ''; }
+/* Pinjaman ABK untuk trip yang sama dengan gaji bila ada, selain itu trip pinjaman terbaru. */
+function gbPjTrip(k, trip) {
+  var ts = pjTrips(k);
+  if (!ts.length) return '';
+  var n = normTrip(trip);
+  return ts.indexOf(n) >= 0 ? n : ts[ts.length - 1];
+}
+function gbHtml(k) {
+  var g = k.gb, h = '';
+  if (!g || !g.ok) return '<div class="blok"><p class="note2">Sheet "Gaji ABK" untuk ' + he(k.nama) + ' belum terbaca' + (g && g.err ? ' (' + he(g.err) + ')' : '') + '.</p></div>';
+  function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
+  if (!g.grup.length) h += '<div class="blok"><div class="sc"><table class="pj"><tr><td><b>GAJI ABK</b></td></tr><tr><td><b>' + he(k.nama) + '</b></td></tr></table></div><p class="note2">Belum ada data gaji ABK di sheet.</p></div>';
+  g.grup.forEach(function (gr) {
+    h += '<div class="blok"><div class="sc"><table class="pj"><tr><td colspan="7"><b>GAJI ABK</b></td></tr><tr><td colspan="7"><b>' + he(k.nama) + '</b></td></tr>' +
+      '<tr><td colspan="7"><b>' + he(gr.trip) + (gbPeriode(gr) ? '  |  ' + he(gbPeriode(gr)) : '') + '</b></td></tr>' +
+      '<tr class="h"><td>No</td><td>Berangkat</td><td>Pulang</td><td>Keterangan</td><td class="n">Hari</td><td class="n">Gaji</td><td class="n">Total Gaji</td></tr>';
+    gr.rows.forEach(function (r, i) {
+      h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + he(r.no) + '</td><td>' + he(r.b) + '</td><td>' + he(r.p) + '</td><td>' + he(r.ket) + '</td><td class="n">' +
+        (r.hari ? r.hari : '<span class="kosong">-</span>') + '</td><td class="n">' + ang(r.gaji) + '</td><td class="n">' + ang(r.total) + '</td></tr>';
+    });
+    h += '<tr class="tt"><td></td><td colspan="5">' + he(gbTotLabel(gr)) + '</td><td class="n">' + rp(gr.total) + '</td></tr></table></div>' +
+      '<p class="note2">Hari dan Total Gaji mengikuti rumus di sheet "Gaji ABK". Baris yang ditambah di sheet langsung ikut tampil.</p></div>';
+  });
+  var ts = pjTrips(k), pt = g.grup.length ? gbPjTrip(k, g.grup[0].trip) : gbPjTrip(k, '');
+  h += '<div class="gap"></div>';
+  if (!pt) return h + '<div class="blok"><p class="note2">Belum ada data pinjaman ABK untuk ' + he(k.nama) + '.</p></div>';
+  return h + '<div class="blok">' + pjTabel(k, pt, ts, pjAda(k)) + '<p class="note2">Pinjaman ABK diambil dari sheet "Pinjaman ABK" (' + he(pt) + ').</p></div>';
+}
+function pilihTabGb(t) {
+  tabGb = t;
+  el('gbgrid').setAttribute('data-tab', t);
+  K.forEach(function (k) { el('gb' + k.id).hidden = !(gbBoleh(k) && (t === 'semua' || t === k.id)); });
+  [].forEach.call(document.querySelectorAll('#tabsGb button'), function (b) {
+    var d = b.getAttribute('data-g'), k = kapal(d), hide = false;
+    if (d === 'semua') hide = !!kapalBoleh; else if (k) hide = !gbBoleh(k);
+    b.hidden = hide;
+    b.setAttribute('aria-selected', d === t);
+  });
+}
+function renderGb() {
+  K.forEach(function (k) { el('gb' + k.id).innerHTML = gbBoleh(k) ? gbHtml(k) : ''; });
+}
+
 var tabPb = 'semua';
 function pilihTabPb(t) {
   tabPb = t;
@@ -821,13 +949,14 @@ function renderPjb() {
 }
 
 function pilihMenu(m) {
-  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj'; el('panePjb').hidden = m !== 'pjb'; el('paneEs').hidden = m !== 'est';
+  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj'; el('panePjb').hidden = m !== 'pjb'; el('paneEs').hidden = m !== 'est'; el('paneGb').hidden = m !== 'gabk';
   [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-m') === m); });
   if (m === 'lr') renderLR();
   if (m === 'rekap') renderRekap();
   if (m === 'pinj') renderPinj();
   if (m === 'pjb') renderPjb();
   if (m === 'est') renderEst();
+  if (m === 'gabk') renderGb();
 }
 
 /* ---------- Membaca spreadsheet (Google Visualization) ---------- */
@@ -897,6 +1026,7 @@ function bangunDom() {
     d = document.createElement('div'); d.id = 'pj' + id; el('pjgrid').appendChild(d);
     d = document.createElement('div'); d.id = 'pb' + id; el('pbgrid').appendChild(d);
     d = document.createElement('div'); d.id = 'es' + id; el('esgrid').appendChild(d);
+    d = document.createElement('div'); d.id = 'gb' + id; el('gbgrid').appendChild(d);
     d = document.createElement('div'); d.className = 'rg'; d.id = 'wpn' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="pn' + id + '"></select></label><label>sampai trip<select id="xpn' + id + '"></select></label>';
     el('ctlPj').insertBefore(d, el('pdfPj'));
@@ -915,6 +1045,8 @@ function bangunDom() {
     el('tabsPb').appendChild(d);
     d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-e', id); d.textContent = k.lbl;
     el('tabsEs').appendChild(d);
+    d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-g', id); d.textContent = k.lbl;
+    el('tabsGb').appendChild(d);
   });
 }
 
@@ -1169,13 +1301,14 @@ function bukaApp() {
   pilihTab(tab); muat();
   el('mainnav').hidden = !pinjBoleh();
   [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { var m = b.getAttribute('data-m'); b.hidden = !isMaster() && m !== 'gaji' && m !== 'pinj'; });
-  ['ctlGaji', 'ctlLR', 'ctlRk', 'ctlPj', 'ctlPb', 'ctlEs'].forEach(function (id) { el(id).hidden = !isMaster(); });   /* pilihan trip + Export hanya untuk master */ el('tabsPj').hidden = !isMaster() && !!kapalBoleh;
+  ['ctlGaji', 'ctlLR', 'ctlRk', 'ctlPj', 'ctlPb', 'ctlEs', 'ctlGb'].forEach(function (id) { el(id).hidden = !isMaster(); });   /* pilihan trip + Export hanya untuk master */ el('tabsPj').hidden = !isMaster() && !!kapalBoleh;
   pilihMenu('gaji'); isiPilihanLR();
   pilihTabLR(kapalBoleh || 'semua'); renderLR();
   isiPilihanRk(); pilihTabRk(kapalBoleh || 'semua'); renderRekap();
   isiPilihanPj(); pilihTabPj(kapalBoleh || 'semua'); renderPinj();
   pilihTabPb(kapalBoleh || 'semua'); renderPjb();
   pilihTabEs(kapalBoleh || 'semua'); renderEst();
+  pilihTabGb(kapalBoleh || 'semua'); renderGb();
   clearInterval(timer); clearInterval(timerIzin);
   timer = setInterval(muat, 120000);
   timerIzin = setInterval(cekIzin, 30000);   // status akses di sheet Perangkat diperiksa tiap 30 detik
@@ -1222,6 +1355,7 @@ function muat() {
   if (el('app').hidden) return;
   el('stat').innerHTML = 'Memuat data...';
   muatEst();   /* terpisah dari data utama: tab Estimasi Hasil tetap terbaca walau sheet lain gagal */
+  muatGb();    /* tab Gaji ABK dibaca terpisah juga */
   Promise.all([
     fetch(URL_DATA + '&t=' + Date.now()).then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); }),
     fetch(URL_TIER + '&t=' + Date.now()).then(function (r) { return r.ok ? r.text() : null; }).catch(function () { return null; }),
@@ -1238,8 +1372,8 @@ function muat() {
       if (hs[1]) { try { olahTier(hs[1]); } catch (e) {} }
       if (hs[2]) { try { var jb = bacaGviz(hs[2]); if (jb.status === 'ok') olahBelanja(jb.table.rows); } catch (e) {} }
       if (hs[4]) { try { var jp = bacaGviz(hs[4]); if (jp.status === 'ok') olahPinjaman(jp.table.rows); } catch (e) {} }
-      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap(); isiPilihanPj(); renderPinj(); renderPjb();
-      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj); pilihTabPb(tabPb);
+      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap(); isiPilihanPj(); renderPinj(); renderPjb(); renderGb();
+      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj); pilihTabPb(tabPb); pilihTabGb(tabGb);
       setStatus(true);
     })
     .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
@@ -1465,6 +1599,49 @@ function eksporEs() {
   });
   if (!hal.length) return;
   unduh('EstimasiHasil' + (tabEs === 'semua' ? '' : '_' + kapal(tabEs).nama.replace(/\s+/g, '_')) + '.pdf', hal);
+}
+function halamanGb(h) {
+  var k = h.k, gr = h.g, RH = 19, y = 841.89 - 50, s = '', pos = [44, 66, 128, 192, 396, 466, 551];
+  function teks(t, px, bold, u, rata) {
+    if (t === '' || t == null) return;
+    t = String(t);
+    var xx = rata === 'r' ? px - lebar(t, bold, u) : px;
+    s += 'BT /' + (bold ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - RH + 5.5) + ' Td (' + esc(t) + ') Tj ET\n';
+  }
+  function kuning() { s += '1 1 0 rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n'; }
+  function garis(yy) { s += '0.6 w 40 ' + f2(yy) + ' m 555 ' + f2(yy) + ' l S\n'; }
+  function kol(c, g2) {
+    var tebal = /[bh]/.test(g2);
+    if (/h/.test(g2)) kuning();
+    if (/t/.test(g2)) { kuning(); garis(y); garis(y - RH); }
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 4 ? 'r' : undefined); });
+    y -= RH;
+  }
+  teks('GAJI ABK', 40, 1, 13); y -= 21;
+  teks(k.nama, 40, 1, 13); y -= 21;
+  teks(gr.trip + (gbPeriode(gr) ? '   |   ' + gbPeriode(gr) : ''), 40, 0, 10.5); y -= 24;
+  kol(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h');
+  h.rows.forEach(function (r) {
+    kol([r.no, r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '');
+  });
+  if (h.last) kol(['', '', '', gbTotLabel(gr), '', '', rp(gr.total)], 'bt');
+  y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.' + (h.hal > 1 ? '  Halaman ' + h.no + '/' + h.hal : ''), 40, 0, 8);
+  return s;
+}
+function eksporGb() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (!gbBoleh(k) || (tabGb !== 'semua' && tabGb !== k.id)) return;
+    k.gb.grup.forEach(function (gr) {
+      var per = 28, n = Math.max(1, Math.ceil(gr.rows.length / per));
+      for (var i = 0; i < n; i++) hal.push({ gb: true, k: k, g: gr, rows: gr.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n });
+    });
+    var pt = k.gb.grup.length ? gbPjTrip(k, k.gb.grup[0].trip) : gbPjTrip(k, '');
+    if (pt) hal.push({ pj: true, k: k, trip: pt });
+  });
+  if (!hal.length) return;
+  unduh('GajiABK' + (tabGb === 'semua' ? '' : '_' + kapal(tabGb).nama.replace(/\s+/g, '_')) + '.pdf', hal);
 }
 function eksporPjb() {
   if (!isMaster()) return;
@@ -1747,6 +1924,29 @@ function eksporXlsPjb() {
   });
   if (sh.length) xlsUnduh('PinjamanABK_Berhenti' + (tabPb === 'semua' ? '' : '_' + kapal(tabPb).nama.replace(/\s+/g, '_')), sh);
 }
+function xGb(k) {
+  var g = k.gb, rows = [];
+  g.grup.forEach(function (gr, i) {
+    if (i) rows.push([], []);
+    rows = rows.concat(xlsJudul('GAJI ABK', k, gr.trip + (gbPeriode(gr) ? '  |  ' + gbPeriode(gr) : '')));
+    rows.push(R(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h'));
+    gr.rows.forEach(function (r) { rows.push([/^\d+$/.test(r.no) ? Number(r.no) : r.no, r.b, r.p, r.ket, r.hari ? { v: r.hari, s: 'q' } : '', r.gaji, r.total]); });
+    rows.push(R(['', '', '', gbTotLabel(gr), '', '', gr.total], 't'));
+  });
+  if (!g.grup.length) rows = xlsJudul('GAJI ABK', k, '').concat([['Belum ada data gaji ABK di sheet.']]);
+  var pt = g.grup.length ? gbPjTrip(k, g.grup[0].trip) : gbPjTrip(k, '');
+  if (pt) rows = rows.concat([[], []], xPinj(k, [pt]).rows);
+  return { nama: k.lbl, rows: rows };
+}
+function eksporXlsGb() {
+  if (!isMaster()) return;
+  var sh = [];
+  K.forEach(function (k) {
+    if (!gbBoleh(k) || (tabGb !== 'semua' && tabGb !== k.id)) return;
+    sh.push(xGb(k));
+  });
+  if (sh.length) xlsUnduh('GajiABK' + (tabGb === 'semua' ? '' : '_' + kapal(tabGb).nama.replace(/\s+/g, '_')), sh);
+}
 function eksporXlsEs() {
   if (!isMaster()) return;
   var sh = [];
@@ -1800,7 +2000,7 @@ function buatPdf(hal) {
   o[1] = '<< /Type /Catalog /Pages 2 0 R >>';
   o[3] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Roman /Encoding /WinAnsiEncoding >>';
   o[4] = '<< /Type /Font /Subtype /Type1 /BaseFont /Times-Bold /Encoding /WinAnsiEncoding >>';
-  hal.map(function (h) { return h.es ? halamanEs(h) : h.pjb ? halamanPjB(h) : (h.pj ? halamanPj(h) : (h.lr ? halamanLR(h) : halaman(h))); }).forEach(function (c, i) {
+  hal.map(function (h) { return h.gb ? halamanGb(h) : h.es ? halamanEs(h) : h.pjb ? halamanPjB(h) : (h.pj ? halamanPj(h) : (h.lr ? halamanLR(h) : halaman(h))); }).forEach(function (c, i) {
     var p = 5 + i * 2, q = p + 1;
     kids.push(p + ' 0 R');
     o[p] = '<< /Type /Page /Parent 2 0 R /MediaBox [0 0 595.28 841.89] /Resources << /Font << /F1 3 0 R /F2 4 0 R >> >> /Contents ' + q + ' 0 R >>';
@@ -1839,6 +2039,7 @@ el('tabsLR').addEventListener('click', function (e) { var b = e.target.closest &
 el('tabsRk').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabRk(b.getAttribute('data-r')); });
 el('tabsPj').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPj(b.getAttribute('data-p')); });
 el('tabsEs').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabEs(b.getAttribute('data-e')); });
+el('tabsGb').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabGb(b.getAttribute('data-g')); });
 el('tabsPb').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPb(b.getAttribute('data-b')); });
 el('masuk').addEventListener('click', masuk);
 el('mata').addEventListener('click', function () { var i = el('sandi'); i.type = i.type === 'password' ? 'text' : 'password'; });
@@ -1851,12 +2052,14 @@ el('pdfRk').addEventListener('click', eksporRekap);
 el('pdfPj').addEventListener('click', eksporPinj);
 el('pdfPb').addEventListener('click', eksporPjb);
 el('pdfEs').addEventListener('click', eksporEs);
+el('pdfGb').addEventListener('click', eksporGb);
 el('xlsG').addEventListener('click', eksporXlsGaji);
 el('xlsLr').addEventListener('click', eksporXlsLR);
 el('xlsRk').addEventListener('click', eksporXlsRekap);
 el('xlsPj').addEventListener('click', eksporXlsPinj);
 el('xlsPb').addEventListener('click', eksporXlsPjb);
 el('xlsEs').addEventListener('click', eksporXlsEs);
+el('xlsGb').addEventListener('click', eksporXlsGb);
 [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.addEventListener('click', function () { pilihMenu(b.getAttribute('data-m')); }); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { cekIzin(); muat(); } });
 </script>
