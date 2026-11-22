@@ -471,13 +471,13 @@ function lrRekap(k, ds) {
   if (!ds.length) return '<p class="rkh">Rekap Per Trip - ' + he(k.nama) + '</p><p class="note2">Belum ada data trip.</p>';
   var rk = rekapBaris(k, ds);
   function n(v, ada) { return ada === false ? '-' : rp(v); }
-  var h = '<p class="rkh">Rekap Per Trip - ' + he(k.nama) + ' (' + he(labelRange(ds)) + ')</p><div class="sc"><table class="rk"><tr class="h"><td>Trip</td><td class="n">Penghasilan</td><td class="n">Belanja (di luar gaji)</td><td class="n">Total Gaji</td><td class="n">Total Biaya</td><td class="n">Laba / (Rugi)</td></tr>';
-  rk.rows.forEach(function (r) {
+  var h = '<p class="rkh">Rekap Per Trip - ' + he(k.nama) + ' (' + he(labelRange(ds)) + ')</p><div class="sc"><table class="rk"><tr class="h"><td>No</td><td>Trip</td><td class="n">Penghasilan</td><td class="n">Belanja (di luar gaji)</td><td class="n">Total Gaji</td><td class="n">Total Biaya</td><td class="n">Laba / (Rugi)</td></tr>';
+  rk.rows.forEach(function (r, i) {
     var x = r.x;
-    h += '<tr><td>' + he(r.trip) + '</td><td class="n">' + rp(x.penghasilan) + '</td><td class="' + nc(x.luar) + '">' + n(x.luar, x.isi) +
+    h += '<tr><td>' + (i + 1) + '</td><td>' + he(r.trip) + '</td><td class="n">' + rp(x.penghasilan) + '</td><td class="' + nc(x.luar) + '">' + n(x.luar, x.isi) +
       '</td><td class="n">' + n(x.gajiR, x.isi) + '</td><td class="n">' + rp(x.biaya) + '</td><td class="n ' + (x.laba < 0 ? 'neg' : 'pos') + '">' + rp(x.laba) + '</td></tr>';
   });
-  h += '<tr class="tt"><td>Total</td><td class="n">' + rp(rk.tot.penghasilan) + '</td><td class="' + nc(rk.tot.luar) + '">' + rp(rk.tot.luar) + '</td><td class="n">' + rp(rk.tot.gaji) +
+  h += '<tr class="tt"><td></td><td>Total</td><td class="n">' + rp(rk.tot.penghasilan) + '</td><td class="' + nc(rk.tot.luar) + '">' + rp(rk.tot.luar) + '</td><td class="n">' + rp(rk.tot.gaji) +
     '</td><td class="n">' + rp(rk.tot.biaya) + '</td><td class="n ' + (rk.tot.laba < 0 ? 'neg' : 'pos') + '">' + rp(rk.tot.laba) + '</td></tr></table></div>';
   return h;
 }
@@ -641,9 +641,9 @@ function pjBerhenti(k) {
 }
 function pjTabel(k, trip, ts, ada) {
   var p = pjHitung(k, trip);
-  var h = '<div class="sc"><table class="pj"><tr><td colspan="7"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
-    '<tr><td colspan="7"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="7"><b>' + he(trip) + '</b></td></tr>' +
-    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Lalu</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang Trip Ini</td><td>Status</td></tr>';
+  var h = '<div class="sc"><table class="pj"><tr><td colspan="8"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
+    '<tr><td colspan="8"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="8"><b>' + he(trip) + '</b></td></tr>' +
+    '<tr class="h"><td>No</td><td>Nama</td><td class="n">Utang Trip Lalu</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang Trip Ini</td><td>Status</td></tr>';
   function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
   function sisa(v) { return v > 0 ? '<span class="utang">' + rp(v) + '</span>' : (v < 0 ? '<span class="neg">' + rp(v) + '</span>' : '<span class="lunas">Lunas</span>'); }
   function stat(r) {
@@ -654,10 +654,10 @@ function pjTabel(k, trip, ts, ada) {
     return '<span class="st-a">Aktif</span>' + (r.bawa ? '<span class="bawa">kembali dari libur</span>' : '');
   }
   p.rows.forEach(function (r, i) {
-    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + (r.bawa ? rp(r.sebelum) + '<span class="bawa">dilanjutkan dari ' + he(r.bawa) + '</span>' : ang(r.sebelum)) + '</td><td class="n">' + rp(r.pinj) +
+    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (i + 1) + '</td><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + (r.bawa ? rp(r.sebelum) + '<span class="bawa">dilanjutkan dari ' + he(r.bawa) + '</span>' : ang(r.sebelum)) + '</td><td class="n">' + rp(r.pinj) +
       '</td><td class="n">' + rp(r.total) + '</td><td class="n">' + ang(r.bayar) + '</td><td class="n">' + sisa(r.sisa) + '</td><td>' + stat(r) + '</td></tr>';
   });
-  h += '<tr class="tt"><td>Total</td><td class="n">' + rp(p.tot.sebelum) + '</td><td class="n">' + rp(p.tot.pinj) + '</td><td class="n">' + rp(p.tot.total) +
+  h += '<tr class="tt"><td></td><td>Total</td><td class="n">' + rp(p.tot.sebelum) + '</td><td class="n">' + rp(p.tot.pinj) + '</td><td class="n">' + rp(p.tot.total) +
     '</td><td class="n">' + rp(p.tot.bayar) + '</td><td class="n">' + rp(p.tot.sisa) + '</td><td></td></tr></table></div>';
   return h;
 }
@@ -945,7 +945,7 @@ function gbHtml(k) {
       '<tr><td colspan="7"><b>' + he(gr.trip) + (gbPeriode(gr) ? '  |  ' + he(gbPeriode(gr)) : '') + '</b></td></tr>' +
       '<tr class="h"><td>No</td><td>Berangkat</td><td>Pulang</td><td>Keterangan</td><td class="n">Hari</td><td class="n">Gaji</td><td class="n">Total Gaji</td></tr>';
     gr.rows.forEach(function (r, i) {
-      h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + he(r.no) + '</td><td>' + he(r.b) + '</td><td>' + he(r.p) + '</td><td>' + he(r.ket) + '</td><td class="n">' +
+      h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (i + 1) + '</td><td>' + he(r.b) + '</td><td>' + he(r.p) + '</td><td>' + he(r.ket) + '</td><td class="n">' +
         (r.hari ? r.hari : '<span class="kosong">-</span>') + '</td><td class="n">' + ang(r.gaji) + '</td><td class="n">' + ang(r.total) + '</td></tr>';
     });
     h += '<tr class="tt"><td></td><td colspan="5">' + he(gbTotLabel(gr)) + '</td><td class="n">' + rp(gr.total) + '</td></tr></table></div>' +
@@ -1524,27 +1524,27 @@ function halamanLR(h) {
   var rk = rekapBaris(k, h.ds), RR = 19;
   RH = RR;
   function kol(c, g) {
-    var tebal = /[bh]/.test(g), pos = [44, 170, 285, 365, 455, 551];
+    var tebal = /[bh]/.test(g), pos = [44, 64, 185, 295, 372, 460, 551];
     if (/h/.test(g)) kuning();
     if (/t/.test(g)) { garis(y); garis(y - RR); }
-    c.forEach(function (t, i) { teks(t, pos[i], tebal, 9.5, i ? 'r' : undefined); });
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 9.5, i > 1 ? 'r' : undefined); });
     y -= RR;
   }
   function np(v, ada) { return ada === false ? '-' : rp(v); }
   if (h.rekap) {
-  kol(['Trip', 'Penghasilan', 'Belanja (di luar gaji)', 'Total Gaji', 'Total Biaya', 'Laba / (Rugi)'], 'h');
-  rk.rows.forEach(function (r) {
+  kol(['No', 'Trip', 'Penghasilan', 'Belanja (di luar gaji)', 'Total Gaji', 'Total Biaya', 'Laba / (Rugi)'], 'h');
+  rk.rows.forEach(function (r, i) {
     if (y < 70) return;
     var x = r.x;
-    kol([r.trip, rp(x.penghasilan), np(x.luar, x.isi), np(x.gajiR, x.isi), rp(x.biaya), rp(x.laba)], '');
+    kol([String(i + 1), r.trip, rp(x.penghasilan), np(x.luar, x.isi), np(x.gajiR, x.isi), rp(x.biaya), rp(x.laba)], '');
   });
-  kol(['Total', rp(rk.tot.penghasilan), rp(rk.tot.luar), rp(rk.tot.gaji), rp(rk.tot.biaya), rp(rk.tot.laba)], 'bt');
+  kol(['', 'Total', rp(rk.tot.penghasilan), rp(rk.tot.luar), rp(rk.tot.gaji), rp(rk.tot.biaya), rp(rk.tot.laba)], 'bt');
   }
   RH = 19; y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
 function halamanPj(h) {
-  var k = h.k, p = pjHitung(k, h.trip), RH = 19, y = 841.89 - 50, s = '', pos = [44, 225, 300, 380, 452, 551], ts = pjTrips(k), ada = pjAda(k);
+  var k = h.k, p = pjHitung(k, h.trip), RH = 19, y = 841.89 - 50, s = '', pos = [44, 64, 245, 305, 380, 455, 551], ts = pjTrips(k), ada = pjAda(k);
   function teks(t, px, b, u, rata) {
     if (!t) return;
     var xx = rata === 'r' ? px - lebar(t, b, u) : px;
@@ -1556,23 +1556,23 @@ function halamanPj(h) {
     var tebal = /[bh]/.test(g);
     if (/h/.test(g)) kuning();
     if (/t/.test(g)) { kuning(); garis(y); garis(y - RH); }
-    c.forEach(function (t, i) { teks(t, pos[i], tebal, 9.5, i ? 'r' : undefined); });
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 9.5, i > 1 ? 'r' : undefined); });
     y -= RH;
   }
   teks('PINJAMAN ABK (DI LUAR BELANJA)', 40, 1, 13); y -= 21;
   teks(k.nama, 40, 1, 13); y -= 21;
   teks(h.trip, 40, 1, 13); y -= 24;
-  kol(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h');
-  p.rows.forEach(function (r) {
+  kol(['No', 'Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h');
+  p.rows.forEach(function (r, i) {
     if (y < 70) return;
-    kol([(r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, h.trip, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
+    kol([String(i + 1), (r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, h.trip, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
   });
-  kol(['Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total), rp(p.tot.bayar), rp(p.tot.sisa)], 'bt');
+  kol(['', 'Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total), rp(p.tot.bayar), rp(p.tot.sisa)], 'bt');
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
 function halamanPjB(h) {
-  var k = h.k, b = h.b, RH = 19, y = 841.89 - 50, s = '', pos = [44, 250, 405, 480, 551];
+  var k = h.k, b = h.b, RH = 19, y = 841.89 - 50, s = '', pos = [44, 66, 250, 405, 480, 551];
   function teks(t, px, bold, u, rata) {
     if (!t) return;
     var xx = rata === 'r' ? px - lebar(t, bold, u) : px;
@@ -1584,15 +1584,15 @@ function halamanPjB(h) {
     var tebal = /[bh]/.test(g);
     if (/h/.test(g)) kuning();
     if (/t/.test(g)) { kuning(); garis(y); garis(y - RH); }
-    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 2 ? 'r' : undefined); });
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 3 ? 'r' : undefined); });
     y -= RH;
   }
   teks('PINJAMAN ABK BERHENTI (BELUM LUNAS)', 40, 1, 13); y -= 21;
   teks(k.nama, 40, 1, 13); y -= 21;
   teks('Tidak tercatat lagi sampai ' + b.latest + ', sisa utang belum lunas', 40, 0, 10.5); y -= 24;
-  kol(['Nama', 'Trip Terakhir', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h');
-  b.rows.forEach(function (r) { if (y < 70) return; kol([r.nama, r.trip, rp(r.total), r.bayar ? rp(r.bayar) : '-', rp(r.sisa)], ''); });
-  kol(['Total (' + b.rows.length + ' ABK)', '', rp(b.tot.total), rp(b.tot.bayar), rp(b.tot.sisa)], 'bt');
+  kol(['No', 'Nama', 'Trip Terakhir', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h');
+  b.rows.forEach(function (r, i) { if (y < 70) return; kol([String(i + 1), r.nama, r.trip, rp(r.total), r.bayar ? rp(r.bayar) : '-', rp(r.sisa)], ''); });
+  kol(['', 'Total (' + b.rows.length + ' ABK)', '', rp(b.tot.total), rp(b.tot.bayar), rp(b.tot.sisa)], 'bt');
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
@@ -1676,8 +1676,8 @@ function halamanGb(h) {
   judul('GAJI ABK', 13); judul(k.nama, 13);
   teks(gr.trip + (gbPeriode(gr) ? '   |   ' + gbPeriode(gr) : ''), 40, 0, 10.5); y -= 24;
   kol(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h', pos, 4);
-  gr.rows.forEach(function (r) {
-    kol([r.no, r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '', pos, 4);
+  gr.rows.forEach(function (r, i) {
+    kol([String(i + 1), r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '', pos, 4);
   });
   kol(['', '', '', gbTotLabel(gr), '', '', rp(gr.total)], 'bt', pos, 4);
   y -= 8;
@@ -1885,12 +1885,12 @@ function xLR(k, ds) {
 function xRekap(k, ds) {
   var rk = rekapBaris(k, ds), rows = [];
   rows = rows.concat(xlsJudul('REKAP LABA RUGI PER TRIP', k, labelRange(ds)));
-  rows.push(R(['Trip', 'Penghasilan', 'Belanja (di luar gaji)', 'Total Gaji', 'Total Biaya', 'Laba / (Rugi)'], 'h'));
-  rk.rows.forEach(function (r) {
+  rows.push(R(['No', 'Trip', 'Penghasilan', 'Belanja (di luar gaji)', 'Total Gaji', 'Total Biaya', 'Laba / (Rugi)'], 'h'));
+  rk.rows.forEach(function (r, i) {
     var x = r.x;
-    rows.push([r.trip, x.penghasilan, x.isi ? x.luar : '-', x.isi ? x.gajiR : '-', x.biaya, x.laba]);
+    rows.push([i + 1, r.trip, x.penghasilan, x.isi ? x.luar : '-', x.isi ? x.gajiR : '-', x.biaya, x.laba]);
   });
-  rows.push(R(['Total', rk.tot.penghasilan, rk.tot.luar, rk.tot.gaji, rk.tot.biaya, rk.tot.laba], 't'));
+  rows.push(R(['', 'Total', rk.tot.penghasilan, rk.tot.luar, rk.tot.gaji, rk.tot.biaya, rk.tot.laba], 't'));
   return { nama: k.lbl, rows: rows };
 }
 function xPinj(k, ds) {
@@ -1899,14 +1899,14 @@ function xPinj(k, ds) {
     var p = pjHitung(k, t);
     if (i) rows.push([], []);
     rows = rows.concat(xlsJudul('PINJAMAN ABK (DI LUAR BELANJA)', k, t));
-    rows.push(R(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini', 'Status', 'Catatan'], 'h'));
-    p.rows.forEach(function (r) {
+    rows.push(R(['No', 'Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini', 'Status', 'Catatan'], 'h'));
+    p.rows.forEach(function (r, i) {
       var st = pjStatus(k, ts, ada, t, r.nama), cat = '';
       if (r.bawa) cat = (st === 'l' ? 'Libur lagi; ' : 'Kembali dari libur; ') + 'utang dilanjutkan dari ' + r.bawa;
       else if (st === 'l') cat = 'Libur di trip berikutnya, kembali sesudahnya (utang dilanjutkan)';
-      rows.push([r.nama || '(tanpa nama)', r.sebelum, r.pinj, r.total, r.bayar, r.sisa, st ? nmS[st] : '', cat]);
+      rows.push([i + 1, r.nama || '(tanpa nama)', r.sebelum, r.pinj, r.total, r.bayar, r.sisa, st ? nmS[st] : '', cat]);
     });
-    rows.push(R(['Total', p.tot.sebelum, p.tot.pinj, p.tot.total, p.tot.bayar, p.tot.sisa, '', ''], 't'));
+    rows.push(R(['', 'Total', p.tot.sebelum, p.tot.pinj, p.tot.total, p.tot.bayar, p.tot.sisa, '', ''], 't'));
   });
   return { nama: k.lbl, rows: rows };
 }
@@ -1999,7 +1999,7 @@ function xGb(k) {
     if (i) rows.push([], []);
     rows = rows.concat(xlsJudul('GAJI ABK', k, gr.trip + (gbPeriode(gr) ? '  |  ' + gbPeriode(gr) : '')));
     rows.push(R(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h'));
-    gr.rows.forEach(function (r) { rows.push([/^\d+$/.test(r.no) ? Number(r.no) : r.no, r.b, r.p, r.ket, r.hari ? { v: r.hari, s: 'q' } : '', r.gaji, r.total]); });
+    gr.rows.forEach(function (r, i) { rows.push([i + 1, r.b, r.p, r.ket, r.hari ? { v: r.hari, s: 'q' } : '', r.gaji, r.total]); });
     rows.push(R(['', '', '', gbTotLabel(gr), '', '', gr.total], 't'));
     if (sm.pt) {
       var pp = pjHitung(k, sm.pt);
