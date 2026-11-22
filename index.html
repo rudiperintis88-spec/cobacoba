@@ -540,7 +540,10 @@ function rangeDari(list, dari, sampai) {
   if (lo > hi) { var t = lo; lo = hi; hi = t; }
   return list.filter(function (n) { var v = angka(n); return v >= lo && v <= hi; });
 }
-function pjDaftar(k) { return rangeDari(pjTrips(k), el('pn' + k.id).value, el('xpn' + k.id).value); }
+function pjDaftar(k) {
+  if (!isMaster()) { var ts = pjTrips(k); return ts.length ? [ts[ts.length - 1]] : []; }   /* hanya-lihat: trip terakhir saja */
+  return rangeDari(pjTrips(k), el('pn' + k.id).value, el('xpn' + k.id).value);
+}
 /* Utang dilanjutkan: ABK yang libur (tidak tercatat di trip sesudah trip terakhirnya) lalu kembali, sisa utang
    terakhirnya dibawa ke trip kembalinya. Bila kolom "Utang Trip Sebelumnya" di sheet kosong/0, diisi otomatis
    dari sisa utang di trip terakhir ABK itu tercatat (ditandai "dilanjutkan dari TRIP ..."). Nilai yang sudah
@@ -961,8 +964,8 @@ var ITER = 100000;
    kapal 'a' = KM Bintang Laut, 'b' = KM Serba Jaya. */
 var AKUN = [
   { master: true,  kapal: null, s: 'b0c89b4e765af617448ae80d242ccf7b', h: '9d5a8ff26818bff861f0ba0dd2b396a412d94ba3f1ffd362193ad3d0e696453b' },
-  { master: false, kapal: 'a', s: '8a3a3643e079a1dc15182651210bc653', h: '5b850e16b07816f8203c9551f69df14b1d2ca53d3528b72f165014a6517a1065' },
-  { master: false, kapal: 'b', s: '15ae99f1779c9e7b339b1485e1173481', h: '7ad1c9aee5ea986d4973a39aad7ffbd127ee5a25a0d1a1384325492aa3cc9a05' },
+  { master: false, pinj: true, kapal: 'a', s: '8a3a3643e079a1dc15182651210bc653', h: '5b850e16b07816f8203c9551f69df14b1d2ca53d3528b72f165014a6517a1065' },
+  { master: false, pinj: true, kapal: 'b', s: '15ae99f1779c9e7b339b1485e1173481', h: '7ad1c9aee5ea986d4973a39aad7ffbd127ee5a25a0d1a1384325492aa3cc9a05' },
   /* master penuh kedua (sama seperti master utama): semua kapal, semua trip, Laba Rugi, Export PDF */
   { master: true,  kapal: null, s: 'fa6e3669eed8e6b7d56d79dd19fbed9f', h: 'f36eb1de071aa6c514b0bafe07339325d78f570a976cab715ee1aac00d17e861' },
   /* master khusus KM Serba Jaya: semua trip, Laporan Gaji + Laba Rugi, Export PDF (hanya kapal ini) */
@@ -970,7 +973,7 @@ var AKUN = [
   /* master khusus KM Damai: semua trip, Laporan Gaji + Detail/Rekap Laba Rugi, Export PDF (hanya kapal ini) */
   { master: true, kapal: 'c', s: '6c8bc481f1a91ad0c05858a6cefb21ed', h: '6e5e50bbdfd52911c8b1873d37cb510f11e8c1d42382e74c24696f10ebe51b6d' },
   /* hanya lihat KM Damai (satu trip otomatis, tanpa Export), seperti akun KM Bintang Laut / KM Serba Jaya */
-  { master: false, kapal: 'c', s: '29418044abd7e742df01fc6ab9cc9b3f', h: '18b8b3ac951e3ebac554578fbbc8820eab76930d356c46b39fe2afb655f6d5b5' }
+  { master: false, pinj: true, kapal: 'c', s: '29418044abd7e742df01fc6ab9cc9b3f', h: '18b8b3ac951e3ebac554578fbbc8820eab76930d356c46b39fe2afb655f6d5b5' }
 ];
 /* Skrip Google (Apps Script, file Kode.gs): mengurus persetujuan perangkat (email SETUJUI/TOLAK ke admin)
    dan mencatat login beserta lokasinya. */
@@ -978,8 +981,9 @@ var APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyBeWA7lJpaVMNIPE
 /* Trip minimal yang selalu terbuka untuk password biasa. Trip yang LEBIH BARU tampil otomatis begitu lengkap
    (Ikan Basah + Ikan Asin terisi), tanpa mengubah file ini dan tanpa dipilih manual. Password master melihat semua trip + Export. */
 var TRIP_TERBUKA = { a: 'TRIP 76', b: 'TRIP 14' };
-var peran = null, namaMasuk = '', kapalBoleh = null;
+var peran = null, namaMasuk = '', kapalBoleh = null, bolehPinj = false;   /* bolehPinj: akun hanya-lihat yang boleh membuka menu Pinjaman ABK (trip terakhir saja) */
 function isMaster() { return peran === 'master'; }
+function pinjBoleh() { return isMaster() || (peran === 'biasa' && bolehPinj); }
 var BLN = ['Januari','Februari','Maret','April','Mei','Juni','Juli','Agustus','September','Oktober','November','Desember'];
 var IKON = '<svg viewBox="0 0 24 24" width="17" height="17" fill="none" stroke="currentColor" stroke-width="2.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><path d="M20 12a8 8 0 1 1-2.4-5.7"/><path d="M20 4v5h-5"/></svg>';
 var alasanGagal = '', tab = 'semua', gagal = 0, kunciSampai = 0, timer = null, timerIzin = null, sandiMask = '';
@@ -1057,7 +1061,7 @@ function masuk() {
     AKUN.forEach(function (a, i) { if (hs[i] === a.h) idx = i; });
     if (idx >= 0) {
       gagal = 0; galat.textContent = '';
-      peran = AKUN[idx].master ? 'master' : 'biasa'; kapalBoleh = AKUN[idx].kapal; namaMasuk = n; sandiMask = maskSandi(p);
+      peran = AKUN[idx].master ? 'master' : 'biasa'; kapalBoleh = AKUN[idx].kapal; bolehPinj = !!AKUN[idx].pinj; namaMasuk = n; sandiMask = maskSandi(p);
       lanjut();
     } else {
       gagal++;
@@ -1163,7 +1167,10 @@ function bukaApp() {
   tab = kapalBoleh || 'semua';
   bangunDom(); isiPilihan(); render();
   pilihTab(tab); muat();
-  el('mainnav').hidden = !isMaster(); pilihMenu('gaji'); isiPilihanLR();
+  el('mainnav').hidden = !pinjBoleh();
+  [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { var m = b.getAttribute('data-m'); b.hidden = !isMaster() && m !== 'gaji' && m !== 'pinj'; });
+  ['ctlGaji', 'ctlLR', 'ctlRk', 'ctlPj', 'ctlPb', 'ctlEs'].forEach(function (id) { el(id).hidden = !isMaster(); });   /* pilihan trip + Export hanya untuk master */ el('tabsPj').hidden = !isMaster() && !!kapalBoleh;
+  pilihMenu('gaji'); isiPilihanLR();
   pilihTabLR(kapalBoleh || 'semua'); renderLR();
   isiPilihanRk(); pilihTabRk(kapalBoleh || 'semua'); renderRekap();
   isiPilihanPj(); pilihTabPj(kapalBoleh || 'semua'); renderPinj();
@@ -1185,7 +1192,7 @@ function cekIzin() {
   });
 }
 function keluar() {
-  peran = null; namaMasuk = ''; kapalBoleh = null;
+  peran = null; namaMasuk = ''; kapalBoleh = null; bolehPinj = false;
   clearInterval(timer); clearInterval(timerIzin);
   el('app').hidden = true; el('login').hidden = false;
   el('nama').value = ''; el('sandi').value = ''; el('galat').textContent = '';
