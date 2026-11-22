@@ -669,11 +669,15 @@ function renderPinj() {
    Jumlah item tidak ditulis di sini: tiap baris yang Keterangannya terisi ikut tampil, jadi 14 item
    menjadi 16 item otomatis begitu baris ditambah di sheet. Kolom F ke kanan tidak dibaca. */
 var tabEs = 'semua';
-/* Dibaca sebagai CSV (bukan JSON): kolom A/B berisi campuran teks, tanggal dan angka, dan JSON Google
-   mengosongkan sel yang tipenya tidak sama dengan mayoritas kolom (judul kapal ikut hilang). */
-function URL_EST(k) {
-  return 'https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&headers=0&sheet=' +
-    encodeURIComponent(k.lbl) + '&range=A1:E300';
+/* Google (gviz) mengosongkan sel yang jenisnya tidak sama dengan mayoritas kolom pada rentang yang diminta
+   (kolom A sheet kapal campuran: judul, tanggal, nomor, label "Grand Total"). Karena itu sheet dibaca lewat
+   beberapa permintaan kecil yang tiap kolomnya seragam: A2 (judul kapal), A3:E3 (tanggal + Hari Ke),
+   A4:E300 (tabel), lalu label baris ringkasan dari kolom A (bila labelnya ikut kosong di tabel). */
+function gvizEst(k, range) {
+  return fetch('https://docs.google.com/spreadsheets/d/' + SHEET_ID + '/gviz/tq?tqx=out:csv&headers=0&sheet=' +
+    encodeURIComponent(k.lbl) + '&range=' + range + '&t=' + Date.now())
+    .then(function (r) { if (!r.ok) throw new Error('HTTP ' + r.status); return r.text(); })
+    .then(csvRows);
 }
 function nilai(v) {
   if (typeof v === 'number') return v;
@@ -685,39 +689,54 @@ function nilai(v) {
 }
 function qtyTxt(q) { return q ? String(Math.round(q * 100) / 100).replace('.', ',') : '-'; }
 function cs(r, i) { return i >= 0 && r && r[i] != null ? String(r[i]).trim() : ''; }
-function olahEstimasi(k, rows) {
-  var hi = -1, kc = 1, ada = false, i, j, nm = k.nama.replace(/\s+/g, ' ');
-  for (i = 0; i < rows.length && i < 15; i++) {
-    for (j = 0; j < 5; j++) {
-      var c = cs(rows[i], j).replace(/\s+/g, ' ').toUpperCase();
-      if (c === nm) ada = true;   /* pastikan sheet yang terbaca memang milik kapal ini */
-      if (hi < 0 && c === 'KETERANGAN') { hi = i; kc = j; }
-    }
+function adaHuruf(t) { return /[A-Za-z]/.test(t); }
+/* Baris ringkasan = Keterangan, Qty, Harga kosong, kolom Total terisi, dan kolom A kosong atau berisi teks (bukan nomor item). */
+function estRingkasBaris(r) {
+  return !cs(r, 1) && !cs(r, 2) && !cs(r, 3) && cs(r, 4) !== '' && (cs(r, 0) === '' || adaHuruf(cs(r, 0)));
+}
+function estHeader(tab) {
+  for (var i = 0; i < tab.length && i < 4; i++) if (cs(tab[i], 1).toUpperCase() === 'KETERANGAN') return i;
+  return 0;
+}
+/* rJudul = hasil A2, rTgl = A3:E3, tab = A4:E300, rLab = kolom A untuk baris ringkasan (mulai baris ke-min), min = indeks baris pertama */
+function olahEstimasi(k, rJudul, rTgl, tab, rLab, min) {
+  var j2 = cs(rJudul && rJudul[0], 0), nm = k.nama.replace(/\s+/g, ' ');
+  if (j2.replace(/\s+/g, ' ').toUpperCase() !== nm) {
+    k.est = { ok: false, rows: [], err: 'sel A2 berisi "' + j2 + '", seharusnya "' + k.nama + '"' }; return;
   }
-  if (!ada) { k.est = { ok: false, rows: [], err: 'judul "' + k.nama + '" tidak ditemukan di sheet' }; return; }
-  if (hi < 0) { k.est = { ok: false, rows: [], err: 'judul kolom "Keterangan" tidak ditemukan' }; return; }
-  var e = { ok: true, tgl1: '', tgl2: '', hari: '', rows: [], ringkas: [], jumlah: 0 };
-  for (i = 0; i < hi; i++) {
-    for (j = 0; j < 5; j++) {
-      if (/^hari\s*ke$/i.test(cs(rows[i], j))) { e.tgl1 = cs(rows[i], j - 2); e.tgl2 = cs(rows[i], j - 1); e.hari = cs(rows[i], j + 1); }
-    }
+  var e = { ok: true, tgl1: '', tgl2: '', hari: '', rows: [], ringkas: [], jumlah: 0 }, i, j, r = (rTgl && rTgl[0]) || [];
+  for (j = 0; j < 5; j++) {
+    if (/^hari\s*ke$/i.test(cs(r, j))) { e.tgl1 = cs(r, j - 2); e.tgl2 = cs(r, j - 1); e.hari = cs(r, j + 1); }
   }
-  /* Item = baris dengan Keterangan. Baris ringkasan di bawahnya (Grand Total, Estimasi Gaji, Gaji 50%, dst.) labelnya
-     biasanya digabung di kolom A-D dan nilainya di kolom Total: dibaca apa adanya dari sheet, label dan angka tidak dihitung ulang. */
-  for (i = hi + 1; i < rows.length; i++) {
-    var no = cs(rows[i], kc - 1), ket = cs(rows[i], kc), qs = cs(rows[i], kc + 1), hs = cs(rows[i], kc + 2), tv = cs(rows[i], kc + 3), lab = '';
-    if (ket && !no && !qs && !hs && tv) lab = ket;
-    else if (!ket && tv !== '') { for (j = 0; j <= kc + 2 && !lab; j++) if (/[A-Za-z]/.test(cs(rows[i], j))) lab = cs(rows[i], j); }
-    if (lab) { e.ringkas.push({ label: lab, total: nilai(tv) }); continue; }
+  var hi = estHeader(tab);
+  for (i = hi + 1; i < tab.length; i++) {
+    var row = tab[i], no = cs(row, 0), ket = cs(row, 1), qs = cs(row, 2), hs = cs(row, 3), tv = cs(row, 4), lab = '';
+    if (estRingkasBaris(row)) {
+      lab = adaHuruf(no) ? no : cs(rLab && rLab[i - min], 0);
+      if (adaHuruf(lab)) e.ringkas.push({ label: lab, total: nilai(tv) });
+      continue;
+    }
+    if (ket && !no && !qs && !hs && tv) { e.ringkas.push({ label: ket, total: nilai(tv) }); continue; }   /* label ringkasan diketik di kolom Keterangan */
     if (!ket) continue;
     var q = nilai(qs), h = nilai(hs), t = tv === '' ? q * h : nilai(tv);
     e.jumlah += t;
     e.rows.push({ no: no, ket: ket, qty: q, harga: h, total: t });
   }
   var n = 0;
-  e.rows.forEach(function (r) { n++; if (!r.no) r.no = String(n); });
+  e.rows.forEach(function (x) { n++; if (!x.no) x.no = String(n); });
   e.item = n;
   k.est = e;
+}
+function muatEstKapal(k) {
+  return Promise.all([gvizEst(k, 'A2:A2'), gvizEst(k, 'A3:E3').catch(function () { return []; }), gvizEst(k, 'A4:E300')]).then(function (r) {
+    var tab = r[2], hi = estHeader(tab), idx = [], i;
+    for (i = hi + 1; i < tab.length; i++) if (estRingkasBaris(tab[i])) idx.push(i);
+    var perlu = idx.some(function (x) { return !adaHuruf(cs(tab[x], 0)); });
+    if (!idx.length || !perlu) { olahEstimasi(k, r[0], r[1], tab, null, 0); return; }
+    var min = idx[0], max = idx[idx.length - 1];
+    return gvizEst(k, 'A' + (4 + min) + ':A' + (4 + max)).catch(function () { return []; })
+      .then(function (lab) { olahEstimasi(k, r[0], r[1], tab, lab, min); });
+  });
 }
 function warnaEs(l) { return /grand|total|jumlah/i.test(l) ? 'k' : (/\d\s*%/.test(l) ? 'h' : 'b'); }
 function estBoleh(k) { return (!kapalBoleh || k.id === kapalBoleh) && (!!k.tetap || !!(k.est && k.est.ok)); }
@@ -762,11 +781,9 @@ function muatEst() {
   if (!isMaster()) return Promise.resolve();
   return Promise.all(K.map(function (k) {
     if (kapalBoleh && k.id !== kapalBoleh) return null;
-    function gagal(m) { if (!(k.est && k.est.ok)) k.est = { ok: false, rows: [], err: m }; }   /* data lama tetap dipakai bila refresh gagal */
-    return fetch(URL_EST(k) + '&t=' + Date.now())
-      .then(function (r) { if (!r.ok) { gagal('HTTP ' + r.status); return null; } return r.text(); })
-      .then(function (t) { if (t) olahEstimasi(k, csvRows(t)); })
-      .catch(function (x) { gagal('gagal membaca: ' + (x && x.message || x)); });
+    return muatEstKapal(k).catch(function (x) {   /* data lama tetap dipakai bila refresh gagal */
+      if (!(k.est && k.est.ok)) k.est = { ok: false, rows: [], err: 'gagal membaca: ' + (x && x.message || x) };
+    });
   })).then(function () { renderEst(); pilihTabEs(tabEs); });
 }
 
