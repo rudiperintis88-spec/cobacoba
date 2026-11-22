@@ -85,6 +85,7 @@ table.pj tr.tt td{font-weight:bold;background:#fff9d6;border-top:1px solid var(-
 .multi{grid-column:1/-1}
 .tg1{width:100%;max-width:640px;margin:0 auto}
 @media (max-width:820px){.tg{grid-template-columns:1fr}}
+.ctl #xlsG,.ctl #xlsLr,.ctl #xlsRk,.ctl #xlsPj,.ctl #xlsPb,.ctl #xlsEs{background:#1d6f42;border-color:#1d6f42;color:#fff;font-weight:bold;cursor:pointer}
 @media print{.status,.tabs,.ctl{display:none}}
 
 .mainnav{display:flex;flex-wrap:wrap;gap:8px;padding:14px 20px 0;border-bottom:1px solid #dde2ec;font-family:system-ui,"Segoe UI",Roboto,Arial,sans-serif}
@@ -136,42 +137,42 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
     <button type="button" role="tab" data-t="semua">Semua</button>
   </nav>
-  <div class="ctl" id="ctlGaji"><button type="button" id="pdf">Export PDF</button></div>
+  <div class="ctl" id="ctlGaji"><button type="button" id="pdf">Export PDF</button><button type="button" id="xlsG">Export Excel</button></div>
   <main class="grid" id="grid" data-tab="semua"></main>
   </div>
   <div id="paneLR" hidden>
     <nav class="tabs" id="tabsLR" role="tablist" aria-label="Laba Rugi">
       <button type="button" role="tab" data-l="semua">Semua</button>
     </nav>
-    <div class="ctl" id="ctlLR"><button type="button" id="pdfLr">Export PDF</button></div>
+    <div class="ctl" id="ctlLR"><button type="button" id="pdfLr">Export PDF</button><button type="button" id="xlsLr">Export Excel</button></div>
     <main class="grid" id="lrgrid" data-tab="semua"></main>
   </div>
   <div id="paneRekap" hidden>
     <nav class="tabs" id="tabsRk" role="tablist" aria-label="Rekap Laba Rugi">
       <button type="button" role="tab" data-r="semua">Semua</button>
     </nav>
-    <div class="ctl" id="ctlRk"><button type="button" id="pdfRk">Export PDF</button></div>
+    <div class="ctl" id="ctlRk"><button type="button" id="pdfRk">Export PDF</button><button type="button" id="xlsRk">Export Excel</button></div>
     <main class="grid" id="rkgrid" data-tab="semua"></main>
   </div>
   <div id="panePinj" hidden>
     <nav class="tabs" id="tabsPj" role="tablist" aria-label="Pinjaman ABK">
       <button type="button" role="tab" data-p="semua">Semua</button>
     </nav>
-    <div class="ctl" id="ctlPj"><button type="button" id="pdfPj">Export PDF</button></div>
+    <div class="ctl" id="ctlPj"><button type="button" id="pdfPj">Export PDF</button><button type="button" id="xlsPj">Export Excel</button></div>
     <main class="grid" id="pjgrid" data-tab="semua"></main>
   </div>
   <div id="panePjb" hidden>
     <nav class="tabs" id="tabsPb" role="tablist" aria-label="Pinjaman ABK Berhenti">
       <button type="button" role="tab" data-b="semua">Semua</button>
     </nav>
-    <div class="ctl" id="ctlPb"><button type="button" id="pdfPb">Export PDF</button></div>
+    <div class="ctl" id="ctlPb"><button type="button" id="pdfPb">Export PDF</button><button type="button" id="xlsPb">Export Excel</button></div>
     <main class="grid" id="pbgrid" data-tab="semua"></main>
   </div>
   <div id="paneEs" hidden>
     <nav class="tabs" id="tabsEs" role="tablist" aria-label="Estimasi Hasil">
       <button type="button" role="tab" data-e="semua">Semua</button>
     </nav>
-    <div class="ctl" id="ctlEs"><button type="button" id="pdfEs">Export PDF</button></div>
+    <div class="ctl" id="ctlEs"><button type="button" id="pdfEs">Export PDF</button><button type="button" id="xlsEs">Export Excel</button></div>
     <main class="grid" id="esgrid" data-tab="semua"></main>
   </div>
 </div>
@@ -617,7 +618,7 @@ function pjTabel(k, trip, ts, ada) {
   var p = pjHitung(k, trip);
   var h = '<div class="sc"><table class="pj"><tr><td colspan="7"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
     '<tr><td colspan="7"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="7"><b>' + he(trip) + '</b></td></tr>' +
-    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Sebelumnya</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang</td><td>Status</td></tr>';
+    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Sebelumnya</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang Trip Ini</td><td>Status</td></tr>';
   function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
   function sisa(v) { return v > 0 ? '<span class="utang">' + rp(v) + '</span>' : (v < 0 ? '<span class="neg">' + rp(v) + '</span>' : '<span class="lunas">Lunas</span>'); }
   function stat(r) {
@@ -1149,7 +1150,7 @@ function lanjut() {
 }
 function bukaApp() {
   el('app').hidden = false;
-  el('pdf').hidden = !isMaster();
+  el('pdf').hidden = !isMaster(); el('xlsG').hidden = !isMaster();
   el('tabsGaji').hidden = !!kapalBoleh;
   tab = kapalBoleh || 'semua';
   bangunDom(); isiPilihan(); render();
@@ -1342,7 +1343,7 @@ function halamanLR(h) {
   return s;
 }
 function halamanPj(h) {
-  var k = h.k, p = pjHitung(k, h.trip), RH = 19, y = 841.89 - 50, s = '', pos = [44, 235, 315, 395, 473, 551], ts = pjTrips(k), ada = pjAda(k);
+  var k = h.k, p = pjHitung(k, h.trip), RH = 19, y = 841.89 - 50, s = '', pos = [44, 225, 300, 380, 452, 551], ts = pjTrips(k), ada = pjAda(k);
   function teks(t, px, b, u, rata) {
     if (!t) return;
     var xx = rata === 'r' ? px - lebar(t, b, u) : px;
@@ -1360,7 +1361,7 @@ function halamanPj(h) {
   teks('PINJAMAN ABK (DI LUAR BELANJA)', 40, 1, 13); y -= 21;
   teks(k.nama, 40, 1, 13); y -= 21;
   teks(h.trip, 40, 1, 13); y -= 24;
-  kol(['Nama', 'Utang Sebelum', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h');
+  kol(['Nama', 'Utang Sebelum', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h');
   p.rows.forEach(function (r) {
     if (y < 70) return;
     kol([(r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, h.trip, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
@@ -1462,6 +1463,271 @@ function eksporPjb() {
   if (!hal.length) return;
   unduh('PinjamanABK_Berhenti' + (tabPb === 'semua' ? '' : '_' + kapal(tabPb).nama.replace(/\s+/g, '_')) + '.pdf', hal);
 }
+/* ---------- Export Excel (.xlsx dibuat langsung di browser, tanpa pustaka luar) ---------- */
+function R(a, g) { return a.map(function (v) { return (v !== null && typeof v === 'object') ? v : { v: v, s: g || '' }; }); }
+function xlsStyle(s, num) {
+  switch (s) {
+    case 'h': return 2;
+    case 't': return num ? 5 : 4;
+    case 'b': return num ? 7 : 1;
+    case 'ti': return 8;
+    case 'p': return 6;
+    case 'tp': return 9;
+    case 'q': return 0;
+    default: return num ? 3 : 0;
+  }
+}
+function xlsKol(i) { var t = ''; i++; while (i > 0) { var m = (i - 1) % 26; t = String.fromCharCode(65 + m) + t; i = Math.floor((i - 1) / 26); } return t; }
+function xlsEsc(t) { return String(t).replace(/[\u0000-\u0008\u000b\u000c\u000e-\u001f]/g, '').replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;'); }
+function xlsSheetXml(rows) {
+  var lebar = [], x = '';
+  rows.forEach(function (row, ri) {
+    var cells = '';
+    (row || []).forEach(function (c, ci) {
+      var v = c, g = '';
+      if (c !== null && typeof c === 'object') { v = c.v; g = c.s || ''; }
+      if (v === null || v === undefined || (v === '' && !g)) return;
+      var num = typeof v === 'number' && isFinite(v), st = xlsStyle(g, num), ref = xlsKol(ci) + (ri + 1);
+      if (v === '') { cells += '<c r="' + ref + '" s="' + st + '"/>'; return; }
+      if (num) {
+        if (st === 3 || st === 5 || st === 7) v = Math.round(v);
+        cells += '<c r="' + ref + '" s="' + st + '"><v>' + v + '</v></c>';
+        if ((lebar[ci] || 0) < 14) lebar[ci] = 14;
+      } else {
+        cells += '<c r="' + ref + '" s="' + st + '" t="inlineStr"><is><t xml:space="preserve">' + xlsEsc(v) + '</t></is></c>';
+        if (g !== 'ti' && (lebar[ci] || 0) < String(v).length) lebar[ci] = String(v).length;
+      }
+    });
+    if (cells) x += '<row r="' + (ri + 1) + '">' + cells + '</row>';
+  });
+  var cols = '';
+  lebar.forEach(function (w, i) { if (w) cols += '<col min="' + (i + 1) + '" max="' + (i + 1) + '" width="' + Math.min(45, Math.max(10, w + 2)) + '" customWidth="1"/>'; });
+  return '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><worksheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+    (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + x + '</sheetData></worksheet>';
+}
+var XLS_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
+  '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+  '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="13"/><name val="Calibri"/></font></fonts>' +
+  '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill></fills>' +
+  '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>' +
+  '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
+  '<cellXfs count="10">' +
+  '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
+  '<xf numFmtId="164" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="0" fontId="1" fillId="2" borderId="0" xfId="0" applyFont="1" applyFill="1"/>' +
+  '<xf numFmtId="164" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+  '<xf numFmtId="165" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +
+  '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
+  '<xf numFmtId="165" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+  '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
+var CRC_T = null;
+function crc32(b) {
+  if (!CRC_T) { CRC_T = []; for (var n = 0; n < 256; n++) { var c = n; for (var j = 0; j < 8; j++) c = c & 1 ? 0xEDB88320 ^ (c >>> 1) : c >>> 1; CRC_T[n] = c >>> 0; } }
+  var c2 = 0xFFFFFFFF;
+  for (var i = 0; i < b.length; i++) c2 = CRC_T[(c2 ^ b[i]) & 255] ^ (c2 >>> 8);
+  return (c2 ^ 0xFFFFFFFF) >>> 0;
+}
+function zipBytes(files) {   /* ZIP tanpa kompresi (stored) */
+  var enc = new TextEncoder(), parts = [], cen = [], off = 0;
+  function u16(v) { return [v & 255, (v >>> 8) & 255]; }
+  function u32(v) { return [v & 255, (v >>> 8) & 255, (v >>> 16) & 255, (v >>> 24) & 255]; }
+  files.forEach(function (f) {
+    var nm = enc.encode(f.n), d = enc.encode(f.d), crc = crc32(d), sz = d.length;
+    var lh = [].concat(u32(0x04034b50), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(sz), u32(sz), u16(nm.length), u16(0));
+    parts.push(new Uint8Array(lh), nm, d);
+    cen.push(new Uint8Array([].concat(u32(0x02014b50), u16(20), u16(20), u16(0x0800), u16(0), u16(0), u16(0x21), u32(crc), u32(sz), u32(sz), u16(nm.length), u16(0), u16(0), u16(0), u16(0), u32(0), u32(off))), nm);
+    off += lh.length + nm.length + sz;
+  });
+  var cl = 0; cen.forEach(function (c) { cl += c.length; });
+  var end = new Uint8Array([].concat(u32(0x06054b50), u16(0), u16(0), u16(files.length), u16(files.length), u32(cl), u32(off), u16(0)));
+  var all = parts.concat(cen, [end]), tot = 0; all.forEach(function (a) { tot += a.length; });
+  var out = new Uint8Array(tot), p = 0; all.forEach(function (a) { out.set(a, p); p += a.length; });
+  return out;
+}
+function xlsBytes(sheets) {
+  var used = {}, nm = sheets.map(function (sh) {
+    var n = String(sh.nama).replace(/[\[\]:*?\/\\]/g, ' ').slice(0, 31) || 'Sheet', b = n, i = 2;
+    while (used[n.toLowerCase()]) n = b.slice(0, 28) + ' ' + i++;
+    used[n.toLowerCase()] = 1; return n;
+  });
+  var H = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?>';
+  var files = [
+    { n: '[Content_Types].xml', d: H + '<Types xmlns="http://schemas.openxmlformats.org/package/2006/content-types"><Default Extension="rels" ContentType="application/vnd.openxmlformats-package.relationships+xml"/><Default Extension="xml" ContentType="application/xml"/><Override PartName="/xl/workbook.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet.main+xml"/><Override PartName="/xl/styles.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.styles+xml"/>' +
+      sheets.map(function (s, i) { return '<Override PartName="/xl/worksheets/sheet' + (i + 1) + '.xml" ContentType="application/vnd.openxmlformats-officedocument.spreadsheetml.worksheet+xml"/>'; }).join('') + '</Types>' },
+    { n: '_rels/.rels', d: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships"><Relationship Id="rId1" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/officeDocument" Target="xl/workbook.xml"/></Relationships>' },
+    { n: 'xl/workbook.xml', d: H + '<workbook xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main" xmlns:r="http://schemas.openxmlformats.org/officeDocument/2006/relationships"><sheets>' +
+      nm.map(function (n, i) { return '<sheet name="' + xlsEsc(n) + '" sheetId="' + (i + 1) + '" r:id="rId' + (i + 1) + '"/>'; }).join('') + '</sheets></workbook>' },
+    { n: 'xl/_rels/workbook.xml.rels', d: H + '<Relationships xmlns="http://schemas.openxmlformats.org/package/2006/relationships">' +
+      sheets.map(function (s, i) { return '<Relationship Id="rId' + (i + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/worksheet" Target="worksheets/sheet' + (i + 1) + '.xml"/>'; }).join('') +
+      '<Relationship Id="rId' + (sheets.length + 1) + '" Type="http://schemas.openxmlformats.org/officeDocument/2006/relationships/styles" Target="styles.xml"/></Relationships>' },
+    { n: 'xl/styles.xml', d: XLS_STYLES }
+  ];
+  sheets.forEach(function (sh, i) { files.push({ n: 'xl/worksheets/sheet' + (i + 1) + '.xml', d: xlsSheetXml(sh.rows) }); });
+  return zipBytes(files);
+}
+function xlsUnduh(nama, sheets) {
+  var a = document.createElement('a');
+  a.href = URL.createObjectURL(new Blob([xlsBytes(sheets)], { type: 'application/vnd.openxmlformats-officedocument.spreadsheetml.sheet' }));
+  a.download = nama.replace(/\.pdf$/i, '') + '.xlsx';
+  document.body.appendChild(a); a.click(); a.remove();
+  setTimeout(function () { URL.revokeObjectURL(a.href); }, 4000);
+}
+function xlsJudul(a, k, c) { return [R([a], 'ti'), R([k.nama], 'ti')].concat(c ? [R([c], 'ti')] : []); }
+function xGaji(k, ds) {
+  var rows = [];
+  ds.forEach(function (t, i) {
+    var r = hitung(k, t);
+    if (i) rows.push([], []);
+    rows = rows.concat(xlsJudul('LAPORAN HASIL KAPAL', k, t));
+    rows.push(R(['Keterangan', 'Percent %', 'Nominal'], 'h'));
+    k.items.forEach(function (it, j) { rows.push([it, '', r.d.nom[j]]); });
+    rows.push(R(['Total', '', r.total], 't'));
+    r.hasil.forEach(function (x) { rows.push([x.lab, { v: x.p, s: 'p' }, x.c]); });
+    rows.push(R(['Total Gaji', '', r.gaji], 'b'), R(['Sisa Utang', '', r.utang], 'b'), R(['Gaji Sudah Diambil', '', r.diambil], 'b'), R(['Sisa Gaji', '', r.sisa], 't'));
+    rows.push([], R(['Hasil', 'Percent %', 'Nominal'], 'h'));
+    r.hasil.forEach(function (x) { rows.push([x.a, { v: x.p, s: 'p' }, x.c]); });
+    rows.push(R([r.total, '', r.gaji], 't'));
+  });
+  return { nama: k.lbl, rows: rows };
+}
+function xLR(k, ds) {
+  var rows = [];
+  ds.forEach(function (t, i) {
+    var x = hitungLR(k, t);
+    if (i) rows.push([], []);
+    rows = rows.concat(xlsJudul('LAPORAN LABA RUGI', k, t));
+    rows.push(R(['Keterangan', '', 'Nominal'], 'h'), R(['PENGHASILAN'], 'b'));
+    k.items.forEach(function (it, j) { if (!bukanPenghasilan(it)) rows.push([it, '', x.r.d.nom[j]]); });
+    rows.push(R(['Total Penghasilan', '', x.penghasilan], 'b'), R(['BIAYA'], 'b'));
+    if (x.belanja > 0) rows.push(['Belanja (di luar gaji)', '', x.belanja - x.gaji], ['Total Gaji', '', x.gaji]);
+    else rows.push(['Belanja', '', x.belanja]);
+    rows.push(R(['Total Biaya', '', x.biaya], 'b'));
+    rows.push(R([labaTxt(x.laba) + ' (Penghasilan - Biaya)', x.penghasilan > 0 ? { v: x.laba / x.penghasilan, s: 'tp' } : '', x.laba], 't'));
+    if (!x.belanja) rows.push(['Catatan: belanja trip ini belum terisi di sheet Belanja.']);
+  });
+  return { nama: k.lbl, rows: rows };
+}
+function xRekap(k, ds) {
+  var rk = rekapBaris(k, ds), rows = [];
+  rows = rows.concat(xlsJudul('REKAP LABA RUGI PER TRIP', k, labelRange(ds)));
+  rows.push(R(['Trip', 'Penghasilan', 'Belanja (di luar gaji)', 'Total Gaji', 'Total Biaya', 'Laba / (Rugi)'], 'h'));
+  rk.rows.forEach(function (r) {
+    var x = r.x;
+    rows.push([r.trip, x.penghasilan, x.isi ? x.luar : '-', x.isi ? x.gajiR : '-', x.biaya, x.laba]);
+  });
+  rows.push(R(['Total', rk.tot.penghasilan, rk.tot.luar, rk.tot.gaji, rk.tot.biaya, rk.tot.laba], 't'));
+  return { nama: k.lbl, rows: rows };
+}
+function xPinj(k, ds) {
+  var rows = [], ts = pjTrips(k), ada = pjAda(k), nmS = { a: 'Aktif', l: 'Libur', b: 'Berhenti' };
+  ds.forEach(function (t, i) {
+    var p = pjHitung(k, t);
+    if (i) rows.push([], []);
+    rows = rows.concat(xlsJudul('PINJAMAN ABK (DI LUAR BELANJA)', k, t));
+    rows.push(R(['Nama', 'Utang Trip Sebelumnya', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini', 'Status', 'Catatan'], 'h'));
+    p.rows.forEach(function (r) {
+      var st = pjStatus(k, ts, ada, t, r.nama), cat = '';
+      if (r.bawa) cat = (st === 'l' ? 'Libur lagi; ' : 'Kembali dari libur; ') + 'utang dilanjutkan dari ' + r.bawa;
+      else if (st === 'l') cat = 'Libur di trip berikutnya, kembali sesudahnya (utang dilanjutkan)';
+      rows.push([r.nama || '(tanpa nama)', r.sebelum, r.pinj, r.total, r.bayar, r.sisa, st ? nmS[st] : '', cat]);
+    });
+    rows.push(R(['Total', p.tot.sebelum, p.tot.pinj, p.tot.total, p.tot.bayar, p.tot.sisa, '', ''], 't'));
+  });
+  return { nama: k.lbl, rows: rows };
+}
+function xPjb(k) {
+  var rows = xlsJudul('PINJAMAN ABK BERHENTI (BELUM LUNAS)', k), b = pjBerhenti(k);
+  if (!pjTrips(k).length) { rows.push(['Belum ada data pinjaman ABK.']); return { nama: k.lbl, rows: rows }; }
+  if (!b.banding) { rows.push(['Belum bisa ditentukan: baru ada satu trip di sheet Pinjaman ABK.']); return { nama: k.lbl, rows: rows }; }
+  rows.push(['Tidak tercatat lagi sampai ' + b.latest + ', sisa utang belum lunas']);
+  rows.push(R(['No', 'Nama', 'Trip Terakhir', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h'));
+  if (!b.rows.length) { rows.push(['Tidak ada. Semua ABK yang tidak tercatat lagi sudah lunas.']); return { nama: k.lbl, rows: rows }; }
+  b.rows.forEach(function (r, i) { rows.push([i + 1, r.nama, r.trip, r.total, r.bayar, r.sisa]); });
+  rows.push(R(['', 'Total (' + b.rows.length + ' ABK)', '', b.tot.total, b.tot.bayar, b.tot.sisa], 't'));
+  return { nama: k.lbl, rows: rows };
+}
+function xEs(k) {
+  var e = k.est, rows = xlsJudul('ESTIMASI HASIL', k, estPeriode(e) || '');
+  rows.push(R(['No', 'Keterangan', 'Qty', 'Harga', 'Total'], 'h'));
+  e.rows.forEach(function (r) {
+    rows.push([/^\d+$/.test(r.no) ? Number(r.no) : r.no, r.ket, r.qty ? { v: r.qty, s: 'q' } : '', r.harga, r.total]);
+  });
+  if (e.ringkas.length) e.ringkas.forEach(function (r) { rows.push(R(['', r.label, '', '', r.total], warnaEs(r.label) === 'k' ? 't' : 'b')); });
+  else rows.push(R(['', 'Total Estimasi Hasil', '', '', e.jumlah], 't'));
+  return { nama: k.lbl, rows: rows };
+}
+function eksporXlsGaji() {
+  if (!isMaster()) return;
+  var hal = [], sh = [];
+  K.forEach(function (k) {
+    if (tab !== 'semua' && tab !== k.id) return;
+    if (!boleh(k)) return;
+    var ds = daftarGaji(k);
+    if (!ds.length) return;
+    ds.forEach(function (t) { hal.push({ k: k, trip: t }); });
+    sh.push(xGaji(k, ds));
+  });
+  if (sh.length) xlsUnduh(namaFile('Laporan_', hal), sh);
+}
+function eksporXlsLR() {
+  if (!isMaster()) return;
+  var hal = [], sh = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabLR !== 'semua' && tabLR !== k.id) return;
+    var ds = daftarLR(k);
+    if (!ds.length) return;
+    ds.forEach(function (t) { hal.push({ k: k, trip: t }); });
+    sh.push(xLR(k, ds));
+  });
+  if (sh.length) xlsUnduh(namaFile('LabaRugi_', hal), sh);
+}
+function eksporXlsRekap() {
+  if (!isMaster()) return;
+  var sh = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabRk !== 'semua' && tabRk !== k.id) return;
+    var ds = daftarRk(k);
+    if (ds.length) sh.push(xRekap(k, ds));
+  });
+  if (sh.length) xlsUnduh('Rekap_Laba_Rugi' + (tabRk === 'semua' ? '' : '_' + kapal(tabRk).nama.replace(/\s+/g, '_')), sh);
+}
+function eksporXlsPinj() {
+  if (!isMaster()) return;
+  var hal = [], sh = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabPj !== 'semua' && tabPj !== k.id) return;
+    var ds = pjDaftar(k);
+    if (!ds.length) return;
+    ds.forEach(function (t) { hal.push({ k: k, trip: t }); });
+    sh.push(xPinj(k, ds));
+  });
+  if (sh.length) xlsUnduh(namaFile('PinjamanABK_', hal), sh);
+}
+function eksporXlsPjb() {
+  if (!isMaster()) return;
+  var sh = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabPb !== 'semua' && tabPb !== k.id) return;
+    sh.push(xPjb(k));
+  });
+  if (sh.length) xlsUnduh('PinjamanABK_Berhenti' + (tabPb === 'semua' ? '' : '_' + kapal(tabPb).nama.replace(/\s+/g, '_')), sh);
+}
+function eksporXlsEs() {
+  if (!isMaster()) return;
+  var sh = [];
+  K.forEach(function (k) {
+    if (!estBoleh(k) || (tabEs !== 'semua' && tabEs !== k.id) || !k.est || !k.est.ok) return;
+    sh.push(xEs(k));
+  });
+  if (sh.length) xlsUnduh('EstimasiHasil' + (tabEs === 'semua' ? '' : '_' + kapal(tabEs).nama.replace(/\s+/g, '_')), sh);
+}
 function unduh(nama, hal) {
   var a = document.createElement('a');
   a.href = URL.createObjectURL(new Blob([buatPdf(hal)], { type: 'application/pdf' }));
@@ -1557,6 +1823,12 @@ el('pdfRk').addEventListener('click', eksporRekap);
 el('pdfPj').addEventListener('click', eksporPinj);
 el('pdfPb').addEventListener('click', eksporPjb);
 el('pdfEs').addEventListener('click', eksporEs);
+el('xlsG').addEventListener('click', eksporXlsGaji);
+el('xlsLr').addEventListener('click', eksporXlsLR);
+el('xlsRk').addEventListener('click', eksporXlsRekap);
+el('xlsPj').addEventListener('click', eksporXlsPinj);
+el('xlsPb').addEventListener('click', eksporXlsPjb);
+el('xlsEs').addEventListener('click', eksporXlsEs);
 [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.addEventListener('click', function () { pilihMenu(b.getAttribute('data-m')); }); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { cekIzin(); muat(); } });
 </script>
