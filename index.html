@@ -236,7 +236,8 @@ function el(id) { return document.getElementById(id); }
 function dots(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
 function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp ' + dots(Math.abs(r)); }
 function nc(v) { return Math.round(v) < 0 ? 'n neg' : 'n'; } /* minus = merah, selain itu hitam */
-function rp2(n) { return rp(n); } /* tabel Hasil: sama dengan rp, tanpa desimal ,00 */
+function rpz(n) { return Math.round(n) === 0 ? '-' : rp(n); } /* nol tampil "-" (Laporan Gaji) */
+function rp2(n) { return rpz(n); } /* tabel Hasil: sama dengan rp, tanpa desimal ,00 */
 function sum(a) { return a.reduce(function (x, y) { return x + y; }, 0); }
 function angka(t) { return parseInt(String(t).replace(/\D/g, ''), 10) || 0; }
 
@@ -260,17 +261,17 @@ function atas(k, trip, r) {
     '<tr><td colspan="3"><b>' + trip + '</b></td></tr>' +
     '<tr class="h"><td>Keterangan</td><td>Percent %</td><td class="n">Nominal</td></tr>';
   k.items.forEach(function (it, i) {
-    h += '<tr><td>' + it + '</td><td></td><td class="' + nc(r.d.nom[i]) + '">' + rp(r.d.nom[i]) + '</td></tr>';
+    h += '<tr><td>' + it + '</td><td></td><td class="' + nc(r.d.nom[i]) + '">' + rpz(r.d.nom[i]) + '</td></tr>';
   });
-  h += '<tr class="t"><td>Total</td><td></td><td class="' + nc(r.total) + '">' + rp(r.total) + '</td></tr>';
+  h += '<tr class="t"><td>Total</td><td></td><td class="' + nc(r.total) + '">' + rpz(r.total) + '</td></tr>';
   r.hasil.forEach(function (x) {
     h += '<tr><td>' + he(x.lab) + '</td><td>' + pctNum(x.p) +
-         ' %</td><td class="' + nc(x.c) + '">' + rp(x.c) + '</td></tr>';
+         ' %</td><td class="' + nc(x.c) + '">' + rpz(x.c) + '</td></tr>';
   });
-  h += '<tr class="b ln"><td>Total Gaji</td><td></td><td class="' + nc(r.gaji) + '">' + rp(r.gaji) + '</td></tr>' +
-       '<tr class="b"><td>Sisa Utang</td><td></td><td class="' + nc(r.utang) + '">' + rp(r.utang) + '</td></tr>' +
-       '<tr class="b"><td>Gaji Sudah Diambil</td><td></td><td class="' + nc(r.diambil) + '">' + rp(r.diambil) + '</td></tr>' +
-       '<tr class="b ln"><td>Sisa Gaji</td><td></td><td class="' + nc(r.sisa) + '">' + rp(r.sisa) + '</td></tr></table>';
+  h += '<tr class="b ln"><td>Total Gaji</td><td></td><td class="' + nc(r.gaji) + '">' + rpz(r.gaji) + '</td></tr>' +
+       '<tr class="b"><td>Sisa Utang</td><td></td><td class="' + nc(r.utang) + '">' + rpz(r.utang) + '</td></tr>' +
+       '<tr class="b"><td>Gaji Sudah Diambil</td><td></td><td class="' + nc(r.diambil) + '">' + rpz(r.diambil) + '</td></tr>' +
+       '<tr class="b ln"><td>Sisa Gaji</td><td></td><td class="' + nc(r.sisa) + '">' + rpz(r.sisa) + '</td></tr></table>';
   return h;
 }
 
@@ -278,9 +279,9 @@ function bawah(r) {
   var h = '<table><tr class="h"><td>Hasil</td><td>Percent %</td><td class="n">Nominal</td></tr>';
   r.hasil.forEach(function (x) {
     h += '<tr class="g"><td class="n">' + rp2(x.a) + '</td><td>' + pctNum(x.p) +
-         '%</td><td class="' + nc(x.c) + '">' + rp(x.c) + '</td></tr>';
+         '%</td><td class="' + nc(x.c) + '">' + rpz(x.c) + '</td></tr>';
   });
-  h += '<tr class="g b"><td class="n">' + rp2(r.total) + '</td><td></td><td class="' + nc(r.gaji) + '">' + rp(r.gaji) + '</td></tr></table>';
+  h += '<tr class="g b"><td class="n">' + rp2(r.total) + '</td><td></td><td class="' + nc(r.gaji) + '">' + rpz(r.gaji) + '</td></tr></table>';
   return h;
 }
 
@@ -1253,7 +1254,7 @@ function halaman(h) {
   function teks(t, x, b, u, rata) {
     if (!t) return;
     var xx = rata === 'r' ? x - lebar(t, b, u) : x;
-    var mer = rata === 'r' && t.charAt(0) === '-'; /* minus = merah */
+    var mer = rata === 'r' && t.charAt(0) === '-' && t.length > 1; /* minus = merah */
     s += 'BT ' + (mer ? '0.71 0.14 0.09 rg ' : '') + '/' + (b ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - 13.5) + ' Td (' + esc(t) + ') Tj ' + (mer ? '0 g ' : '') + 'ET\n';
   }
   function kuning() { s += '1 1 0 rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n'; }
@@ -1276,17 +1277,17 @@ function halaman(h) {
   teks(k.nama, 40, 1, 13); y -= 21;
   teks(h.trip, 40, 1, 13); y -= 24;
   baris('Keterangan', 'Percent %', 'Nominal', 'h');
-  k.items.forEach(function (it, i) { baris(it, '', rp(r.d.nom[i]), ''); });
-  baris('Total', '', rp(r.total), 't');
-  r.hasil.forEach(function (x) { baris(x.lab, pctNum(x.p) + ' %', rp(x.c), ''); });
-  baris('Total Gaji', '', rp(r.gaji), 'bl');
-  baris('Sisa Utang', '', rp(r.utang), 'b');
-  baris('Gaji Sudah Diambil', '', rp(r.diambil), 'b');
-  baris('Sisa Gaji', '', rp(r.sisa), 'bl');
+  k.items.forEach(function (it, i) { baris(it, '', rpz(r.d.nom[i]), ''); });
+  baris('Total', '', rpz(r.total), 't');
+  r.hasil.forEach(function (x) { baris(x.lab, pctNum(x.p) + ' %', rpz(x.c), ''); });
+  baris('Total Gaji', '', rpz(r.gaji), 'bl');
+  baris('Sisa Utang', '', rpz(r.utang), 'b');
+  baris('Gaji Sudah Diambil', '', rpz(r.diambil), 'b');
+  baris('Sisa Gaji', '', rpz(r.sisa), 'bl');
   y -= 24;
   kuning(); teks('Hasil', 44, 1, 10.5); teks('Percent %', 375, 1, 10.5); teks('Nominal', 551, 1, 10.5, 'r'); y -= RH;
-  r.hasil.forEach(function (x) { petak3(rp2(x.a), pctNum(x.p) + '%', rp(x.c), 0); });
-  petak3(rp2(r.total), '', rp(r.gaji), 1);
+  r.hasil.forEach(function (x) { petak3(rp2(x.a), pctNum(x.p) + '%', rpz(x.c), 0); });
+  petak3(rp2(r.total), '', rpz(r.gaji), 1);
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
@@ -1481,6 +1482,9 @@ function xlsStyle(s, num) {
     case 'p': return 6;
     case 'tp': return 9;
     case 'q': return 0;
+    case 'z': return 10;
+    case 'bz': return 11;
+    case 'tz': return 12;
     default: return num ? 3 : 0;
   }
 }
@@ -1497,7 +1501,7 @@ function xlsSheetXml(rows) {
       var num = typeof v === 'number' && isFinite(v), st = xlsStyle(g, num), ref = xlsKol(ci) + (ri + 1);
       if (v === '') { cells += '<c r="' + ref + '" s="' + st + '"/>'; return; }
       if (num) {
-        if (st === 3 || st === 5 || st === 7) v = Math.round(v);
+        if (st === 3 || st === 5 || st === 7 || st >= 10) v = Math.round(v);
         cells += '<c r="' + ref + '" s="' + st + '"><v>' + v + '</v></c>';
         if ((lebar[ci] || 0) < 14) lebar[ci] = 14;
       } else {
@@ -1513,12 +1517,12 @@ function xlsSheetXml(rows) {
     (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + x + '</sheetData></worksheet>';
 }
 var XLS_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-  '<numFmts count="2"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/></numFmts>' +
+  '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="#,##0;[Red]-#,##0;&quot;-&quot;"/></numFmts>' +
   '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="13"/><name val="Calibri"/></font></fonts>' +
   '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill></fills>' +
   '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>' +
   '<cellStyleXfs count="1"><xf numFmtId="0" fontId="0" fillId="0" borderId="0"/></cellStyleXfs>' +
-  '<cellXfs count="10">' +
+  '<cellXfs count="13">' +
   '<xf numFmtId="0" fontId="0" fillId="0" borderId="0" xfId="0"/>' +
   '<xf numFmtId="0" fontId="1" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
   '<xf numFmtId="0" fontId="1" fillId="2" borderId="1" xfId="0" applyFont="1" applyFill="1" applyBorder="1"/>' +
@@ -1529,6 +1533,9 @@ var XLS_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleS
   '<xf numFmtId="164" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +
   '<xf numFmtId="0" fontId="2" fillId="0" borderId="0" xfId="0" applyFont="1"/>' +
   '<xf numFmtId="165" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
+  '<xf numFmtId="166" fontId="0" fillId="0" borderId="0" xfId="0" applyNumberFormat="1"/>' +
+  '<xf numFmtId="166" fontId="1" fillId="0" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1"/>' +
+  '<xf numFmtId="166" fontId="1" fillId="2" borderId="0" xfId="0" applyNumberFormat="1" applyFont="1" applyFill="1"/>' +
   '</cellXfs><cellStyles count="1"><cellStyle name="Normal" xfId="0" builtinId="0"/></cellStyles></styleSheet>';
 var CRC_T = null;
 function crc32(b) {
@@ -1597,6 +1604,13 @@ function xGaji(k, ds) {
     rows.push([], R(['Hasil', 'Percent %', 'Nominal'], 'h'));
     r.hasil.forEach(function (x) { rows.push([x.a, { v: x.p, s: 'p' }, x.c]); });
     rows.push(R([r.total, '', r.gaji], 't'));
+  });
+  rows = rows.map(function (row) {   /* nol tampil "-" seperti di layar */
+    return row.map(function (c) {
+      var v = (c !== null && typeof c === 'object') ? c.v : c, g = (c !== null && typeof c === 'object') ? (c.s || '') : '';
+      if (typeof v !== 'number' || g === 'p' || g === 'tp') return c;
+      return { v: v, s: g === 'b' ? 'bz' : (g === 't' ? 'tz' : 'z') };
+    });
   });
   return { nama: k.lbl, rows: rows };
 }
