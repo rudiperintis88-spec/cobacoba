@@ -625,7 +625,7 @@ function pjTabel(k, trip, ts, ada) {
   var p = pjHitung(k, trip);
   var h = '<div class="sc"><table class="pj"><tr><td colspan="7"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
     '<tr><td colspan="7"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="7"><b>' + he(trip) + '</b></td></tr>' +
-    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Sebelumnya</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang Trip Ini</td><td>Status</td></tr>';
+    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Lalu</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang Trip Ini</td><td>Status</td></tr>';
   function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
   function sisa(v) { return v > 0 ? '<span class="utang">' + rp(v) + '</span>' : (v < 0 ? '<span class="neg">' + rp(v) + '</span>' : '<span class="lunas">Lunas</span>'); }
   function stat(r) {
@@ -1369,7 +1369,7 @@ function halamanPj(h) {
   teks('PINJAMAN ABK (DI LUAR BELANJA)', 40, 1, 13); y -= 21;
   teks(k.nama, 40, 1, 13); y -= 21;
   teks(h.trip, 40, 1, 13); y -= 24;
-  kol(['Nama', 'Utang Sebelum', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h');
+  kol(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h');
   p.rows.forEach(function (r) {
     if (y < 70) return;
     kol([(r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, h.trip, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
@@ -1648,7 +1648,7 @@ function xPinj(k, ds) {
     var p = pjHitung(k, t);
     if (i) rows.push([], []);
     rows = rows.concat(xlsJudul('PINJAMAN ABK (DI LUAR BELANJA)', k, t));
-    rows.push(R(['Nama', 'Utang Trip Sebelumnya', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini', 'Status', 'Catatan'], 'h'));
+    rows.push(R(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini', 'Status', 'Catatan'], 'h'));
     p.rows.forEach(function (r) {
       var st = pjStatus(k, ts, ada, t, r.nama), cat = '';
       if (r.bawa) cat = (st === 'l' ? 'Libur lagi; ' : 'Kembali dari libur; ') + 'utang dilanjutkan dari ' + r.bawa;
