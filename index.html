@@ -913,14 +913,14 @@ function gbBayar(k, gr) {
 }
 function gbPjTabel(k, trip) {
   var p = pjHitung(k, trip);
-  var h = '<div class="sc"><table class="pj"><tr><td colspan="4"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
-    '<tr><td colspan="4"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="4"><b>' + he(trip) + '</b></td></tr>' +
-    '<tr class="h"><td>Nama</td><td class="n">Utang Trip Lalu</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td></tr>';
+  var h = '<div class="sc"><table class="pj"><tr><td colspan="5"><b>PINJAMAN ABK (DI LUAR BELANJA)</b></td></tr>' +
+    '<tr><td colspan="5"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="5"><b>' + he(trip) + '</b></td></tr>' +
+    '<tr class="h"><td>No</td><td>Nama</td><td class="n">Utang Trip Lalu</td><td class="n">Pinjaman</td><td class="n">Total Pinjaman</td></tr>';
   p.rows.forEach(function (r, i) {
-    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + (r.sebelum ? rp(r.sebelum) : '<span class="kosong">-</span>') +
+    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (i + 1) + '</td><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + (r.sebelum ? rp(r.sebelum) : '<span class="kosong">-</span>') +
       '</td><td class="n">' + rp(r.pinj) + '</td><td class="n">' + rp(r.total) + '</td></tr>';
   });
-  return h + '<tr class="tt"><td>Total</td><td class="n">' + rp(p.tot.sebelum) + '</td><td class="n">' + rp(p.tot.pinj) + '</td><td class="n">' + rp(p.tot.total) + '</td></tr></table></div>';
+  return h + '<tr class="tt"><td></td><td>Total</td><td class="n">' + rp(p.tot.sebelum) + '</td><td class="n">' + rp(p.tot.pinj) + '</td><td class="n">' + rp(p.tot.total) + '</td></tr></table></div>';
 }
 function gbBayarHtml(k, gr, sm) {
   function nom(v) { return v < 0 ? '<span class="neg">' + rp(v) + '</span>' : rp(v); }
@@ -1656,7 +1656,7 @@ function halamanGb(h) {
   var k = h.k, gr = h.g, sm = h.sum, p = sm.pt ? pjHitung(k, sm.pt) : null, ts = pjTrips(k), ada = pjAda(k);
   var nb = gr.rows.length + 2 + (p ? p.rows.length + 5 : 2) + 5 + 5;
   var RH = Math.max(11, Math.min(19, (841.89 - 50 - 70 - 3 * 24 - 40) / nb)), FS = Math.min(10, RH - 3.5), y = 841.89 - 50, s = '';
-  var pos = [44, 66, 128, 192, 396, 466, 551], pq = [44, 300, 420, 551];
+  var pos = [44, 66, 128, 192, 396, 466, 551], pq = [44, 64, 300, 420, 551];
   function teks(t, px, bold, u, rata) {
     if (t === '' || t == null) return;
     t = String(t);
@@ -1683,11 +1683,11 @@ function halamanGb(h) {
   y -= 8;
   teks('PINJAMAN ABK (DI LUAR BELANJA)  -  ' + (sm.pt || gr.trip), 40, 1, 11); y -= 18;
   if (p) {
-    kol(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman'], 'h', pq, 1);
-    p.rows.forEach(function (r) {
-      kol([r.nama || '(tanpa nama)', r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total)], '', pq, 1);
+    kol(['No', 'Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman'], 'h', pq, 2);
+    p.rows.forEach(function (r, i) {
+      kol([String(i + 1), r.nama || '(tanpa nama)', r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total)], '', pq, 2);
     });
-    kol(['Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total)], 'bt', pq, 1);
+    kol(['', 'Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total)], 'bt', pq, 2);
   } else { teks('Belum ada data pinjaman ABK untuk ' + gr.trip + '.', 44, 0, FS); y -= RH; }
   y -= 8;
   kol(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h', pos, 4);
@@ -2005,9 +2005,9 @@ function xGb(k) {
       var pp = pjHitung(k, sm.pt);
       rows.push([], []);
       rows = rows.concat(xlsJudul('PINJAMAN ABK (DI LUAR BELANJA)', k, sm.pt));
-      rows.push(R(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman'], 'h'));
-      pp.rows.forEach(function (r) { rows.push([r.nama || '(tanpa nama)', r.sebelum, r.pinj, r.total]); });
-      rows.push(R(['Total', pp.tot.sebelum, pp.tot.pinj, pp.tot.total], 't'));
+      rows.push(R(['No', 'Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman'], 'h'));
+      pp.rows.forEach(function (r, i) { rows.push([i + 1, r.nama || '(tanpa nama)', r.sebelum, r.pinj, r.total]); });
+      rows.push(R(['', 'Total', pp.tot.sebelum, pp.tot.pinj, pp.tot.total], 't'));
     }
     else rows.push([], ['Belum ada data pinjaman ABK untuk ' + gr.trip + '.']);
     rows.push([], R(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h'));
