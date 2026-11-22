@@ -72,15 +72,15 @@ td:nth-child(3){width:120px;white-space:nowrap}
 .ctl{display:flex;flex-wrap:wrap;gap:12px 18px;align-items:end;padding:16px 20px 0;max-width:1100px;margin:0 auto}
 .ctl label{display:flex;flex-direction:column;gap:3px;font:bold 13px system-ui,Arial,sans-serif}
 .ctl select,.ctl button{font:inherit;padding:7px 10px;border:1px solid #888;border-radius:6px;background:#fff;color:#111}
-.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
+.ctl #pdf,.ctl #pdfLr,.ctl #pdfRk,.ctl #pdfPj,.ctl #pdfPb{background:#2563eb;border-color:#2563eb;color:#fff;font-weight:bold;cursor:pointer}
 .grid:not([data-tab=semua]){grid-template-columns:1fr;max-width:1100px}
-#rkgrid,#pjgrid{grid-template-columns:1fr;max-width:960px}
+#rkgrid,#pjgrid,#pbgrid{grid-template-columns:1fr;max-width:960px}
 table.pj td:nth-child(2),table.pj td:nth-child(3){width:auto}
 table.pj td{white-space:nowrap;padding:5px 8px}
 table.pj tr.h td{white-space:normal;vertical-align:bottom}
 table.pj tr.z td{background:#f7f8fb}
 table.pj tr.tt td{font-weight:bold;background:#fff9d6;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
-.st-a{color:#0a6b2d;font-weight:bold}.st-b{color:#b42318;font-weight:bold}.utang{color:#b42318;font-weight:bold}.lunas{color:#0a6b2d;font-weight:bold}.kosong{color:#9aa1ad}
+.st-a{color:#0a6b2d;font-weight:bold}.st-l{color:#b26a00;font-weight:bold}.bawa{display:block;font-size:11.5px;color:#b26a00;font-weight:normal}.st-b{color:#b42318;font-weight:bold}.utang{color:#b42318;font-weight:bold}.lunas{color:#0a6b2d;font-weight:bold}.kosong{color:#9aa1ad}
 .tg{display:grid;grid-template-columns:1fr 1fr;gap:28px 36px;align-items:start}
 .multi{grid-column:1/-1}
 .tg1{width:100%;max-width:640px;margin:0 auto}
@@ -129,6 +129,7 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     <button type="button" role="tab" data-m="lr" aria-selected="false">Detail Laba Rugi</button>
     <button type="button" role="tab" data-m="rekap" aria-selected="false">Rekap Laba Rugi</button>
     <button type="button" role="tab" data-m="pinj" aria-selected="false">Pinjaman ABK</button>
+    <button type="button" role="tab" data-m="pjb" aria-selected="false">Pinjaman ABK Berhenti</button>
   </nav>
   <div id="paneGaji">
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
@@ -157,6 +158,13 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     </nav>
     <div class="ctl" id="ctlPj"><button type="button" id="pdfPj">Export PDF</button></div>
     <main class="grid" id="pjgrid" data-tab="semua"></main>
+  </div>
+  <div id="panePjb" hidden>
+    <nav class="tabs" id="tabsPb" role="tablist" aria-label="Pinjaman ABK Berhenti">
+      <button type="button" role="tab" data-b="semua">Semua</button>
+    </nav>
+    <div class="ctl" id="ctlPb"><button type="button" id="pdfPb">Export PDF</button></div>
+    <main class="grid" id="pbgrid" data-tab="semua"></main>
   </div>
 </div>
 <script>
@@ -517,14 +525,28 @@ function rangeDari(list, dari, sampai) {
   return list.filter(function (n) { var v = angka(n); return v >= lo && v <= hi; });
 }
 function pjDaftar(k) { return rangeDari(pjTrips(k), el('pn' + k.id).value, el('xpn' + k.id).value); }
-function pjHitung(k, trip) {
-  var rows = (k.pinj[trip] || []).map(function (r) {
-    var total = r.sebelum + r.pinj;
-    return { nama: r.nama, sebelum: r.sebelum, pinj: r.pinj, total: total, bayar: r.bayar, sisa: total - r.bayar };
+/* Utang dilanjutkan: ABK yang libur (tidak tercatat di trip sesudah trip terakhirnya) lalu kembali, sisa utang
+   terakhirnya dibawa ke trip kembalinya. Bila kolom "Utang Trip Sebelumnya" di sheet kosong/0, diisi otomatis
+   dari sisa utang di trip terakhir ABK itu tercatat (ditandai "dilanjutkan dari TRIP ..."). Nilai yang sudah
+   diketik di sheet tidak diubah. */
+function pjSemua(k) {
+  var ts = pjTrips(k), last = {}, out = {};
+  ts.forEach(function (t, i) {
+    var rows = (k.pinj[t] || []).map(function (r) {
+      var key = r.nama ? pjKunci(r.nama) : '', L = key ? last[key] : null, sebelum = r.sebelum, bawa = '';
+      if (L && L.i < i - 1 && !sebelum && L.sisa > 0) { sebelum = L.sisa; bawa = L.trip; }
+      var total = sebelum + r.pinj, sisa = total - r.bayar;
+      if (key) last[key] = { i: i, trip: t, sisa: sisa };
+      return { nama: r.nama, sebelum: sebelum, pinj: r.pinj, total: total, bayar: r.bayar, sisa: sisa, bawa: bawa };
+    });
+    var tot = { sebelum: 0, pinj: 0, total: 0, bayar: 0, sisa: 0 };
+    rows.forEach(function (r) { Object.keys(tot).forEach(function (f) { tot[f] += r[f]; }); });
+    out[t] = { rows: rows, tot: tot };
   });
-  var tot = { sebelum: 0, pinj: 0, total: 0, bayar: 0, sisa: 0 };
-  rows.forEach(function (r) { Object.keys(tot).forEach(function (f) { tot[f] += r[f]; }); });
-  return { rows: rows, tot: tot };
+  return out;
+}
+function pjHitung(k, trip) {
+  return pjSemua(k)[trip] || { rows: [], tot: { sebelum: 0, pinj: 0, total: 0, bayar: 0, sisa: 0 } };
 }
 /* Bawaan: trip terbaru. Setelah pengguna memilih sendiri, pilihannya dipertahankan. */
 function isiPilihanPj() {
@@ -548,7 +570,8 @@ function pilihTabPj(t) {
     b.setAttribute('aria-selected', p === t);
   });
 }
-/* Status ABK: "Aktif" bila namanya ada di trip berikutnya (atau di trip terbaru); "Berhenti" bila namanya tidak ada di trip berikutnya. */
+/* Status ABK: "Aktif" bila namanya ada di trip berikutnya (atau di trip terbaru); "Libur" bila tidak ada di trip
+   berikutnya tetapi muncul lagi di trip sesudahnya (utang dilanjutkan); "Berhenti" bila tidak muncul lagi sama sekali. */
 function pjKunci(n) { return String(n).trim().replace(/\s+/g, ' ').toUpperCase(); }
 function pjAda(k) {
   var a = {};
@@ -557,11 +580,14 @@ function pjAda(k) {
 }
 function pjStatus(k, ts, ada, trip, nama) {
   if (!nama) return null;
-  var i = ts.indexOf(trip);
-  if (i < 0 || i === ts.length - 1) return true;
-  return !!ada[ts[i + 1]][pjKunci(nama)];
+  var i = ts.indexOf(trip), key = pjKunci(nama);
+  if (i < 0 || i === ts.length - 1) return 'a';
+  if (ada[ts[i + 1]][key]) return 'a';
+  for (var j = i + 2; j < ts.length; j++) if (ada[ts[j]][key]) return 'l';
+  return 'b';
 }
-/* ABK yang namanya tidak ada di trip terbaru, beserta sisa utang di trip terakhir mereka tercatat. */
+/* ABK yang namanya tidak ada di trip terbaru, beserta sisa utang di trip terakhir mereka tercatat.
+   ABK yang libur lalu kembali otomatis tidak masuk daftar (trip terakhirnya = trip terbaru). */
 function pjBerhenti(k) {
   var ts = pjTrips(k), latest = ts[ts.length - 1], terakhir = {}, order = [];
   ts.forEach(function (t) {
@@ -569,15 +595,15 @@ function pjBerhenti(k) {
       if (!r.nama) return;
       var key = pjKunci(r.nama);
       if (!terakhir[key]) order.push(key);
-      terakhir[key] = { nama: r.nama, trip: t, sisa: r.sisa };
+      terakhir[key] = { nama: r.nama, trip: t, total: r.total, bayar: r.bayar, sisa: r.sisa };
     });
   });
-  var rows = [], total = 0;
+  var rows = [], tot = { total: 0, bayar: 0, sisa: 0 };
   order.forEach(function (key) {
     var x = terakhir[key];
-    if (x.trip !== latest && x.sisa > 0) { rows.push(x); total += x.sisa; }
+    if (x.trip !== latest && x.sisa > 0) { rows.push(x); tot.total += x.total; tot.bayar += x.bayar; tot.sisa += x.sisa; }
   });
-  return { latest: latest, rows: rows, total: total, banding: ts.length > 1 };
+  return { latest: latest, rows: rows, total: tot.sisa, tot: tot, banding: ts.length > 1 };
 }
 function pjTabel(k, trip, ts, ada) {
   var p = pjHitung(k, trip);
@@ -588,10 +614,13 @@ function pjTabel(k, trip, ts, ada) {
   function sisa(v) { return v > 0 ? '<span class="utang">' + rp(v) + '</span>' : (v < 0 ? '<span class="neg">' + rp(v) + '</span>' : '<span class="lunas">Lunas</span>'); }
   function stat(r) {
     var a = pjStatus(k, ts, ada, trip, r.nama);
-    return a === null ? '<span class="kosong">-</span>' : (a ? '<span class="st-a">Aktif</span>' : '<span class="st-b">Berhenti</span>');
+    if (a === null) return '<span class="kosong">-</span>';
+    if (a === 'b') return '<span class="st-b">Berhenti</span>';
+    if (a === 'l') return '<span class="st-l">Libur</span><span class="bawa">kembali, utang dilanjutkan</span>';
+    return '<span class="st-a">Aktif</span>' + (r.bawa ? '<span class="bawa">kembali dari libur</span>' : '');
   }
   p.rows.forEach(function (r, i) {
-    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + ang(r.sebelum) + '</td><td class="n">' + rp(r.pinj) +
+    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (r.nama ? he(r.nama) : '<span class="kosong">(tanpa nama)</span>') + '</td><td class="n">' + (r.bawa ? rp(r.sebelum) + '<span class="bawa">dilanjutkan dari ' + he(r.bawa) + '</span>' : ang(r.sebelum)) + '</td><td class="n">' + rp(r.pinj) +
       '</td><td class="n">' + rp(r.total) + '</td><td class="n">' + ang(r.bayar) + '</td><td class="n">' + sisa(r.sisa) + '</td><td>' + stat(r) + '</td></tr>';
   });
   h += '<tr class="tt"><td>Total</td><td class="n">' + rp(p.tot.sebelum) + '</td><td class="n">' + rp(p.tot.pinj) + '</td><td class="n">' + rp(p.tot.total) +
@@ -599,16 +628,20 @@ function pjTabel(k, trip, ts, ada) {
   return h;
 }
 function pjBerhentiHtml(k) {
+  var h = '<div class="blok"><p class="rkh">PINJAMAN ABK BERHENTI (BELUM LUNAS) - ' + he(k.nama) + '</p>';
+  if (!pjTrips(k).length) return h + '<p class="note2">Belum ada data pinjaman ABK.</p></div>';
   var b = pjBerhenti(k);
-  if (!b.banding) return '';
-  var h = '<div class="blok"><p class="rkh">ABK yang sudah tidak bekerja dan masih punya sisa utang - ' + he(k.nama) + '</p>';
-  if (!b.rows.length) return h + '<p class="note2">Tidak ada. Semua ABK yang namanya tidak ada di ' + he(b.latest) + ' sudah lunas.</p></div>';
-  h += '<div class="sc"><table class="pj"><tr class="h"><td>Nama</td><td>Trip Terakhir</td><td class="n">Sisa Utang</td></tr>';
+  if (!b.banding) return h + '<p class="note2">Belum bisa ditentukan: baru ada satu trip di sheet Pinjaman ABK.</p></div>';
+  if (!b.rows.length) return h + '<p class="note2">Tidak ada. Semua ABK yang tidak tercatat lagi sampai ' + he(b.latest) + ' sudah lunas.</p></div>';
+  h += '<div class="sc"><table class="pj"><tr class="h"><td>No</td><td>Nama</td><td>Trip Terakhir</td><td class="n">Total Pinjaman</td><td class="n">Pembayaran</td><td class="n">Sisa Utang</td></tr>';
   b.rows.forEach(function (r, i) {
-    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + he(r.nama) + '</td><td>' + he(r.trip) + '</td><td class="n"><span class="utang">' + rp(r.sisa) + '</span></td></tr>';
+    h += '<tr' + (i % 2 ? ' class="z"' : '') + '><td>' + (i + 1) + '</td><td>' + he(r.nama) + '</td><td>' + he(r.trip) + '</td><td class="n">' + rp(r.total) +
+      '</td><td class="n">' + (r.bayar ? rp(r.bayar) : '<span class="kosong">-</span>') + '</td><td class="n"><span class="utang">' + rp(r.sisa) + '</span></td></tr>';
   });
-  return h + '<tr class="tt"><td>Total</td><td></td><td class="n">' + rp(b.total) + '</td></tr></table></div>' +
-    '<p class="note2">Dianggap sudah tidak bekerja bila namanya tidak ada di trip berikutnya (dibandingkan dengan ' + he(b.latest) + ').</p></div>';
+  return h + '<tr class="tt"><td></td><td>Total (' + b.rows.length + ' ABK)</td><td></td><td class="n">' + rp(b.tot.total) + '</td><td class="n">' + rp(b.tot.bayar) +
+    '</td><td class="n">' + rp(b.tot.sisa) + '</td></tr></table></div>' +
+    '<p class="note2">ABK masuk daftar ini bila namanya tidak tercatat lagi di trip terbaru (' + he(b.latest) + ') dan sisa utangnya belum lunas. ' +
+    'Bila ABK kembali bekerja, ia otomatis keluar dari daftar ini dan sisa utangnya dilanjutkan di tab Pinjaman ABK.</p></div>';
 }
 function renderPinj() {
   K.forEach(function (k) {
@@ -617,16 +650,39 @@ function renderPinj() {
     var ds = pjDaftar(k);
     if (!ds.length) { c.innerHTML = '<p><b>' + he(k.nama) + '</b><br>Belum ada data pinjaman ABK.</p>'; return; }
     var ts = pjTrips(k), ada = pjAda(k);
-    c.innerHTML = pjBerhentiHtml(k) + ds.map(function (t) { return '<div class="blok">' + pjTabel(k, t, ts, ada) + '</div>'; }).join('');
+    c.innerHTML = ds.map(function (t) { return '<div class="blok">' + pjTabel(k, t, ts, ada) + '</div>'; }).join('') +
+      '<p class="note2">Libur = tidak ikut trip berikutnya tetapi kembali di trip sesudahnya; sisa utangnya dilanjutkan. Berhenti = tidak tercatat lagi, lihat tab Pinjaman ABK Berhenti.</p>';
+  });
+}
+
+var tabPb = 'semua';
+function pilihTabPb(t) {
+  tabPb = t;
+  K.forEach(function (k) {
+    var tp = boleh(k) && (t === 'semua' || t === k.id);
+    el('pb' + k.id).hidden = !tp;
+  });
+  [].forEach.call(document.querySelectorAll('#tabsPb button'), function (b) {
+    var p = b.getAttribute('data-b'), k = kapal(p), hide = false;
+    if (p === 'semua') hide = !!kapalBoleh; else if (k) hide = !boleh(k);
+    b.hidden = hide;
+    b.setAttribute('aria-selected', p === t);
+  });
+}
+function renderPjb() {
+  K.forEach(function (k) {
+    var c = el('pb' + k.id);
+    c.innerHTML = boleh(k) ? pjBerhentiHtml(k) : '';
   });
 }
 
 function pilihMenu(m) {
-  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj';
+  el('paneGaji').hidden = m !== 'gaji'; el('paneLR').hidden = m !== 'lr'; el('paneRekap').hidden = m !== 'rekap'; el('panePinj').hidden = m !== 'pinj'; el('panePjb').hidden = m !== 'pjb';
   [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.setAttribute('aria-selected', b.getAttribute('data-m') === m); });
   if (m === 'lr') renderLR();
   if (m === 'rekap') renderRekap();
   if (m === 'pinj') renderPinj();
+  if (m === 'pjb') renderPjb();
 }
 
 /* ---------- Membaca spreadsheet (Google Visualization) ---------- */
@@ -694,6 +750,7 @@ function bangunDom() {
     el('ctlRk').insertBefore(d, el('pdfRk'));
     pasangRentang(el('r' + id), el('xr' + id), function () { k.rkAuto = false; renderRekap(); });
     d = document.createElement('div'); d.id = 'pj' + id; el('pjgrid').appendChild(d);
+    d = document.createElement('div'); d.id = 'pb' + id; el('pbgrid').appendChild(d);
     d = document.createElement('div'); d.className = 'rg'; d.id = 'wpn' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="pn' + id + '"></select></label><label>sampai trip<select id="xpn' + id + '"></select></label>';
     el('ctlPj').insertBefore(d, el('pdfPj'));
@@ -708,6 +765,8 @@ function bangunDom() {
     el('tabsRk').appendChild(d);
     d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-p', id); d.textContent = k.lbl;
     el('tabsPj').appendChild(d);
+    d = document.createElement('button'); d.type = 'button'; d.setAttribute('role', 'tab'); d.setAttribute('data-b', id); d.textContent = k.lbl;
+    el('tabsPb').appendChild(d);
   });
 }
 
@@ -963,6 +1022,7 @@ function bukaApp() {
   pilihTabLR(kapalBoleh || 'semua'); renderLR();
   isiPilihanRk(); pilihTabRk(kapalBoleh || 'semua'); renderRekap();
   isiPilihanPj(); pilihTabPj(kapalBoleh || 'semua'); renderPinj();
+  pilihTabPb(kapalBoleh || 'semua'); renderPjb();
   clearInterval(timer); clearInterval(timerIzin);
   timer = setInterval(muat, 120000);
   timerIzin = setInterval(cekIzin, 30000);   // status akses di sheet Perangkat diperiksa tiap 30 detik
@@ -1024,8 +1084,8 @@ function muat() {
       if (hs[1]) { try { olahTier(hs[1]); } catch (e) {} }
       if (hs[2]) { try { var jb = bacaGviz(hs[2]); if (jb.status === 'ok') olahBelanja(jb.table.rows); } catch (e) {} }
       if (hs[4]) { try { var jp = bacaGviz(hs[4]); if (jp.status === 'ok') olahPinjaman(jp.table.rows); } catch (e) {} }
-      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap(); isiPilihanPj(); renderPinj();
-      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj);
+      bangunDom(); isiPilihan(); render(); isiPilihanLR(); renderLR(); isiPilihanRk(); renderRekap(); isiPilihanPj(); renderPinj(); renderPjb();
+      pilihTab(tab); pilihTabLR(tabLR); pilihTabRk(tabRk); pilihTabPj(tabPj); pilihTabPb(tabPb);
       setStatus(true);
     })
     .catch(function () { setStatus(false, 'Offline · menampilkan data tersimpan 20 November 2026'); });
@@ -1165,14 +1225,14 @@ function halamanPj(h) {
   kol(['Nama', 'Utang Sebelum', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h');
   p.rows.forEach(function (r) {
     if (y < 70) return;
-    kol([(r.nama || '(tanpa nama)') + (pjStatus(k, ts, ada, h.trip, r.nama) === false ? ' (berhenti)' : ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
+    kol([(r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, h.trip, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa > 0 ? rp(r.sisa) : (r.sisa < 0 ? rp(r.sisa) : 'Lunas')], '');
   });
   kol(['Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total), rp(p.tot.bayar), rp(p.tot.sisa)], 'bt');
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
 function halamanPjB(h) {
-  var k = h.k, b = h.b, RH = 19, y = 841.89 - 50, s = '', pos = [44, 330, 551];
+  var k = h.k, b = h.b, RH = 19, y = 841.89 - 50, s = '', pos = [44, 250, 405, 480, 551];
   function teks(t, px, bold, u, rata) {
     if (!t) return;
     var xx = rata === 'r' ? px - lebar(t, bold, u) : px;
@@ -1184,15 +1244,15 @@ function halamanPjB(h) {
     var tebal = /[bh]/.test(g);
     if (/h/.test(g)) kuning();
     if (/t/.test(g)) { kuning(); garis(y); garis(y - RH); }
-    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i === 2 ? 'r' : undefined); });
+    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 2 ? 'r' : undefined); });
     y -= RH;
   }
-  teks('ABK SUDAH TIDAK BEKERJA - SISA UTANG', 40, 1, 13); y -= 21;
+  teks('PINJAMAN ABK BERHENTI (BELUM LUNAS)', 40, 1, 13); y -= 21;
   teks(k.nama, 40, 1, 13); y -= 21;
-  teks('Namanya tidak ada di ' + b.latest, 40, 0, 10.5); y -= 24;
-  kol(['Nama', 'Trip Terakhir', 'Sisa Utang'], 'h');
-  b.rows.forEach(function (r) { if (y < 70) return; kol([r.nama, r.trip, rp(r.sisa)], ''); });
-  kol(['Total', '', rp(b.total)], 'bt');
+  teks('Tidak tercatat lagi sampai ' + b.latest + ', sisa utang belum lunas', 40, 0, 10.5); y -= 24;
+  kol(['Nama', 'Trip Terakhir', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang'], 'h');
+  b.rows.forEach(function (r) { if (y < 70) return; kol([r.nama, r.trip, rp(r.total), r.bayar ? rp(r.bayar) : '-', rp(r.sisa)], ''); });
+  kol(['Total (' + b.rows.length + ' ABK)', '', rp(b.tot.total), rp(b.tot.bayar), rp(b.tot.sisa)], 'bt');
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
@@ -1202,12 +1262,22 @@ function eksporPinj() {
   K.forEach(function (k) {
     if (!boleh(k)) return;
     if (tabPj !== 'semua' && tabPj !== k.id) return;
-    var b = pjBerhenti(k);
-    if (b.rows.length) hal.push({ pjb: true, k: k, b: b, trip: b.latest });
     pjDaftar(k).forEach(function (t) { hal.push({ pj: true, k: k, trip: t }); });
   });
   if (!hal.length) return;
   unduh(namaFile('PinjamanABK_', hal), hal);
+}
+function eksporPjb() {
+  if (!isMaster()) return;
+  var hal = [];
+  K.forEach(function (k) {
+    if (!boleh(k)) return;
+    if (tabPb !== 'semua' && tabPb !== k.id) return;
+    var b = pjBerhenti(k);
+    if (b.rows.length) hal.push({ pjb: true, k: k, b: b, trip: b.latest });
+  });
+  if (!hal.length) return;
+  unduh('PinjamanABK_Berhenti' + (tabPb === 'semua' ? '' : '_' + kapal(tabPb).nama.replace(/\s+/g, '_')) + '.pdf', hal);
 }
 function unduh(nama, hal) {
   var a = document.createElement('a');
@@ -1291,6 +1361,7 @@ el('tabsGaji').addEventListener('click', function (e) { var b = e.target.closest
 el('tabsLR').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabLR(b.getAttribute('data-l')); });
 el('tabsRk').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabRk(b.getAttribute('data-r')); });
 el('tabsPj').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPj(b.getAttribute('data-p')); });
+el('tabsPb').addEventListener('click', function (e) { var b = e.target.closest && e.target.closest('button'); if (b) pilihTabPb(b.getAttribute('data-b')); });
 el('masuk').addEventListener('click', masuk);
 el('mata').addEventListener('click', function () { var i = el('sandi'); i.type = i.type === 'password' ? 'text' : 'password'; });
 el('sandi').addEventListener('keydown', function (e) { if (e.key === 'Enter') masuk(); });
@@ -1300,6 +1371,7 @@ el('pdf').addEventListener('click', ekspor);
 el('pdfLr').addEventListener('click', eksporLR);
 el('pdfRk').addEventListener('click', eksporRekap);
 el('pdfPj').addEventListener('click', eksporPinj);
+el('pdfPb').addEventListener('click', eksporPjb);
 [].forEach.call(document.querySelectorAll('#mainnav button'), function (b) { b.addEventListener('click', function () { pilihMenu(b.getAttribute('data-m')); }); });
 document.addEventListener('visibilitychange', function () { if (!document.hidden) { cekIzin(); muat(); } });
 </script>
