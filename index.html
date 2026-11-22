@@ -877,26 +877,59 @@ function muatGb() {
     }));
   }).catch(function (x) {
     K.forEach(function (k) { if (!(k.gb && k.gb.ok)) k.gb = { ok: false, grup: [], err: 'gagal membaca: ' + (x && x.message || x) }; });
-  }).then(function () { renderGb(); pilihTabGb(tabGb); });
+  }).then(function () { isiPilihanGb(); renderGb(); pilihTabGb(tabGb); });
 }
 function gbBoleh(k) { return (!kapalBoleh || k.id === kapalBoleh) && !!(k.gb && k.gb.ok); }
 /* ABK = hanya baris yang punya Hari. Baris tanpa Hari (tekong, tambahan toke) bukan hitungan ABK. */
 function gbJmlAbk(gr) { return gr.rows.filter(function (r) { return r.hari > 0; }).length; }
 function gbTotLabel(gr) { var n = gbJmlAbk(gr); return 'Total Gaji' + (n ? ' (' + n + ' ABK)' : ''); }
 function gbPeriode(gr) { return (gr.tgl1 || gr.tgl2) ? gr.tgl1 + (gr.tgl2 ? ' - ' + gr.tgl2 : '') : ''; }
-/* Pinjaman ABK untuk trip yang sama dengan gaji bila ada, selain itu trip pinjaman terbaru. */
-function gbPjTrip(k, trip) {
-  var ts = pjTrips(k);
-  if (!ts.length) return '';
-  var n = normTrip(trip);
-  return ts.indexOf(n) >= 0 ? n : ts[ts.length - 1];
+function gbTrips(k) {
+  var a = [];
+  ((k.gb && k.gb.grup) || []).forEach(function (gr) { if (a.indexOf(gr.trip) < 0) a.push(gr.trip); });
+  return a.sort(function (x, y) { return angka(x) - angka(y); });
+}
+function gbDaftar(k) { return rangeDari(gbTrips(k), el('gn' + k.id).value, el('xgn' + k.id).value); }
+/* Bawaan: trip terbaru. Setelah pengguna memilih sendiri, pilihannya dipertahankan. */
+function isiPilihanGb() {
+  K.forEach(function (k) {
+    var s0 = el('gn' + k.id), s2 = el('xgn' + k.id), names = gbTrips(k), cur, cur2;
+    if (k.gbAuto === false) { cur = s0.value; cur2 = s2.value; }
+    else { cur = cur2 = names[names.length - 1]; }
+    isiRange(s0, s2, k, names, cur, cur2, false);
+  });
+}
+function gbGrup(k, trip) {
+  var g = k.gb.grup;
+  for (var i = 0; i < g.length; i++) if (g[i].trip === trip) return g[i];
+  return null;
+}
+/* Pinjaman ABK hanya dipakai bila ada untuk trip yang sama dengan gaji. */
+function gbPjTrip(k, trip) { var n = normTrip(trip); return pjTrips(k).indexOf(n) >= 0 ? n : ''; }
+/* Gaji Yang Harus Dibayar = Total Gaji - Total Pinjaman (kolom Total Pinjaman sheet Pinjaman ABK, trip yang sama). */
+function gbBayar(k, gr) {
+  var pt = gbPjTrip(k, gr.trip), pinj = pt ? pjHitung(k, pt).tot.total : 0;
+  return { pt: pt, gaji: gr.total, pinj: pinj, bayar: gr.total - pinj };
+}
+function gbBayarHtml(k, gr, sm) {
+  function nom(v) { return v < 0 ? '<span class="neg">' + rp(v) + '</span>' : rp(v); }
+  return '<div class="blok"><div class="sc"><table class="pj"><tr><td colspan="2"><b>GAJI YANG HARUS DIBAYAR</b></td></tr>' +
+    '<tr><td colspan="2"><b>' + he(k.nama) + '</b></td></tr><tr><td colspan="2"><b>' + he(gr.trip) + '</b></td></tr>' +
+    '<tr class="h"><td>Keterangan</td><td class="n">Nominal</td></tr>' +
+    '<tr><td>Total Gaji</td><td class="n">' + rp(sm.gaji) + '</td></tr>' +
+    '<tr class="z"><td>Total Pinjaman</td><td class="n">' + rp(sm.pinj) + '</td></tr>' +
+    '<tr class="tt"><td>Gaji Yang Harus Dibayar</td><td class="n">' + nom(sm.bayar) + '</td></tr></table></div>' +
+    '<p class="note2">Gaji Yang Harus Dibayar = Total Gaji - Total Pinjaman' + (sm.pt ? ' (' + he(sm.pt) + ').' : '. Tidak ada data pinjaman ABK untuk ' + he(gr.trip) + ' di sheet Pinjaman ABK, jadi dihitung tanpa pinjaman.') + '</p></div>';
 }
 function gbHtml(k) {
   var g = k.gb, h = '';
   if (!g || !g.ok) return '<div class="blok"><p class="note2">Sheet "Gaji ABK" untuk ' + he(k.nama) + ' belum terbaca' + (g && g.err ? ' (' + he(g.err) + ')' : '') + '.</p></div>';
   function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
-  if (!g.grup.length) h += '<div class="blok"><div class="sc"><table class="pj"><tr><td><b>GAJI ABK</b></td></tr><tr><td><b>' + he(k.nama) + '</b></td></tr></table></div><p class="note2">Belum ada data gaji ABK di sheet.</p></div>';
-  g.grup.forEach(function (gr) {
+  var ds = gbDaftar(k);
+  if (!ds.length) return '<div class="blok"><div class="sc"><table class="pj"><tr><td><b>GAJI ABK</b></td></tr><tr><td><b>' + he(k.nama) + '</b></td></tr></table></div><p class="note2">Belum ada data gaji ABK di sheet.</p></div>';
+  ds.forEach(function (t, di) {
+    var gr = gbGrup(k, t), sm = gbBayar(k, gr);
+    if (di) h += '<div class="gap"></div>';
     h += '<div class="blok"><div class="sc"><table class="pj"><tr><td colspan="7"><b>GAJI ABK</b></td></tr><tr><td colspan="7"><b>' + he(k.nama) + '</b></td></tr>' +
       '<tr><td colspan="7"><b>' + he(gr.trip) + (gbPeriode(gr) ? '  |  ' + he(gbPeriode(gr)) : '') + '</b></td></tr>' +
       '<tr class="h"><td>No</td><td>Berangkat</td><td>Pulang</td><td>Keterangan</td><td class="n">Hari</td><td class="n">Gaji</td><td class="n">Total Gaji</td></tr>';
@@ -906,16 +939,20 @@ function gbHtml(k) {
     });
     h += '<tr class="tt"><td></td><td colspan="5">' + he(gbTotLabel(gr)) + '</td><td class="n">' + rp(gr.total) + '</td></tr></table></div>' +
       '<p class="note2">Hari dan Total Gaji mengikuti rumus di sheet "Gaji ABK". Baris yang ditambah di sheet langsung ikut tampil.</p></div>';
+    h += '<div class="gap"></div>';
+    if (sm.pt) h += '<div class="blok">' + pjTabel(k, sm.pt, pjTrips(k), pjAda(k)) + '<p class="note2">Pinjaman ABK diambil dari sheet "Pinjaman ABK" (' + he(sm.pt) + ').</p></div>';
+    else h += '<div class="blok"><p class="note2">Belum ada data pinjaman ABK untuk ' + he(k.nama) + ' ' + he(gr.trip) + '.</p></div>';
+    h += '<div class="gap"></div>' + gbBayarHtml(k, gr, sm);
   });
-  var ts = pjTrips(k), pt = g.grup.length ? gbPjTrip(k, g.grup[0].trip) : gbPjTrip(k, '');
-  h += '<div class="gap"></div>';
-  if (!pt) return h + '<div class="blok"><p class="note2">Belum ada data pinjaman ABK untuk ' + he(k.nama) + '.</p></div>';
-  return h + '<div class="blok">' + pjTabel(k, pt, ts, pjAda(k)) + '<p class="note2">Pinjaman ABK diambil dari sheet "Pinjaman ABK" (' + he(pt) + ').</p></div>';
+  return h;
 }
 function pilihTabGb(t) {
   tabGb = t;
   el('gbgrid').setAttribute('data-tab', t);
-  K.forEach(function (k) { el('gb' + k.id).hidden = !(gbBoleh(k) && (t === 'semua' || t === k.id)); });
+  K.forEach(function (k) {
+    var tp = gbBoleh(k) && (t === 'semua' || t === k.id);
+    el('gb' + k.id).hidden = !tp; el('wgn' + k.id).hidden = !tp;
+  });
   [].forEach.call(document.querySelectorAll('#tabsGb button'), function (b) {
     var d = b.getAttribute('data-g'), k = kapal(d), hide = false;
     if (d === 'semua') hide = !!kapalBoleh; else if (k) hide = !gbBoleh(k);
@@ -1027,6 +1064,10 @@ function bangunDom() {
     d = document.createElement('div'); d.id = 'pb' + id; el('pbgrid').appendChild(d);
     d = document.createElement('div'); d.id = 'es' + id; el('esgrid').appendChild(d);
     d = document.createElement('div'); d.id = 'gb' + id; el('gbgrid').appendChild(d);
+    d = document.createElement('div'); d.className = 'rg'; d.id = 'wgn' + id;
+    d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="gn' + id + '"></select></label><label>sampai trip<select id="xgn' + id + '"></select></label>';
+    el('ctlGb').insertBefore(d, el('pdfGb'));
+    pasangRentang(el('gn' + id), el('xgn' + id), function () { k.gbAuto = false; renderGb(); });
     d = document.createElement('div'); d.className = 'rg'; d.id = 'wpn' + id;
     d.innerHTML = '<label>' + he(k.lbl) + ': dari trip<select id="pn' + id + '"></select></label><label>sampai trip<select id="xpn' + id + '"></select></label>';
     el('ctlPj').insertBefore(d, el('pdfPj'));
@@ -1308,7 +1349,7 @@ function bukaApp() {
   isiPilihanPj(); pilihTabPj(kapalBoleh || 'semua'); renderPinj();
   pilihTabPb(kapalBoleh || 'semua'); renderPjb();
   pilihTabEs(kapalBoleh || 'semua'); renderEst();
-  pilihTabGb(kapalBoleh || 'semua'); renderGb();
+  isiPilihanGb(); pilihTabGb(kapalBoleh || 'semua'); renderGb();
   clearInterval(timer); clearInterval(timerIzin);
   timer = setInterval(muat, 120000);
   timerIzin = setInterval(cekIzin, 30000);   // status akses di sheet Perangkat diperiksa tiap 30 detik
@@ -1625,6 +1666,13 @@ function halamanGb(h) {
     kol([r.no, r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '');
   });
   if (h.last) kol(['', '', '', gbTotLabel(gr), '', '', rp(gr.total)], 'bt');
+  if (h.sum) {
+    y -= 12;
+    kol(['', '', '', 'GAJI YANG HARUS DIBAYAR' + (h.sum.pt ? '  (' + h.sum.pt + ')' : ''), '', '', ''], 'h');
+    kol(['', '', '', 'Total Gaji', '', '', rp(h.sum.gaji)], '');
+    kol(['', '', '', 'Total Pinjaman', '', '', rp(h.sum.pinj)], '');
+    kol(['', '', '', 'Gaji Yang Harus Dibayar', '', '', rp(h.sum.bayar)], 'bt');
+  }
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.' + (h.hal > 1 ? '  Halaman ' + h.no + '/' + h.hal : ''), 40, 0, 8);
   return s;
 }
@@ -1633,12 +1681,11 @@ function eksporGb() {
   var hal = [];
   K.forEach(function (k) {
     if (!gbBoleh(k) || (tabGb !== 'semua' && tabGb !== k.id)) return;
-    k.gb.grup.forEach(function (gr) {
-      var per = 28, n = Math.max(1, Math.ceil(gr.rows.length / per));
-      for (var i = 0; i < n; i++) hal.push({ gb: true, k: k, g: gr, rows: gr.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n });
+    gbDaftar(k).forEach(function (t) {
+      var gr = gbGrup(k, t), sm = gbBayar(k, gr), per = 26, n = Math.max(1, Math.ceil(gr.rows.length / per));
+      for (var i = 0; i < n; i++) hal.push({ gb: true, k: k, g: gr, rows: gr.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n, sum: i === n - 1 ? sm : null });
+      if (sm.pt) hal.push({ pj: true, k: k, trip: sm.pt });
     });
-    var pt = k.gb.grup.length ? gbPjTrip(k, k.gb.grup[0].trip) : gbPjTrip(k, '');
-    if (pt) hal.push({ pj: true, k: k, trip: pt });
   });
   if (!hal.length) return;
   unduh('GajiABK' + (tabGb === 'semua' ? '' : '_' + kapal(tabGb).nama.replace(/\s+/g, '_')) + '.pdf', hal);
@@ -1925,17 +1972,22 @@ function eksporXlsPjb() {
   if (sh.length) xlsUnduh('PinjamanABK_Berhenti' + (tabPb === 'semua' ? '' : '_' + kapal(tabPb).nama.replace(/\s+/g, '_')), sh);
 }
 function xGb(k) {
-  var g = k.gb, rows = [];
-  g.grup.forEach(function (gr, i) {
+  var rows = [], ds = gbDaftar(k);
+  if (!ds.length) return { nama: k.lbl, rows: xlsJudul('GAJI ABK', k, '').concat([['Belum ada data gaji ABK di sheet.']]) };
+  ds.forEach(function (t, i) {
+    var gr = gbGrup(k, t), sm = gbBayar(k, gr);
     if (i) rows.push([], []);
     rows = rows.concat(xlsJudul('GAJI ABK', k, gr.trip + (gbPeriode(gr) ? '  |  ' + gbPeriode(gr) : '')));
     rows.push(R(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h'));
     gr.rows.forEach(function (r) { rows.push([/^\d+$/.test(r.no) ? Number(r.no) : r.no, r.b, r.p, r.ket, r.hari ? { v: r.hari, s: 'q' } : '', r.gaji, r.total]); });
     rows.push(R(['', '', '', gbTotLabel(gr), '', '', gr.total], 't'));
+    if (sm.pt) rows = rows.concat([[], []], xPinj(k, [sm.pt]).rows);
+    else rows.push([], ['Belum ada data pinjaman ABK untuk ' + gr.trip + '.']);
+    rows.push([], R(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h'));
+    rows.push(['', '', '', 'Total Gaji', '', '', sm.gaji]);
+    rows.push(['', '', '', 'Total Pinjaman', '', '', sm.pinj]);
+    rows.push(R(['', '', '', 'Gaji Yang Harus Dibayar', '', '', sm.bayar], 't'));
   });
-  if (!g.grup.length) rows = xlsJudul('GAJI ABK', k, '').concat([['Belum ada data gaji ABK di sheet.']]);
-  var pt = g.grup.length ? gbPjTrip(k, g.grup[0].trip) : gbPjTrip(k, '');
-  if (pt) rows = rows.concat([[], []], xPinj(k, [pt]).rows);
   return { nama: k.lbl, rows: rows };
 }
 function eksporXlsGb() {
