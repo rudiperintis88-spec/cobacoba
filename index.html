@@ -139,13 +139,13 @@ table.rk tr.tt td{font-weight:bold;border-top:1px solid var(--ink);border-bottom
     </div>
   </div>
   <nav class="mainnav" id="mainnav" role="tablist" aria-label="Menu" hidden>
+    <button type="button" role="tab" data-m="gabk" aria-selected="false">Gaji ABK</button>
     <button type="button" role="tab" data-m="gaji" aria-selected="true">Laporan Gaji</button>
     <button type="button" role="tab" data-m="lr" aria-selected="false">Detail Laba Rugi</button>
     <button type="button" role="tab" data-m="rekap" aria-selected="false">Rekap Laba Rugi</button>
     <button type="button" role="tab" data-m="pinj" aria-selected="false">Pinjaman ABK</button>
     <button type="button" role="tab" data-m="pjb" aria-selected="false">Pinjaman ABK Berhenti</button>
     <button type="button" role="tab" data-m="est" aria-selected="false">Estimasi Hasil</button>
-    <button type="button" role="tab" data-m="gabk" aria-selected="false">Gaji ABK</button>
   </nav>
   <div id="paneGaji">
   <nav class="tabs" id="tabsGaji" role="tablist" aria-label="Laporan">
@@ -1642,38 +1642,48 @@ function eksporEs() {
   unduh('EstimasiHasil' + (tabEs === 'semua' ? '' : '_' + kapal(tabEs).nama.replace(/\s+/g, '_')) + '.pdf', hal);
 }
 function halamanGb(h) {
-  var k = h.k, gr = h.g, RH = 19, y = 841.89 - 50, s = '', pos = [44, 66, 128, 192, 396, 466, 551];
+  var k = h.k, gr = h.g, sm = h.sum, p = sm.pt ? pjHitung(k, sm.pt) : null, ts = pjTrips(k), ada = pjAda(k);
+  var nb = gr.rows.length + 2 + (p ? p.rows.length + 5 : 2) + 5 + 5;
+  var RH = Math.max(11, Math.min(19, (841.89 - 50 - 70 - 3 * 24 - 40) / nb)), FS = Math.min(10, RH - 3.5), y = 841.89 - 50, s = '';
+  var pos = [44, 66, 128, 192, 396, 466, 551], pq = [44, 225, 300, 380, 452, 551];
   function teks(t, px, bold, u, rata) {
     if (t === '' || t == null) return;
     t = String(t);
     var xx = rata === 'r' ? px - lebar(t, bold, u) : px;
-    s += 'BT /' + (bold ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - RH + 5.5) + ' Td (' + esc(t) + ') Tj ET\n';
+    s += 'BT /' + (bold ? 'F2' : 'F1') + ' ' + u + ' Tf ' + f2(xx) + ' ' + f2(y - RH + (RH - u) / 2 + 1.5) + ' Td (' + esc(t) + ') Tj ET\n';
   }
   function kuning() { s += '1 1 0 rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n'; }
   function garis(yy) { s += '0.6 w 40 ' + f2(yy) + ' m 555 ' + f2(yy) + ' l S\n'; }
-  function kol(c, g2) {
+  function kol(c, g2, ps, mulai) {
     var tebal = /[bh]/.test(g2);
     if (/h/.test(g2)) kuning();
     if (/t/.test(g2)) { kuning(); garis(y); garis(y - RH); }
-    c.forEach(function (t, i) { teks(t, pos[i], tebal, 10, i >= 4 ? 'r' : undefined); });
+    c.forEach(function (t, i) { teks(t, ps[i], tebal, FS, i >= mulai ? 'r' : undefined); });
     y -= RH;
   }
-  teks('GAJI ABK', 40, 1, 13); y -= 21;
-  teks(k.nama, 40, 1, 13); y -= 21;
+  function judul(t, u) { teks(t, 40, 1, u); y -= 21; }
+  judul('GAJI ABK', 13); judul(k.nama, 13);
   teks(gr.trip + (gbPeriode(gr) ? '   |   ' + gbPeriode(gr) : ''), 40, 0, 10.5); y -= 24;
-  kol(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h');
-  h.rows.forEach(function (r) {
-    kol([r.no, r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '');
+  kol(['No', 'Berangkat', 'Pulang', 'Keterangan', 'Hari', 'Gaji', 'Total Gaji'], 'h', pos, 4);
+  gr.rows.forEach(function (r) {
+    kol([r.no, r.b, r.p, r.ket.length > 34 ? r.ket.slice(0, 33) + '.' : r.ket, r.hari ? String(r.hari) : '-', r.gaji ? rp(r.gaji) : '-', r.total ? rp(r.total) : '-'], '', pos, 4);
   });
-  if (h.last) kol(['', '', '', gbTotLabel(gr), '', '', rp(gr.total)], 'bt');
-  if (h.sum) {
-    y -= 12;
-    kol(['', '', '', 'GAJI YANG HARUS DIBAYAR' + (h.sum.pt ? '  (' + h.sum.pt + ')' : ''), '', '', ''], 'h');
-    kol(['', '', '', 'Total Gaji', '', '', rp(h.sum.gaji)], '');
-    kol(['', '', '', 'Total Pinjaman', '', '', rp(h.sum.pinj)], '');
-    kol(['', '', '', 'Gaji Yang Harus Dibayar', '', '', rp(h.sum.bayar)], 'bt');
-  }
-  y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.' + (h.hal > 1 ? '  Halaman ' + h.no + '/' + h.hal : ''), 40, 0, 8);
+  kol(['', '', '', gbTotLabel(gr), '', '', rp(gr.total)], 'bt', pos, 4);
+  y -= 8;
+  teks('PINJAMAN ABK (DI LUAR BELANJA)  -  ' + (sm.pt || gr.trip), 40, 1, 11); y -= 18;
+  if (p) {
+    kol(['Nama', 'Utang Trip Lalu', 'Pinjaman', 'Total Pinjaman', 'Pembayaran', 'Sisa Utang Trip Ini'], 'h', pq, 1);
+    p.rows.forEach(function (r) {
+      kol([(r.nama || '(tanpa nama)') + ({ b: ' (berhenti)', l: ' (libur)' }[pjStatus(k, ts, ada, sm.pt, r.nama)] || ''), r.sebelum ? rp(r.sebelum) : '-', rp(r.pinj), rp(r.total), r.bayar ? rp(r.bayar) : '-', r.sisa ? rp(r.sisa) : 'Lunas'], '', pq, 1);
+    });
+    kol(['Total', rp(p.tot.sebelum), rp(p.tot.pinj), rp(p.tot.total), rp(p.tot.bayar), rp(p.tot.sisa)], 'bt', pq, 1);
+  } else { teks('Belum ada data pinjaman ABK untuk ' + gr.trip + '.', 44, 0, FS); y -= RH; }
+  y -= 8;
+  kol(['', '', '', 'GAJI YANG HARUS DIBAYAR', '', '', ''], 'h', pos, 4);
+  kol(['', '', '', 'Total Gaji', '', '', rp(sm.gaji)], '', pos, 4);
+  kol(['', '', '', 'Total Pinjaman', '', '', rp(sm.pinj)], '', pos, 4);
+  kol(['', '', '', 'Gaji Yang Harus Dibayar', '', '', rp(sm.bayar)], 'bt', pos, 4);
+  y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.', 40, 0, 8);
   return s;
 }
 function eksporGb() {
@@ -1682,9 +1692,8 @@ function eksporGb() {
   K.forEach(function (k) {
     if (!gbBoleh(k) || (tabGb !== 'semua' && tabGb !== k.id)) return;
     gbDaftar(k).forEach(function (t) {
-      var gr = gbGrup(k, t), sm = gbBayar(k, gr), per = 26, n = Math.max(1, Math.ceil(gr.rows.length / per));
-      for (var i = 0; i < n; i++) hal.push({ gb: true, k: k, g: gr, rows: gr.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n, sum: i === n - 1 ? sm : null });
-      if (sm.pt) hal.push({ pj: true, k: k, trip: sm.pt });
+      var gr = gbGrup(k, t);
+      hal.push({ gb: true, k: k, g: gr, sum: gbBayar(k, gr) });
     });
   });
   if (!hal.length) return;
