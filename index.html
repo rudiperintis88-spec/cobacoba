@@ -234,7 +234,7 @@ function he(t) { return String(t).replace(/&/g, '&amp;').replace(/</g, '&lt;').r
 function pctNum(p) { return String(Math.round(p * 1000) / 10).replace('.', ','); }
 function el(id) { return document.getElementById(id); }
 function dots(s) { return String(s).replace(/\B(?=(\d{3})+(?!\d))/g, '.'); }
-function rp(n) { var r = Math.round(n); return (r < 0 ? '-' : '') + 'Rp ' + dots(Math.abs(r)); }
+function rp(n) { var r = Math.round(n); if (r === 0) return '-'; return (r < 0 ? '-' : '') + 'Rp ' + dots(Math.abs(r)); } /* nol tampil "-" di semua laporan */
 function nc(v) { return Math.round(v) < 0 ? 'n neg' : 'n'; } /* minus = merah, selain itu hitam */
 function rpz(n) { return Math.round(n) === 0 ? '-' : rp(n); } /* nol tampil "-" (Laporan Gaji) */
 function rp2(n) { return rpz(n); } /* tabel Hasil: sama dengan rp, tanpa desimal ,00 */
@@ -1517,7 +1517,7 @@ function xlsSheetXml(rows) {
     (cols ? '<cols>' + cols + '</cols>' : '') + '<sheetData>' + x + '</sheetData></worksheet>';
 }
 var XLS_STYLES = '<?xml version="1.0" encoding="UTF-8" standalone="yes"?><styleSheet xmlns="http://schemas.openxmlformats.org/spreadsheetml/2006/main">' +
-  '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="#,##0;[Red]-#,##0;&quot;-&quot;"/></numFmts>' +
+  '<numFmts count="3"><numFmt numFmtId="164" formatCode="#,##0;[Red]-#,##0;&quot;-&quot;"/><numFmt numFmtId="165" formatCode="0.0%"/><numFmt numFmtId="166" formatCode="#,##0;[Red]-#,##0;&quot;-&quot;"/></numFmts>' +
   '<fonts count="3"><font><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="11"/><name val="Calibri"/></font><font><b/><sz val="13"/><name val="Calibri"/></font></fonts>' +
   '<fills count="3"><fill><patternFill patternType="none"/></fill><fill><patternFill patternType="gray125"/></fill><fill><patternFill patternType="solid"><fgColor rgb="FFFFFF00"/><bgColor indexed="64"/></patternFill></fill></fills>' +
   '<borders count="2"><border><left/><right/><top/><bottom/><diagonal/></border><border><left style="thin"><color auto="1"/></left><right style="thin"><color auto="1"/></right><top style="thin"><color auto="1"/></top><bottom style="thin"><color auto="1"/></bottom><diagonal/></border></borders>' +
