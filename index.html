@@ -80,7 +80,7 @@ table.pj td{white-space:nowrap;padding:5px 8px}
 table.pj tr.h td{white-space:normal;vertical-align:bottom}
 table.pj tr.z td{background:#f7f8fb}
 table.pj tr.tt td{font-weight:bold;background:#fff9d6;border-top:1px solid var(--ink);border-bottom:1px solid var(--ink)}
-.st-a{color:#0a6b2d;font-weight:bold}.st-l{color:#b26a00;font-weight:bold}.bawa{display:block;font-size:11.5px;color:#b26a00;font-weight:normal}.st-b{color:#b42318;font-weight:bold}.utang{color:#b42318;font-weight:bold}.lunas{color:#0a6b2d;font-weight:bold}.kosong{color:#9aa1ad}
+.es-k td,.es-b td,.es-h td{font-weight:bold;border:1px solid var(--ink);color:#111}.es-k td{background:#ffff00}.es-b td{background:#6d9eeb}.es-h td{background:#57bb8a}.st-a{color:#0a6b2d;font-weight:bold}.st-l{color:#b26a00;font-weight:bold}.bawa{display:block;font-size:11.5px;color:#b26a00;font-weight:normal}.st-b{color:#b42318;font-weight:bold}.utang{color:#b42318;font-weight:bold}.lunas{color:#0a6b2d;font-weight:bold}.kosong{color:#9aa1ad}
 .tg{display:grid;grid-template-columns:1fr 1fr;gap:28px 36px;align-items:start}
 .multi{grid-column:1/-1}
 .tg1{width:100%;max-width:640px;margin:0 auto}
@@ -696,25 +696,30 @@ function olahEstimasi(k, rows) {
   }
   if (!ada) { k.est = { ok: false, rows: [], err: 'judul "' + k.nama + '" tidak ditemukan di sheet' }; return; }
   if (hi < 0) { k.est = { ok: false, rows: [], err: 'judul kolom "Keterangan" tidak ditemukan' }; return; }
-  var e = { ok: true, tgl1: '', tgl2: '', hari: '', rows: [], jumlah: 0, adaTotal: false };
+  var e = { ok: true, tgl1: '', tgl2: '', hari: '', rows: [], ringkas: [], jumlah: 0 };
   for (i = 0; i < hi; i++) {
     for (j = 0; j < 5; j++) {
       if (/^hari\s*ke$/i.test(cs(rows[i], j))) { e.tgl1 = cs(rows[i], j - 2); e.tgl2 = cs(rows[i], j - 1); e.hari = cs(rows[i], j + 1); }
     }
   }
+  /* Item = baris dengan Keterangan. Baris ringkasan di bawahnya (Grand Total, Estimasi Gaji, Gaji 50%, dst.) labelnya
+     biasanya digabung di kolom A-D dan nilainya di kolom Total: dibaca apa adanya dari sheet, label dan angka tidak dihitung ulang. */
   for (i = hi + 1; i < rows.length; i++) {
-    var ket = cs(rows[i], kc);
+    var no = cs(rows[i], kc - 1), ket = cs(rows[i], kc), qs = cs(rows[i], kc + 1), hs = cs(rows[i], kc + 2), tv = cs(rows[i], kc + 3), lab = '';
+    if (ket && !no && !qs && !hs && tv) lab = ket;
+    else if (!ket && tv !== '') { for (j = 0; j <= kc + 2 && !lab; j++) if (/[A-Za-z]/.test(cs(rows[i], j))) lab = cs(rows[i], j); }
+    if (lab) { e.ringkas.push({ label: lab, total: nilai(tv) }); continue; }
     if (!ket) continue;
-    var q = nilai(cs(rows[i], kc + 1)), h = nilai(cs(rows[i], kc + 2)), tv = cs(rows[i], kc + 3);
-    var t = tv === '' ? q * h : nilai(tv), isT = /^(grand\s*)?(total|jumlah)\b/i.test(ket);
-    if (isT) e.adaTotal = true; else e.jumlah += t;
-    e.rows.push({ no: cs(rows[i], kc - 1), ket: ket, qty: q, harga: h, total: t, isTotal: isT });
+    var q = nilai(qs), h = nilai(hs), t = tv === '' ? q * h : nilai(tv);
+    e.jumlah += t;
+    e.rows.push({ no: no, ket: ket, qty: q, harga: h, total: t });
   }
   var n = 0;
-  e.rows.forEach(function (r) { if (!r.isTotal) { n++; if (!r.no) r.no = String(n); } });
+  e.rows.forEach(function (r) { n++; if (!r.no) r.no = String(n); });
   e.item = n;
   k.est = e;
 }
+function warnaEs(l) { return /grand|total|jumlah/i.test(l) ? 'k' : (/\d\s*%/.test(l) ? 'h' : 'b'); }
 function estBoleh(k) { return (!kapalBoleh || k.id === kapalBoleh) && (!!k.tetap || !!(k.est && k.est.ok)); }
 function estPeriode(e) {
   return (e.tgl1 || e.tgl2 ? e.tgl1 + (e.tgl2 ? ' - ' + e.tgl2 : '') : '') + (e.hari ? (e.tgl1 || e.tgl2 ? '  |  ' : '') + 'Hari ke ' + e.hari : '');
@@ -726,14 +731,16 @@ function estHtml(k) {
   if (!e || !e.ok) return h + '</table></div><p class="note2">Sheet "' + he(k.lbl) + '" belum terbaca atau belum ada di spreadsheet' + (e && e.err ? ' (' + he(e.err) + ')' : '') + '.</p></div>';
   if (estPeriode(e)) h += '<tr><td colspan="5"><b>' + he(estPeriode(e)) + '</b></td></tr>';
   h += '<tr class="h"><td>No</td><td>Keterangan</td><td class="n">Qty</td><td class="n">Harga</td><td class="n">Total</td></tr>';
-  function ang(v) { return v ? rp(v) : '<span class="kosong">-</span>'; }
+  function ang(v) { return v ? (v < 0 ? '<span class="neg">' + rp(v) + '</span>' : rp(v)) : '<span class="kosong">-</span>'; }
   var z = 0;
   e.rows.forEach(function (r) {
-    if (r.isTotal) { h += '<tr class="tt"><td></td><td>' + he(r.ket) + '</td><td></td><td></td><td class="n">' + rp(r.total) + '</td></tr>'; return; }
     h += '<tr' + (z++ % 2 ? ' class="z"' : '') + '><td>' + he(r.no) + '</td><td>' + he(r.ket) + '</td><td class="n">' + (r.qty ? qtyTxt(r.qty) : '<span class="kosong">-</span>') +
       '</td><td class="n">' + ang(r.harga) + '</td><td class="n">' + ang(r.total) + '</td></tr>';
   });
-  if (!e.adaTotal) h += '<tr class="tt"><td></td><td>Total Estimasi Hasil</td><td></td><td></td><td class="n">' + rp(e.jumlah) + '</td></tr>';
+  if (e.ringkas.length) e.ringkas.forEach(function (r) {
+    h += '<tr class="es-' + warnaEs(r.label) + '"><td colspan="4" style="text-align:center">' + he(r.label) + '</td><td class="n">' + rp(r.total) + '</td></tr>';
+  });
+  else h += '<tr class="tt"><td></td><td>Total Estimasi Hasil</td><td></td><td></td><td class="n">' + rp(e.jumlah) + '</td></tr>';
   return h + '</table></div><p class="note2">' + e.item + ' item, otomatis mengikuti sheet "' + he(k.lbl) + '" (kolom A-E). Item baru yang ditambah di sheet langsung ikut tampil.</p></div>';
 }
 function pilihTabEs(t) {
@@ -1401,11 +1408,17 @@ function halamanEs(h) {
   teks(k.nama, 40, 1, 13); y -= 21;
   teks(estPeriode(e), 40, 0, 10.5); y -= 24;
   kol(['No', 'Keterangan', 'Qty', 'Harga', 'Total'], 'h');
-  h.rows.forEach(function (r) {
-    if (r.isTotal) kol(['', r.ket, '', '', rp(r.total)], 'bt');
-    else kol([r.no, r.ket, qtyTxt(r.qty), r.harga ? rp(r.harga) : '-', r.total ? rp(r.total) : '-'], '');
-  });
-  if (h.last && !e.adaTotal) kol(['', 'Total Estimasi Hasil', '', '', rp(e.jumlah)], 'bt');
+  h.rows.forEach(function (r) { kol([r.no, r.ket, qtyTxt(r.qty), r.harga ? rp(r.harga) : '-', r.total ? rp(r.total) : '-'], ''); });
+  if (h.last) {
+    if (e.ringkas.length) e.ringkas.forEach(function (r) {
+      var wr = warnaEs(r.label);
+      s += (wr === 'k' ? '1 1 0' : wr === 'h' ? '0.34 0.73 0.54' : '0.43 0.62 0.92') + ' rg 40 ' + f2(y - RH) + ' 515 ' + RH + ' re f 0 g\n';
+      garis(y); garis(y - RH);
+      teks(r.label, 260 - lebar(r.label, 1, 10) / 2, 1, 10); teks(rp(r.total), 551, 1, 10, 'r');
+      y -= RH;
+    });
+    else kol(['', 'Total Estimasi Hasil', '', '', rp(e.jumlah)], 'bt');
+  }
   y = 58; teks('Dibuat ' + tgl() + ' dari data spreadsheet.' + (h.hal > 1 ? '  Halaman ' + h.no + '/' + h.hal : ''), 40, 0, 8);
   return s;
 }
@@ -1414,7 +1427,7 @@ function eksporEs() {
   var hal = [];
   K.forEach(function (k) {
     if (!estBoleh(k) || (tabEs !== 'semua' && tabEs !== k.id) || !k.est || !k.est.ok) return;
-    var per = 30, n = Math.max(1, Math.ceil(k.est.rows.length / per));
+    var per = 26, n = Math.max(1, Math.ceil(k.est.rows.length / per));
     for (var i = 0; i < n; i++) hal.push({ es: true, k: k, e: k.est, rows: k.est.rows.slice(i * per, (i + 1) * per), last: i === n - 1, no: i + 1, hal: n });
   });
   if (!hal.length) return;
