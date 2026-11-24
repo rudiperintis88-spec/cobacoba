@@ -82,21 +82,6 @@ h1{font:600 32px/1.15 var(--serif);margin:0;letter-spacing:-.01em}
 .lc .d{width:12px;height:12px;border-radius:50%;flex:none}
 .lc b{font-family:var(--mono);color:var(--ink);font-size:13.5px}
 .lc .pc{color:var(--muted)}
-/* panels */
-.panels{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-bottom:16px}
-.panel{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:14px 16px;min-width:0}
-.panel h3{margin:0 0 8px;font-size:13px;color:var(--ink2)}
-.bl{max-height:230px;overflow:auto}
-.row{display:grid;grid-template-columns:minmax(0,1fr) 38px;gap:6px;align-items:center;padding:3px 5px;border-radius:6px;cursor:pointer;border:0;background:none;width:100%;text-align:left;font:inherit;color:inherit}
-.row:hover{background:var(--accent-soft)}
-.row.on{background:var(--accent-soft);outline:2px solid var(--accent)}
-.row.on .nm{font-weight:700;color:var(--accent)}
-.row.all{border-bottom:1px solid var(--line);border-radius:6px 6px 0 0;margin-bottom:3px}
-.row.all .nm{font-weight:600}
-.row .t{min-width:0}
-.row .nm{font-size:12.5px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;display:block}
-.row .bar{display:block;height:6px;border-radius:0 3px 3px 0;background:var(--bar);margin-top:2px;min-width:2px}
-.row .c{text-align:right;font-variant-numeric:tabular-nums;font-weight:600;font-size:12.5px}
 /* filters */
 .filters{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:10px 12px;display:flex;flex-wrap:wrap;gap:8px;align-items:center;margin-bottom:12px}
 .filters input,.filters select{font:inherit;color:var(--ink);background:var(--soft);border:1px solid var(--line);border-radius:8px;padding:7px 10px;min-width:0}
@@ -120,13 +105,13 @@ td.nw{white-space:nowrap}
 .b0{background:var(--ok-bg);color:var(--ok)} .b1{background:var(--warn-bg);color:var(--warn)} .b2{background:var(--ser-bg);color:var(--ser)} .b3{background:var(--bad-bg);color:var(--bad)}
 .dash{color:var(--muted)}
 .empty{padding:30px;text-align:center;color:var(--muted)}
-@media (max-width:1100px){.sum{grid-template-columns:1fr}.panels{grid-template-columns:repeat(2,1fr)}.right{align-items:flex-start;text-align:left}.sync{justify-content:flex-start}}
+@media (max-width:1100px){.sum{grid-template-columns:1fr}.right{align-items:flex-start;text-align:left}.sync{justify-content:flex-start}}
 @media (max-width:760px){.live{white-space:normal}}
-@media (max-width:600px){.wrap{padding:20px 14px}h1{font-size:26px}.hero .big{font-size:56px}.bk,.panels{grid-template-columns:1fr}}
+@media (max-width:600px){.wrap{padding:20px 14px}h1{font-size:26px}.hero .big{font-size:56px}.bk{grid-template-columns:1fr}}
 @media print{
  @page{size:A4 landscape;margin:10mm}
  body{background:#fff;color:#000;font-size:10px}
- .tabs,.filters,.panels,.btn,.refresh,.sync{display:none!important}
+ .tabs,.filters,.btn,.refresh,.sync{display:none!important}
  .pill:not([aria-selected=true]){display:none}
  
  .tw{max-height:none;overflow:visible;border:0} th{position:static} table{width:100%}
@@ -155,7 +140,6 @@ td.nw{white-space:nowrap}
   </div>
   <div class="cabtabs" id="cabtabs"></div>
   <div class="sum" id="sum"></div>
-  <div class="panels" id="panels"></div>
   <div class="filters" id="filters"></div>
   <p class="cnt" id="cnt"></p>
   <div class="tw"><table id="tbl"></table></div>
@@ -196,7 +180,6 @@ const TABS = {
   bpkb:{ title:'BPKB Belum Siap', sumber:'Data BPKB Belum Siap Admin', ageOf:r=>daysSince(pd(r.terima)),
     cols:[['no','No','num'],['cab','Cabang','nw'],['nama','STNK a/n'],['type','Type','typ'],['rangka','No Rangka','nw'],['polisi','No Polisi','nw'],['bast','No BAST','nw'],['mohon','Tgl Mohon STNK','nw'],['terima','Terima STNK','nw'],['serah','Serah STNK','nw'],['age','Umur belum BPKB (hari)','num'],['biro','Biro Jasa'],['leasing','Leasing'],['sales','Salesman'],['spv','Supervisor'],['ket','Keterangan','ket']] }
 };
-const PANELS=[['biro','Per Biro Jasa','Semua Biro Jasa'],['leasing','Per Leasing','Semua Leasing'],['spv','Per Supervisor','Semua Supervisor']];
 const FILTERS=[['biro','Semua Biro Jasa'],['leasing','Semua Leasing'],['spv','Semua Supervisor'],['ket','Semua Keterangan'],['age','Semua Umur']];
 const emptyF = () => ({q:'',cab:'',biro:'',leasing:'',spv:'',ket:'',age:''});
 const state = { tab:'stnk', stnk:{f:emptyF(),sort:{key:'age',dir:-1}}, bpkb:{f:emptyF(),sort:{key:'age',dir:-1}}, loading:false, lastSync:null, failed:[], everOk:false };
@@ -304,18 +287,6 @@ function renderCabTabs(){
   const pill=(v,label,n)=>`<button class="pill" role="tab" data-c="${esc(v)}" aria-selected="${sel===v}">${esc(label)} <span class="n">${fmtN(n)}</span></button>`;
   $('cabtabs').innerHTML = pill('','Semua Cabang',all.length)+CABTAB.map(c=>pill(c,c,all.filter(r=>r.cab===c).length)).join('');
 }
-function renderPanels(){
-  const st=state[state.tab], all=rowsOf(state.tab);
-  $('panels').innerHTML = PANELS.map(([k,title,allLabel])=>{
-    const sub=filtered(k), m=countBy(sub,k);
-    let keys = k==='cab'? CABS.slice() : k==='biro'? [...new Set(SOURCES.flatMap(s=>s.rows.map(r=>r.biro)).filter(Boolean))] : [...new Set(all.map(r=>fval(r,k)||'(Kosong)'))];
-    keys=keys.filter(v=>(m.get(v)||0)>0 || (st.f[k]||'')===v);
-    if(k!=='cab') keys.sort((a,b)=>(m.get(b)||0)-(m.get(a)||0)||a.localeCompare(b));
-    const max=Math.max(1,...keys.map(v=>m.get(v)||0));
-    const btn=(v,label,c,bar,cls)=>`<button class="row ${cls||''} ${(st.f[k]||'')===v?'on':''}" data-k="${k}" data-v="${esc(v)}" title="${esc(label)}: ${c} unit"><span class="t"><span class="nm">${esc(label)}</span>${bar?`<span class="bar" style="width:${bar}%"></span>`:''}</span><span class="c">${fmtN(c)}</span></button>`;
-    return `<div class="panel"><h3>${title}</h3><div class="bl">`+btn('',allLabel,sub.length,0,'all')+keys.map(v=>btn(v,v,m.get(v)||0,(m.get(v)||0)/max*100)).join('')+`</div></div>`;
-  }).join('');
-}
 function renderFilters(){
   const st=state[state.tab], all=rowsOf(state.tab);
   const opts=k=>{ if(k==='age') return BUCKETS.map(b=>[b.k,b.l]); if(k==='cab') return CABS.map(c=>[c,c]); const s=[...new Set(all.map(r=>fval(r,k)||'(Kosong)'))].sort((a,b)=>a.localeCompare(b)); return s.map(v=>[v,v]); };
@@ -359,7 +330,7 @@ function exportExcel(){
   const s=document.createElement('script'); s.src='https://cdn.sheetjs.com/xlsx-0.20.1/package/dist/xlsx.full.min.js'; s.onload=go; s.onerror=csvFallback; document.head.appendChild(s);
 }
 function render(){
-  renderHead(); const rows=filtered(); renderCabTabs(); renderSummary(rows); renderPanels(); renderFilters(); renderTable(rows);
+  renderHead(); const rows=filtered(); renderCabTabs(); renderSummary(rows); renderFilters(); renderTable(rows);
 }
 document.addEventListener('click',e=>{
   const st=state[state.tab];
@@ -367,7 +338,6 @@ document.addEventListener('click',e=>{
   const pl=e.target.closest('.pill'); if(pl){ st.f.cab=pl.dataset.c; render(); return; }
   const bt=e.target.closest('.bt'); if(bt){ const v=bt.dataset.b; st.f.age=st.f.age===v?'':v; render(); return; }
   const lc=e.target.closest('.lc'); if(lc){ const k=lc.dataset.k, v=lc.dataset.v; st.f[k]=st.f[k]===v?'':v; render(); return; }
-  const row=e.target.closest('.row'); if(row){ const k=row.dataset.k, v=row.dataset.v; st.f[k]=st.f[k]===v?'':v; render(); return; }
   const th=e.target.closest('th[data-s]'); if(th){ const k=th.dataset.s; st.sort = st.sort.key===k? {key:k,dir:-st.sort.dir}:{key:k,dir:(k==='age'?-1:1)}; renderTable(filtered()); return; }
   if(e.target.closest('#refresh')) { loadAll(); return; }
   if(e.target.id==='reset'){ const c=st.f.cab; st.f=emptyF(); st.f.cab=c; render(); }
@@ -375,7 +345,7 @@ document.addEventListener('click',e=>{
   if(e.target.id==='pdf') window.print();
 });
 document.addEventListener('change',e=>{ if(e.target.dataset.f){ state[state.tab].f[e.target.dataset.f]=e.target.value; render(); } });
-document.addEventListener('input',e=>{ if(e.target.id==='q'){ state[state.tab].f.q=e.target.value; const rows=filtered(); renderSummary(rows); renderPanels(); renderTable(rows); } });
+document.addEventListener('input',e=>{ if(e.target.id==='q'){ state[state.tab].f.q=e.target.value; const rows=filtered(); renderSummary(rows); renderTable(rows); } });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && (!state.lastSync || Date.now()-state.lastSync>REFRESH_MS)) loadAll(); });
 
 prep(); render();
