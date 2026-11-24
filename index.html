@@ -3,11 +3,7 @@
 <head>
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
-<title>STNK &amp; BPKB Belum Siap</title>
-<meta property="og:type" content="website">
-<meta property="og:title" content="STNK &amp; BPKB Belum Siap">
-<meta name="twitter:card" content="summary">
-<meta name="twitter:title" content="STNK &amp; BPKB Belum Siap">
+<title>STNK & BPKB Belum Siap</title>
 <link rel="preconnect" href="https://fonts.googleapis.com">
 <link rel="stylesheet" href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,500;9..144,600&family=JetBrains+Mono:wght@500;700&display=swap">
 <style>
@@ -18,12 +14,6 @@
   --mono:"JetBrains Mono",ui-monospace,SFMono-Regular,Menlo,Consolas,monospace;
   --c0:#1a9c4a; --c1:#b45309; --c2:#c2410c; --c3:#dc2626; --crit-bg:#fdf1f1; --crit-line:#f5cccc;
   --ok-bg:#e3f4ea; --ok:#176b3a; --warn-bg:#fdf1d6; --warn:#8a5a00; --ser-bg:#fde5d3; --ser:#9a3d00; --bad-bg:#fbdcdc; --bad:#a11d1d;
-}
-@media (prefers-color-scheme:dark){
- :root{--bg:#10141b; --card:#171d27; --soft:#1c2330; --ink:#e8ecf2; --ink2:#b3bccb; --muted:#8792a5; --line:#2a3240;
-  --accent:#7ea6ff; --accent-soft:#223152; --bar:#5f86e0; --crit-bg:#3a1d1f; --crit-line:#5c2a2c;
-  --c0:#4cd07f; --c1:#f0b04c; --c2:#f58a52; --c3:#ff7b7b;
-  --ok-bg:#16382a; --ok:#7fd8a3; --warn-bg:#3d3216; --warn:#f0c765; --ser-bg:#44291a; --ser:#f5a974; --bad-bg:#491f1f; --bad:#ff9b9b;}
 }
 *{box-sizing:border-box}
 body{margin:0;background:var(--bg);color:var(--ink);font:14px/1.45 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif}
@@ -121,13 +111,49 @@ td.nw{white-space:nowrap}
  .tw{max-height:none;overflow:visible;border:0} th{position:static} table{width:100%}
  .hero .big{font-size:40px} td,th{padding:3px 5px}
 }
+
+/* ---- halaman login ---- */
+body.locked .wrap{display:none}
+.gate{position:fixed;inset:0;z-index:100;background:#ffffff;display:flex;align-items:center;justify-content:center;padding:20px}
+.gate[hidden]{display:none}
+.gatebox{width:min(400px,100%);padding:10px 8px;background:#ffffff}
+.gatebox h2{font:700 26px/1.2 system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;margin:0 0 6px;text-align:center;letter-spacing:-.01em;color:#111}
+.gatebox .gp{margin:0 0 22px;text-align:center;color:#667085;font-size:14px}
+.gatebox input{width:100%;font:inherit;font-size:15px;padding:12px 14px;border:2px solid #111;border-radius:14px;background:#fff;color:#111;margin-bottom:14px;outline:none}
+.gatebox input::placeholder{color:#8a93a3}
+.gatebox input:focus{border-color:#2563eb}
+.gpw{position:relative}
+.gpw input{padding-right:42px}
+.gpw button{position:absolute;right:6px;top:6px;border:0;background:none;cursor:pointer;color:#4a5568;padding:7px;line-height:0}
+.gateErr{min-height:18px;margin:-6px 0 10px;text-align:center;color:#dc2626;font-size:13px}
+.gbtn{width:100%;font:inherit;font-size:15px;font-weight:700;padding:13px;border:0;border-radius:10px;background:#eef2fb;color:#111;cursor:pointer}
+.gbtn:hover{background:#e1e9fb}
+.gbtn:disabled{opacity:.6;cursor:default}
 </style>
 </head>
-<body>
+<body class="locked">
+<div class="gate" id="gate">
+  <div class="gatebox">
+    <h2>STNK & BPKB Belum Siap</h2>
+    <p class="gp">Masuk untuk membuka dashboard</p>
+    <form id="gateForm" autocomplete="off" novalidate>
+      <input type="text" id="gateName" placeholder="Nama" aria-label="Nama" autocomplete="off" required>
+      <div class="gpw">
+        <input type="password" id="gateInput" placeholder="Password" aria-label="Password" autocomplete="off" required>
+        <button type="button" id="gateEye" aria-label="Tampilkan password" title="Tampilkan / sembunyikan password">
+          <svg width="22" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round"><path d="M1.5 12S5.5 5 12 5s10.5 7 10.5 7-4 7-10.5 7S1.5 12 1.5 12z"/><circle cx="12" cy="12" r="3.2"/></svg>
+        </button>
+      </div>
+      <div class="gateErr" id="gateErr"></div>
+      <button type="submit" class="gbtn" id="gateBtn">Masuk</button>
+    </form>
+  </div>
+</div>
+
 <div class="wrap">
   <div class="top">
     <div>
-      <h1>STNK &amp; BPKB Belum Siap</h1>
+      <h1>STNK & BPKB Belum Siap</h1>
       <div class="per" id="per"></div>
     </div>
     <div class="right">
@@ -355,9 +381,84 @@ document.addEventListener('change',e=>{ if(e.target.dataset.f){ state[state.tab]
 document.addEventListener('input',e=>{ if(e.target.id==='q'){ state[state.tab].f.q=e.target.value; const rows=filtered(); renderSummary(rows); renderTable(rows); } });
 document.addEventListener('visibilitychange',()=>{ if(!document.hidden && (!state.lastSync || Date.now()-state.lastSync>REFRESH_MS)) loadAll(); });
 
-prep(); render();
-loadAll();
-setInterval(()=>{ if(!document.hidden) loadAll(); }, REFRESH_MS);
+function startApp(){
+  prep(); render();
+  loadAll();
+  setInterval(()=>{ if(!document.hidden) loadAll(); }, REFRESH_MS);
+}
+
+// ---------- password: diminta setiap kali halaman dibuka/dimuat ulang (disimpan hanya di memori)
+const h53 = (str) => { let h1 = 0xdeadbeef, h2 = 0x41c6ce57; for (let i = 0; i < str.length; i++) { const ch = str.charCodeAt(i); h1 = Math.imul(h1 ^ ch, 2654435761); h2 = Math.imul(h2 ^ ch, 1597334677); } h1 = Math.imul(h1 ^ (h1 >>> 16), 2246822507) ^ Math.imul(h2 ^ (h2 >>> 13), 3266489909); h2 = Math.imul(h2 ^ (h2 >>> 16), 2246822507) ^ Math.imul(h1 ^ (h1 >>> 13), 3266489909); return 4294967296 * (2097151 & h2) + (h1 >>> 0); };
+const PASS_HASH = 2998845077603307;   // perintis2026
+const APPS_SCRIPT_URL = 'https://script.google.com/macros/s/AKfycbyLl7p16a1CSTj2prCGzKjUDxeIEyJsWwaCG_Nu2EEIFV2eoDlB7onRJ0KvMyPnNaAljw/exec';
+const CABANG_NAME = "STNK & BPKB Belum Siap (Gabungan)";
+const NAMA_KATA_TERLARANG = ["stnk","bpkb","belum","siap","admin","dashboard","perintis","perkasa","test","tes","nama","gatsu","flamboyan","gagak","hitam"];
+function validName(v){
+  v = (v || '').trim();
+  if (!/^[A-Za-z.' -]+$/.test(v)) return false;
+  const words = v.split(/\s+/).filter(Boolean);
+  if (words.length < 2) return false;
+  const lower = v.toLowerCase();
+  for (let i = 0; i < NAMA_KATA_TERLARANG.length; i++){
+    if (lower.indexOf(NAMA_KATA_TERLARANG[i]) >= 0) return false;
+  }
+  return true;
+}
+function _ambilPerangkat(){var ua=navigator.userAgent||'';var os='Tidak diketahui';if(/Windows/i.test(ua))os='Windows';else if(/Android/i.test(ua))os='Android';else if(/iPhone|iPad|iPod/i.test(ua))os='iOS';else if(/Macintosh|Mac OS/i.test(ua))os='Mac';else if(/Linux/i.test(ua))os='Linux';var br='Tidak diketahui';if(/Edg\//i.test(ua))br='Edge';else if(/OPR\//i.test(ua))br='Opera';else if(/Chrome\//i.test(ua)&&!/Chromium/i.test(ua))br='Chrome';else if(/Firefox\//i.test(ua))br='Firefox';else if(/Safari\//i.test(ua)&&!/Chrome/i.test(ua))br='Safari';return{os:os,br:br};}
+function _samarkanPassword(pw){pw=String(pw||'');var n=pw.length;if(!n)return '';if(n<=4)return pw[0]+'*'.repeat(n-1);return pw.slice(0,2)+'*'.repeat(n-4)+pw.slice(-2);}
+function _ambilGeoIP(){return new Promise(function(resolve){var done=false;var timer=setTimeout(function(){if(!done){done=true;resolve({});}},2500);fetch('https://ipapi.co/json/').then(function(r){return r.json();}).then(function(d){if(done)return;done=true;clearTimeout(timer);resolve({ip:d.ip||'-',negara:d.country_name||'-',kota:d.city||'-',lat:(d.latitude!=null?d.latitude:''),lng:(d.longitude!=null?d.longitude:'')});}).catch(function(){if(!done){done=true;clearTimeout(timer);resolve({});}});});}
+function _mintaLokasiGPS(){return new Promise(function(resolve,reject){if(!navigator.geolocation){reject('nogeo');return;}navigator.geolocation.getCurrentPosition(function(pos){resolve({lat:pos.coords.latitude,lng:pos.coords.longitude});},function(err){reject(err);},{enableHighAccuracy:true,timeout:10000,maximumAge:60000});});}
+function _isMobileDevice(){return /Android|iPhone|iPad|iPod|Mobile|Windows Phone|BlackBerry|webOS/i.test(navigator.userAgent||'');}
+function _alamatDariKoordinat(lat,lng){return fetch('https://nominatim.openstreetmap.org/reverse?format=json&lat='+lat+'&lon='+lng+'&zoom=18&addressdetails=1',{headers:{'Accept':'application/json'}}).then(function(r){return r.json();}).then(function(d){var a=d.address||{};return{alamat:d.display_name||'-',negara:a.country||'-',kota:a.city||a.town||a.village||a.county||a.regency||'-'};}).catch(function(){return{alamat:'-',negara:'-',kota:'-'};});}
+function _getDeviceId(){try{var id=localStorage.getItem('pp_device_id');if(!id||id==='undefined'||id==='null'){id=Date.now().toString(36)+'-'+Math.random().toString(36).slice(2)+'-'+Math.random().toString(36).slice(2);localStorage.setItem('pp_device_id',id);}return id;}catch(e){return 'no-storage-'+Date.now()+'-'+Math.random().toString(36).slice(2);}}
+function _cekPerangkatSekali(nama,cabang,urlScript){return new Promise(function(resolve){var id=_getDeviceId();var cbName='_devcb_'+Date.now()+'_'+Math.floor(Math.random()*1e6);var done=false;var script=document.createElement('script');var timer=setTimeout(function(){if(!done){done=true;cleanup();resolve(null);}},9000);function cleanup(){clearTimeout(timer);try{delete window[cbName];}catch(e){window[cbName]=undefined;}if(script.parentNode)script.parentNode.removeChild(script);}window[cbName]=function(data){if(done)return;done=true;cleanup();resolve(data||null);};script.src=urlScript+'?action=cek&device='+encodeURIComponent(id)+'&nama='+encodeURIComponent(nama)+'&cabang='+encodeURIComponent(cabang)+'&callback='+cbName;script.onerror=function(){if(!done){done=true;cleanup();resolve(null);}};document.body.appendChild(script);});}
+function _cekPerangkat(nama,cabang,urlScript){return _cekPerangkatSekali(nama,cabang,urlScript).then(function(r){if(r)return r;return _cekPerangkatSekali(nama,cabang,urlScript);}).then(function(r){if(r)return r;return _cekPerangkatSekali(nama,cabang,urlScript);}).then(function(r){return r||{status:'error'};});}
+function sendLoginNotif(nama, cabang, pwTyped, loc){
+  var _dev = _ambilPerangkat();
+  _ambilGeoIP().then(function(geo){
+    if(loc){geo.lat=loc.lat;geo.lng=loc.lng;if(loc.negara)geo.negara=loc.negara;if(loc.kota)geo.kota=loc.kota;}
+    try {
+      fetch(APPS_SCRIPT_URL, {
+        method: 'POST',
+        mode: 'no-cors',
+        headers: { 'Content-Type': 'text/plain;charset=utf-8' },
+        body: JSON.stringify({ nama: nama, status: 'Berhasil', password: _samarkanPassword(pwTyped), cabang: cabang, link: location.href, akses: 'Akses Dashboard', perangkat: _dev.os, browser: _dev.br, ip: geo.ip||'-', negara: geo.negara||'-', kota: geo.kota||'-', lat: geo.lat||'', lng: geo.lng||'', alamat: (loc&&loc.alamat)||'-', waktu: new Date().toISOString() })
+      });
+    } catch (e) {}
+  });
+}
+const gate = $('gate'), gateForm = $('gateForm'), gateName = $('gateName'), gateInput = $('gateInput'), gateErr = $('gateErr'), gateEye = $('gateEye');
+gateEye.addEventListener('click', () => { const show = gateInput.type === 'password'; gateInput.type = show ? 'text' : 'password'; });
+gateForm.addEventListener('submit', async (ev) => {
+  ev.preventDefault();
+  if (!gateName.value.trim()){ gateErr.textContent = 'Nama wajib diisi.'; gateName.focus(); return; }
+  if (!validName(gateName.value)){ gateErr.textContent = 'Masukkan nama lengkap yang benar (minimal 2 kata).'; gateName.focus(); return; }
+  if (h53(gateInput.value) !== PASS_HASH) { gateErr.textContent = 'Password salah. Coba lagi.'; gateInput.value = ''; gateInput.focus(); return; }
+  const btn = gateForm.querySelector('button[type="submit"]');
+  btn.disabled = true; gateErr.textContent = 'Memeriksa perangkat...';
+  const namaTyped = gateName.value.trim(), pwTyped = gateInput.value;
+  const _devChk = await _cekPerangkat(namaTyped, CABANG_NAME, APPS_SCRIPT_URL);
+  if (_devChk.status !== 'approved') {
+    gateErr.textContent = _devChk.status==='pending' ? 'Perangkat ini belum disetujui admin. Permintaan sudah dikirim, coba Masuk lagi setelah disetujui.' : (_devChk.status==='rejected' ? 'Perangkat ini ditolak admin.' : 'Tidak bisa menghubungi server. Coba lagi.');
+    btn.disabled = false; return;
+  }
+  let _loc = null;
+  if (_isMobileDevice()) {
+    gateErr.textContent = 'Meminta izin lokasi...';
+    try {
+      const _gps = await _mintaLokasiGPS();
+      const _geo = await _alamatDariKoordinat(_gps.lat, _gps.lng);
+      _loc = {lat:_gps.lat, lng:_gps.lng, alamat:_geo.alamat, negara:_geo.negara, kota:_geo.kota};
+    } catch (gpsErr) {
+      gateErr.textContent = 'Izin lokasi diperlukan untuk login. Mohon izinkan akses lokasi, lalu coba lagi.';
+      btn.disabled = false; return;
+    }
+  }
+  sendLoginNotif(namaTyped, CABANG_NAME, pwTyped, _loc);
+  gate.hidden = true; document.body.classList.remove('locked'); gateErr.textContent = ''; btn.disabled = false;
+  startApp();
+});
+setTimeout(() => gateName.focus(), 50);
 </script>
 </body>
 </html>
